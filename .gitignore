@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Audit harness output (investigation only, not test artifacts)
+tests/audit/screenshots/
+tests/e2e/verification-screenshots/
+audit-screenshots/
+
+# Editor / OS
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Archives
+*.zip

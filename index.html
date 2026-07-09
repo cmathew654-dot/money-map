@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Account Flow Visualizer Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body data-theme="stewardship">
+    <div class="local-server-notice" id="localServerNotice" role="alert" hidden>
+      <strong>Run npm run dev</strong>
+      <span>Open http://localhost:4173 instead of this file directly.</span>
+    </div>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Command bar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <div class="brand-square">
+              <svg viewBox="0 0 32 32">
+                <path d="M 0,32 L 4,30 L 8,24 L 11,28 L 15,16 L 18,22 L 21,4 L 25,15 L 32,32 Z" fill="#1a1410"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="wm">Aster Ridge</span>
+              <span class="sub">Wealth</span>
+            </div>
+          </div>
+          <div>
+            <p class="eyebrow" id="themeEyebrow">Stewardship Review · Aster Ridge Wealth</p>
+            <h1 id="templateTitle">Create New Visual</h1>
+          </div>
+        </div>
+
+        <div class="motif-title-watermark" aria-hidden="true">
+          <svg viewBox="0 0 220 60" preserveAspectRatio="xMidYMid slice">
+            <path d="M 0,60 L 30,15 L 50,30 L 80,5 L 110,25 L 140,18 L 175,35 L 200,25 L 220,30 L 220,60 Z" fill="currentColor"/>
+          </svg>
+        </div>
+
+        <div class="command-cluster">
+          <button class="command-button" type="button" id="templateButton">
+            <span class="button-icon" aria-hidden="true">S</span>
+            <span id="templateButtonText">Starting layouts</span>
+          </button>
+
+          <div class="segmented-control" aria-label="View mode">
+            <button class="segment is-active" type="button" data-mode="proposed">Proposed</button>
+            <button class="segment" type="button" data-mode="current">Current</button>
+          </div>
+
+          <button class="command-button" type="button" id="themeButton">
+            <span class="button-icon" aria-hidden="true">T</span>
+            <span id="themeButtonText">Stewardship</span>
+          </button>
+
+          <button class="icon-button" type="button" id="fitButton" title="Fit canvas" aria-label="Fit canvas">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H3v5" />
+              <path d="M16 3h5v5" />
+              <path d="M21 16v5h-5" />
+              <path d="M3 16v5h5" />
+            </svg>
+          </button>
+
+          <button class="icon-button" type="button" id="tidyButton" title="Tidy layout" aria-label="Tidy layout">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 18h14" />
+              <path d="M7 14h10" />
+              <path d="M9 10h6" />
+              <path d="M12 5v5" />
+            </svg>
+          </button>
+
+          <button class="icon-button" type="button" id="resetButton" title="Reset scenario" aria-label="Reset scenario">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8v6h6" />
+              <path d="M20 12a8 8 0 0 0-14-5.3L4 8" />
+              <path d="M4 12a8 8 0 0 0 14 5.3" />
+            </svg>
+          </button>
+
+          <div class="inventory-anchor" id="inventoryAnchor">
+            <button class="icon-button inventory-button" type="button" id="inventoryButton" title="Account inventory" aria-label="Account inventory" aria-expanded="false" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 8h16M4 12h16M4 16h16" />
+              </svg>
+              <span class="inventory-count" id="inventoryCount">0</span>
+            </button>
+            <div class="inventory-popover is-hidden" id="inventoryPopover" role="dialog" aria-label="Account inventory"></div>
+          </div>
+
+          <button class="primary-action" type="button" id="presentationButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v10H4z" />
+              <path d="M12 15v4" />
+              <path d="M8 19h8" />
+            </svg>
+            Present
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace" id="workspace">
+        <nav class="canvas-dock" aria-label="Canvas tools">
+          <button class="dock-button dock-select" type="button" data-dock="select" title="Select, move, pan">
+            <span class="dock-icon select-icon" aria-hidden="true"></span>
+            <span>Select</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="shapes" title="Shape">
+            <span class="dock-icon shapes-icon" aria-hidden="true"></span>
+            <span>Shape</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="text" title="Text">
+            <span class="dock-icon text-icon" aria-hidden="true"></span>
+            <span>Text</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="finance" title="Finance">
+            <span class="dock-icon account-icon" aria-hidden="true"></span>
+            <span>Finance</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="connectors" title="Connector">
+            <span class="dock-icon connector-icon" aria-hidden="true"></span>
+            <span>Connector</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="templates" title="Starting layouts">
+            <span class="dock-icon template-icon" aria-hidden="true"></span>
+            <span>Starting layouts</span>
+          </button>
+          <button class="dock-button" type="button" data-dock="themes" title="Themes">
+            <span class="dock-icon theme-icon" aria-hidden="true"></span>
+            <span>Themes</span>
+          </button>
+        </nav>
+
+        <div class="dock-flyout is-hidden" id="dockFlyout" aria-label="Dock options"></div>
+
+        <section class="start-screen" id="startScreen" aria-label="Create New Visual"></section>
+
+        <section class="canvas-stage" id="canvasStage" aria-label="Advisor diagram canvas">
+          <div class="motif-ridgeline" aria-hidden="true">
+            <svg viewBox="0 0 540 260" preserveAspectRatio="xMaxYMax slice">
+              <path d="M 0,260 L 70,160 L 130,200 L 220,60 L 300,130 L 370,80 L 450,150 L 510,100 L 540,130 L 540,260 Z" fill="currentColor"/>
+              <path d="M 60,260 L 140,200 L 200,220 L 280,140 L 360,180 L 440,150 L 540,210 L 540,260 Z" fill="currentColor" opacity="0.55"/>
+            </svg>
+          </div>
+          <div class="canvas-world" id="canvasWorld">
+            <svg class="flow-layer" id="flowLayer" viewBox="0 0 4800 3000" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <marker id="arrowHead" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                  <path d="M0 0 L8 4.5 L0 9 z" fill="context-stroke"></path>
+                </marker>
+                <marker id="chevronHead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                  <path d="M1 1 L8 5 L1 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </marker>
+                <marker id="dotHead" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                  <circle cx="4" cy="4" r="3" fill="context-stroke"></circle>
+                </marker>
+                <marker id="circleHead" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                  <circle cx="4.5" cy="4.5" r="3.2" fill="var(--item-bg)" stroke="context-stroke" stroke-width="1.8"></circle>
+                </marker>
+                <marker id="diamondHead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                  <path d="M5 1 L9 5 L5 9 L1 5 z" fill="context-stroke"></path>
+                </marker>
+              </defs>
+            </svg>
+
+            <div class="object-layer" id="objectLayer"></div>
+            <div class="label-layer" id="labelLayer"></div>
+
+            <svg class="handle-layer" id="handleLayer" viewBox="0 0 4800 3000" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </section>
+
+        <div class="hud-layer" id="hudLayer" aria-label="Context controls"></div>
+        <aside class="scenario-rail" id="scenarioRail" aria-label="Scenario controls"></aside>
+        <div class="zoom-cluster" aria-label="Canvas zoom controls">
+          <button type="button" data-zoom="out" aria-label="Zoom out">-</button>
+          <span id="zoomReadout">100%</span>
+          <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+        </div>
+        <div class="toast-host" id="toastHost" aria-live="polite" aria-atomic="true"></div>
+      </main>
+    </div>
+
+    <button class="presentation-exit" type="button" id="presentationExit">Exit presentation</button>
+
+    <script>
+      if (window.location.protocol === "file:") {
+        document.body.classList.add("file-protocol-blocked");
+        const localServerNotice = document.getElementById("localServerNotice");
+        if (localServerNotice) localServerNotice.hidden = false;
+      } else {
+        const appScript = document.createElement("script");
+        appScript.type = "module";
+        appScript.src = "src/main.js";
+        document.body.append(appScript);
+      }
+    </script>
+  </body>
+</html>

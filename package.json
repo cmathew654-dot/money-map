@@ -1,0 +1,23 @@
+{
+  "name": "account-flow-visualizer-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static advisor canvas prototype with Playwright E2E coverage.",
+  "scripts": {
+    "dev": "http-server -p 4173 --silent",
+    "audit:layout": "node tests/audit/inspect-layout.js",
+    "audit:layout:strict": "node tests/audit/inspect-layout.js --strict",
+    "test": "playwright test",
+    "test:full": "playwright test",
+    "test:attack": "playwright test --project=chromium-1440",
+    "test:attack:headed": "playwright test --project=chromium-1440 --headed",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:visual": "playwright test --project=screenshots",
+    "test:visual:update": "playwright test --project=screenshots --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "http-server": "^14.1.1"
+  }
+}
