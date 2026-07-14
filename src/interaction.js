@@ -9,6 +9,12 @@ import { resolvePortPoint } from "./canvasGeometry.js";
 const EDGE_CONNECTOR_ZONE_PX = 24;
 const EDGE_CONNECTOR_INTENT_PX = 8;
 const EDGE_CONNECTOR_SNAP_RADIUS = 92;
+// Edge-connector drops only commit onto a node the pointer actually reaches: the
+// hit-test (connectorNodeFromClientPoint) covers the node body, and this small
+// border tolerance covers the immediate rim. A wide fallback radius (the old
+// EDGE_CONNECTOR_SNAP_RADIUS) let an ordinary reposition nudge near an edge latch
+// onto a neighbouring tile across an empty gap, fabricating duplicate flows.
+const EDGE_CONNECTOR_TARGET_RADIUS = 16;
 const EDGE_PIN_SNAP_RADIUS = 82;
 const EDGE_PIN_INSET = 16;
 const PINNED_ENDPOINT_PORTS = {
@@ -1643,7 +1649,7 @@ function nearestConnectorNode(point, excludeId = null, options = {}) {
       nearestDistance = distance;
     }
   });
-  return nearestDistance <= (options.radius || EDGE_CONNECTOR_SNAP_RADIUS) ? nearest : null;
+  return nearestDistance <= (options.radius || EDGE_CONNECTOR_TARGET_RADIUS) ? nearest : null;
 }
 
 export function nearestFinanceItem(point, excludeId = null, options = {}) {
