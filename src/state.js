@@ -16,6 +16,20 @@ export const compactCurrency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0
 });
 
+// Compact currency that keeps up to 2 fraction digits so a header total does not
+// round a $1,592K sum up to a misleading "$2M". Used for the account inventory so
+// the header total and its category subtotals/rows stay mutually consistent.
+export const inventoryCurrency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 2
+});
+
+export function inventoryDollars(value) {
+  return inventoryCurrency.format(Math.round(Number(value) || 0));
+}
+
 export const flowTypes = {
   rollover: "Rollover",
   transfer: "Transfer",
@@ -524,6 +538,23 @@ export function toggleMultiSelectItem(id) {
 
 export function isFormField(node) {
   return Boolean(node?.closest?.("input, textarea, select, [contenteditable='true']"));
+}
+
+// Genuine text entry only: text/number inputs, textareas, and contenteditable.
+// Checkboxes, radios, range sliders, buttons and selects are NOT text entry, so
+// they must not swallow undo/redo shortcuts.
+export function isTextEntryTarget(node) {
+  if (!node) return false;
+  if (node.closest?.("[contenteditable='true']")) return true;
+  const field = node.closest?.("input, textarea");
+  if (!field) return false;
+  if (field.tagName === "TEXTAREA") return true;
+  const type = String(field.type || "text").toLowerCase();
+  return !["checkbox", "radio", "range", "button", "submit", "reset", "color", "file", "image"].includes(type);
+}
+
+export function isPresentationMode() {
+  return typeof document !== "undefined" && Boolean(document.body?.classList?.contains("presentation"));
 }
 
 export function nextZIndex() {

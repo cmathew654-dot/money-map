@@ -162,9 +162,10 @@ function checkLabelVsMath(state, stripLabel, label) {
   const cadenceFor = (conn) => conn.cadence || (monthly.has(conn.scenarioKey) ? "monthly" : "oneTime");
   const need = Number(state.scenario.monthlyNeed) || 0;
   const coverage = state.connectors.filter((conn) => conn.timing !== "future" && targetEffect(conn) === "cashflowCoverage");
-  const mapped = coverage.length
-    ? coverage.reduce((sum, conn) => sum + (cadenceFor(conn) === "monthly" ? (Number(conn.amount) || 0) / 12 : Number(conn.amount) || 0), 0)
-    : (Number(state.scenario.flexibleIncome || state.scenario.monthlyDistribution) || 0) + (state.scenario.annuityOn ? Number(state.scenario.annuityMonthlyIncome) || 0 : 0) + (Number(state.scenario.guaranteedIncome) || 0);
+  // Mapped income comes only from genuine coverage connectors. When none exist
+  // the app no longer fabricates a mapped figure from raw scenario defaults, so
+  // mapped is 0 (and the banner is suppressed / this branch is skipped).
+  const mapped = coverage.reduce((sum, conn) => sum + (cadenceFor(conn) === "monthly" ? (Number(conn.amount) || 0) / 12 : Number(conn.amount) || 0), 0);
   const expected = mapped - need >= 0 ? "Surplus" : "Gap";
   return stripLabel.includes(expected)
     ? []
@@ -258,11 +259,13 @@ async function readInventoryTotal(page) {
 }
 
 function compactDollars(value) {
+  // Matches the app's inventory formatter: compact with up to 2 fraction digits
+  // so a $1,592K sum shows as "$1.59M", not a misleading "$2M".
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     notation: "compact",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 2
   }).format(Math.round(Number(value) || 0));
 }
 
@@ -333,9 +336,12 @@ for (const templateId of ALL_TEMPLATES) {
       });
       const surplusStrip = await readStripLabel(page);
       const surplusTile = await readPaycheckGapLabel(page);
-      if (surplusTile) {
-        expect(surplusStrip).toContain("Surplus");
-        expect(surplusTile).toBe("Surplus");
+      // Templates with income coverage flip to Surplus under this scenario. Ones
+      // without coverage (roth/blank) keep an honest Gap -- mapped is $0, not a
+      // figure fabricated from scenario defaults -- but the strip and the paycheck
+      // tile must always show the SAME label. Assert that agreement.
+      if (surplusTile && surplusStrip !== null) {
+        expect(surplusStrip).toContain(surplusTile);
       }
 
       await applyScenario(page, {

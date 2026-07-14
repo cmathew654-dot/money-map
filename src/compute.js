@@ -197,8 +197,19 @@ function connectorIncludedInProposedBalances(conn) {
   return !connectorSemanticIsDeferred(semantics);
 }
 
+export function scenarioHasAnnuityEntity() {
+  return state.connectors.some((conn) => {
+    const scenarioKey = connectorSemantic(conn).scenarioKey;
+    return scenarioKey === "annuityIncome" || scenarioKey === "annuityPremium";
+  });
+}
+
 export function monthlyDistributionIncludesAnnuity(conn) {
   if (connectorSemantic(conn).scenarioKey !== "monthlyDistribution" || !state.scenario.annuityOn) return false;
+  // Relevance gate: the annuity toggle may only fold annuity income into the
+  // portfolio draw when the loaded template actually contains an annuity entity.
+  // Without one, toggling annuityOn must be inert (no phantom income injected).
+  if (!scenarioHasAnnuityEntity()) return false;
   const targetId = conn.target?.itemId;
   return !state.connectors.some((other) => (
     other.id !== conn.id &&
@@ -259,41 +270,32 @@ export function syncScenarioConnectors() {
   });
 }
 
-function connectorHasCashflowSemantics(conn, targetItemId = null) {
-  if (targetItemId && conn?.target?.itemId !== targetItemId) return false;
-  const semantics = connectorSemantic(conn);
-  return (
-    connectorTargetEffect(conn) === "cashflowCoverage" ||
-    MONTHLY_CONNECTOR_SCENARIO_KEYS.has(semantics.scenarioKey) ||
-    (semantics.cadence === "monthly" && (semantics.flowType === "income" || semantics.flowType === "rmd"))
-  );
-}
-
 function needForPaycheckTarget(targetItemId) {
   const item = targetItemId ? getItem(targetItemId) : null;
   const data = item?.financeId ? state.financeData[item.financeId] : null;
   return Number(data?.monthlyNeed ?? item?.monthlyNeed ?? state.scenario.monthlyNeed) || 0;
 }
 
-function cashflowSummaryFromCoverage(coverage, need, hasConnectorCashflow, fallbackEnabled = true) {
-  const mappedFromConnectors = coverage.reduce((sum, conn) => sum + connectorDisplayAmount(conn), 0);
+function cashflowSummaryFromCoverage(coverage, need) {
+  // Mapped income is derived ONLY from genuine income connectors that cover the
+  // paycheck. When a template has no such connectors we must not fabricate a
+  // mapped figure from raw scenario defaults (roth/estate/blank) -- that would
+  // invent income that has no node on the canvas. hasLiveCashflow gates banner
+  // visibility so no dangling Need/Gap/Mapped banner appears.
+  const mapped = coverage.reduce((sum, conn) => sum + connectorDisplayAmount(conn), 0);
   const guaranteed = coverage.reduce((sum, conn) => {
     const semantics = connectorSemantic(conn);
     return /guaranteed|annuity|pension|socialSecurity/i.test(String(semantics.domainRole || semantics.scenarioKey || conn.label || ""))
       ? sum + connectorDisplayAmount(conn)
       : sum;
   }, 0);
-  const fallbackAnnuity = state.scenario.annuityOn ? Number(state.scenario.annuityMonthlyIncome) || 0 : 0;
-  const fallbackGuaranteed = (Number(state.scenario.guaranteedIncome) || 0) + fallbackAnnuity;
-  const fallbackFlexible = Number(state.scenario.flexibleIncome || state.scenario.monthlyDistribution) || 0;
-  const mapped = hasConnectorCashflow || !fallbackEnabled ? mappedFromConnectors : fallbackFlexible + fallbackGuaranteed;
-  const flexible = hasConnectorCashflow || !fallbackEnabled ? mapped - guaranteed : fallbackFlexible;
   return {
     need,
-    flexible,
+    flexible: mapped - guaranteed,
     guaranteed,
     mapped,
-    gap: mapped - need
+    gap: mapped - need,
+    hasLiveCashflow: coverage.length > 0
   };
 }
 
@@ -461,14 +463,12 @@ export function computeCashflowSummary(targetItemId = null) {
     const coverage = state.connectors.filter((conn) => (
       conn.target?.itemId === targetItemId && connectorCountsTowardCashflow(conn)
     ));
-    const hasConnectorCashflow = state.connectors.some((conn) => connectorHasCashflowSemantics(conn, targetItemId));
-    return cashflowSummaryFromCoverage(coverage, need, hasConnectorCashflow, coverage.length === 0);
+    return cashflowSummaryFromCoverage(coverage, need);
   }
 
   const need = Number(state.scenario.monthlyNeed) || 0;
   const coverage = state.connectors.filter((conn) => connectorCountsTowardCashflow(conn));
-  const hasConnectorCashflow = state.connectors.some((conn) => connectorHasCashflowSemantics(conn));
-  return cashflowSummaryFromCoverage(coverage, need, hasConnectorCashflow, true);
+  return cashflowSummaryFromCoverage(coverage, need);
 }
 
 function connectorViewFromState(conn) {

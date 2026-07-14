@@ -1,4 +1,4 @@
-import { state, dom, WORLD, currency, flowTypes, routeStyles, strokeStyles, arrowStyles, labelModes, widthModes, colorModes, primitiveShapes, financeVisuals, accountCategories, defaultVisualByCategory, textStyles, escapeHtml, compactDollars, dollars, formatMoneyInput, plainMoneyInput, kebab, clamp, isAttachedEndpoint, getItem, getGroup, getConnector, getNode, selectedItemIds, hasMultiSelection, itemIsSelected, isLockedNode } from "./state.js";
+import { state, dom, WORLD, currency, flowTypes, routeStyles, strokeStyles, arrowStyles, labelModes, widthModes, colorModes, primitiveShapes, financeVisuals, accountCategories, defaultVisualByCategory, textStyles, escapeHtml, compactDollars, inventoryDollars, dollars, formatMoneyInput, plainMoneyInput, kebab, clamp, isAttachedEndpoint, getItem, getGroup, getConnector, getNode, selectedItemIds, hasMultiSelection, itemIsSelected, isLockedNode, isPresentationMode } from "./state.js";
 import { themes, shapePalette, textPalette, financePalette, groupPalette, connectorPalette, templateFactories, templateCatalogSections, getTheme } from "./templates.js";
 import { syncComputedValues, fillPercent, financeState, computeConnectorWidth, getConnectorColor, screenPoint, computeConnectorPath, computeConnectorPreviewPath, markerUrl, computeCanvasViewModel, getCanvasState, flowBreakdownForItem, withConnectorScoringCache, connectorDisplayAmount, connectorDisplayAmountText, connectorUsesMonthlyDisplay, connectorMotionEnabled, connectorHasManualAmount, connectorAmountSource, connectorScenarioDriver, connectorTimeProfile } from "./compute.js";
 import { renderViewport } from "./viewport.js";
@@ -685,12 +685,15 @@ export function renderItem(item) {
 
 export function renderEdgeHandles(item) {
   if (item.type !== "finance" || isLockedNode(item)) return "";
+  // In presentation (view-only) the edge handles create connectors, so they must
+  // be removed from the tab order as well as being inert to pointer input.
+  const tab = isPresentationMode() ? ' tabindex="-1"' : "";
   return `
     <div class="item-edge-handles" aria-hidden="true">
-      <button class="item-edge-handle north" type="button" data-edge-handle="north" data-item-id="${attr(item.id)}" aria-label="Create connector from top edge"></button>
-      <button class="item-edge-handle east" type="button" data-edge-handle="east" data-item-id="${attr(item.id)}" aria-label="Create connector from right edge"></button>
-      <button class="item-edge-handle south" type="button" data-edge-handle="south" data-item-id="${attr(item.id)}" aria-label="Create connector from bottom edge"></button>
-      <button class="item-edge-handle west" type="button" data-edge-handle="west" data-item-id="${attr(item.id)}" aria-label="Create connector from left edge"></button>
+      <button class="item-edge-handle north" type="button"${tab} data-edge-handle="north" data-item-id="${attr(item.id)}" aria-label="Create connector from top edge"></button>
+      <button class="item-edge-handle east" type="button"${tab} data-edge-handle="east" data-item-id="${attr(item.id)}" aria-label="Create connector from right edge"></button>
+      <button class="item-edge-handle south" type="button"${tab} data-edge-handle="south" data-item-id="${attr(item.id)}" aria-label="Create connector from bottom edge"></button>
+      <button class="item-edge-handle west" type="button"${tab} data-edge-handle="west" data-item-id="${attr(item.id)}" aria-label="Create connector from left edge"></button>
     </div>
   `;
 }
@@ -708,7 +711,8 @@ export function editableFinanceValue(item, value) {
   const editable = itemFieldIsEditing(item, "financeValue");
   const rawValue = state.financeData[item.financeId]?.value ?? value ?? 0;
   const displayValue = editable ? plainMoneyInput(rawValue) : compactDollars(value);
-  return `<div class="finance-value editable-text editable-money" ${editableAttrs("item", "financeValue", { id: item.id }, editable)} data-placeholder="Value">${escapeHtml(displayValue)}</div>`;
+  const shortfall = !editable && Number(value) < 0;
+  return `<div class="finance-value editable-text editable-money${shortfall ? " is-shortfall" : ""}" ${editableAttrs("item", "financeValue", { id: item.id }, editable)}${shortfall ? shortfallTitle(value) : ""} data-placeholder="Value">${escapeHtml(displayValue)}</div>`;
 }
 
 function isRothTaxReserveTradeoff(item) {
@@ -1114,6 +1118,7 @@ export function updateItemValues() {
     const valueIsBeingEdited = state.editingItemId === item.id && valueEl?.isContentEditable && document.activeElement === valueEl;
     if (valueEl && !valueIsBeingEdited) {
       valueEl.textContent = compactDollars(value);
+      applyShortfallState(valueEl, value);
     }
 
     const deltaEl = node.querySelector(".delta");
@@ -1124,7 +1129,17 @@ export function updateItemValues() {
     }
 
     const readout = document.querySelector(`[data-popover-readout="after-flows"][data-item-id="${itemSelectorId}"]`);
-    if (readout) readout.textContent = compactDollars(value);
+    if (readout) {
+      readout.textContent = compactDollars(value);
+      applyShortfallState(readout, value);
+    }
+    // Re-derive the "$X start - $Y out" caption so a value edit updates it live.
+    const breakdownEl = document.querySelector(`.flow-breakdown[data-item-id="${itemSelectorId}"]`);
+    if (breakdownEl) {
+      const breakdownText = financeBreakdownText(item);
+      breakdownEl.textContent = breakdownText;
+      breakdownEl.toggleAttribute("hidden", !breakdownText);
+    }
     if (state.selection?.kind === "item" && state.selection.id === item.id) {
       const quickValueInput = dom.hudLayer.querySelector('.selection-inspector input[data-input="finance-value"]');
       const dataValue = Number(state.financeData[item.financeId]?.value) || 0;
@@ -2261,6 +2276,35 @@ function inspectorActionsForSelection(summary) {
   `;
 }
 
+// Re-derivable caption ("$X start − $Y out"). Recomputed from the current
+// stored value + flows so a value edit is reflected immediately.
+export function financeBreakdownText(item) {
+  if (!item?.financeId || state.viewMode === "current") return "";
+  const data = state.financeData[item.financeId] || {};
+  const flows = flowBreakdownForItem(item.id);
+  if (!(flows.inflow > 0 || flows.outflow > 0)) return "";
+  const startingValue = Number(data.value || 0);
+  return `${compactDollars(startingValue)} start${flows.inflow > 0 ? ` + ${compactDollars(flows.inflow)} in` : ""}${flows.outflow > 0 ? ` − ${compactDollars(flows.outflow)} out` : ""}`;
+}
+
+// Computed net balances can go negative even though editable inputs clamp to >=0.
+// Render such balances as an explicit shortfall (warning state + tooltip) rather
+// than a bare "-$48K" on a client-facing card.
+export function shortfallClass(value) {
+  return Number(value) < 0 ? " is-shortfall" : "";
+}
+export function shortfallTitle(value) {
+  return Number(value) < 0
+    ? ` title="Shortfall — projected net balance is ${escapeHtml(compactDollars(value))} (below $0)"`
+    : "";
+}
+function applyShortfallState(el, value) {
+  const shortfall = Number(value) < 0;
+  el.classList.toggle("is-shortfall", shortfall);
+  if (shortfall) el.title = `Shortfall — projected net balance is ${compactDollars(value)} (below $0)`;
+  else el.removeAttribute("title");
+}
+
 function itemInspectorDataBody(item) {
   const data = item.financeId ? state.financeData[item.financeId] || {} : null;
   const viewModel = computeCanvasViewModel();
@@ -2269,12 +2313,7 @@ function itemInspectorDataBody(item) {
   const isCurrentMode = state.viewMode === "current";
   const cashflow = viewModel.cashflow;
   const balanceLabel = isPaycheck ? "Mapped income / year" : isCurrentMode ? "Current balance" : "Net balance";
-  const flows = item.financeId ? flowBreakdownForItem(item.id) : { inflow: 0, outflow: 0 };
-  const startingValue = Number(data?.value || 0);
-  const showBreakdown = !isCurrentMode && (flows.inflow > 0 || flows.outflow > 0);
-  const breakdownText = showBreakdown
-    ? `${compactDollars(startingValue)} start${flows.inflow > 0 ? ` + ${compactDollars(flows.inflow)} in` : ""}${flows.outflow > 0 ? ` - ${compactDollars(flows.outflow)} out` : ""}`
-    : "";
+  const breakdownText = financeBreakdownText(item);
   return `
     <label class="hud-row">
       <span class="control-label">Name</span>
@@ -2321,9 +2360,9 @@ function itemInspectorDataBody(item) {
         </div>
         <div class="hud-row finance-readout">
           <span class="control-label">${escapeHtml(balanceLabel)}</span>
-          <span class="computed-readout" data-popover-readout="after-flows" data-item-id="${attr(item.id)}">${compactDollars(currentValue)}</span>
+          <span class="computed-readout${shortfallClass(currentValue)}" data-popover-readout="after-flows" data-item-id="${attr(item.id)}"${shortfallTitle(currentValue)}>${compactDollars(currentValue)}</span>
         </div>
-        ${breakdownText ? `<div class="flow-breakdown">${escapeHtml(breakdownText)}</div>` : ""}
+        <div class="flow-breakdown" data-item-id="${attr(item.id)}"${breakdownText ? "" : " hidden"}>${escapeHtml(breakdownText)}</div>
       </div>
       <div class="hud-row">
         <span class="control-label">Category</span>
@@ -2579,12 +2618,7 @@ export function renderItemDataPopover(item) {
   const cashflow = viewModel.cashflow;
   const balanceLabel = isPaycheck ? "Mapped income / year" : isCurrentMode ? "Current balance" : "Net balance";
   const startingLabel = "Starting value";
-  const flows = item.financeId ? flowBreakdownForItem(item.id) : { inflow: 0, outflow: 0 };
-  const startingValue = Number(data?.value || 0);
-  const showBreakdown = !isCurrentMode && (flows.inflow > 0 || flows.outflow > 0);
-  const breakdownText = showBreakdown
-    ? `${compactDollars(startingValue)} start${flows.inflow > 0 ? ` + ${compactDollars(flows.inflow)} in` : ""}${flows.outflow > 0 ? ` − ${compactDollars(flows.outflow)} out` : ""}`
-    : "";
+  const breakdownText = financeBreakdownText(item);
   const fields = `
     <label class="hud-row">
       <span class="control-label">Label</span>
@@ -2631,9 +2665,9 @@ export function renderItemDataPopover(item) {
         </div>
         <div class="hud-row finance-readout">
           <span class="control-label">${escapeHtml(balanceLabel)}</span>
-          <span class="computed-readout" data-popover-readout="after-flows" data-item-id="${attr(item.id)}">${compactDollars(currentValue)}</span>
+          <span class="computed-readout${shortfallClass(currentValue)}" data-popover-readout="after-flows" data-item-id="${attr(item.id)}"${shortfallTitle(currentValue)}>${compactDollars(currentValue)}</span>
         </div>
-        ${breakdownText ? `<div class="flow-breakdown">${escapeHtml(breakdownText)}</div>` : ""}
+        <div class="flow-breakdown" data-item-id="${attr(item.id)}"${breakdownText ? "" : " hidden"}>${escapeHtml(breakdownText)}</div>
       </div>
       <div class="hud-row">
         <span class="control-label">Category</span>
@@ -3133,6 +3167,17 @@ function renderPresentationMeetingSummary(cashflow) {
   `;
 }
 
+// Suppress the meeting-layer Need/Mapped/Gap banner only when there is no
+// income/need node for it to describe -- i.e. no paycheck target and no live
+// cashflow (estate). A dangling Need/Gap strip with no paycheck is meaningless.
+// Templates that DO have a paycheck node (roth, blank) keep the banner, now
+// showing honest $0 mapped instead of a figure fabricated from scenario defaults.
+export function shouldHideCashflowBanner(cashflow) {
+  if (cashflow?.hasLiveCashflow) return false;
+  const hasPaycheckNode = state.items.some((item) => item.type === "finance" && item.visual === "paycheck");
+  return !hasPaycheckNode;
+}
+
 export function renderScenarioRail() {
   const cashflow = computeCanvasViewModel().cashflow;
   const gapLabel = cashflow.gap >= 0 ? "Surplus" : "Gap";
@@ -3140,22 +3185,23 @@ export function renderScenarioRail() {
     dom.scenarioRail.innerHTML = renderPresentationMeetingSummary(cashflow);
     return;
   }
+  const hideCashflow = shouldHideCashflowBanner(cashflow);
   dom.scenarioRail.innerHTML = `
     <div class="scenario-head">
       <div>
         <p class="hud-kicker">Advisor meeting layer</p>
         <h3>Meeting plan</h3>
       </div>
-      <div class="monthly-summary">
+      ${hideCashflow ? "" : `<div class="monthly-summary">
         <span>Mapped income</span>
         <strong data-cashflow-rail="mapped">${currency.format(cashflow.mapped)}</strong>
-      </div>
+      </div>`}
     </div>
-    <div class="cashflow-strip ${cashflow.gap >= 0 ? "is-surplus" : "is-gap"}">
+    ${hideCashflow ? "" : `<div class="cashflow-strip ${cashflow.gap >= 0 ? "is-surplus" : "is-gap"}">
       <span>Need <b data-cashflow-rail="need">${currency.format(cashflow.need)}</b>/mo</span>
       <span>Mapped <b data-cashflow-rail="mapped-inline">${currency.format(cashflow.mapped)}</b>/mo</span>
       <span><i data-cashflow-rail="gap-label">${gapLabel}</i> <b data-cashflow-rail="gap">${currency.format(Math.abs(cashflow.gap))}</b>/mo</span>
-    </div>
+    </div>`}
     ${renderMeetingTabs()}
     ${renderMeetingPane(cashflow)}
   `;
@@ -3229,12 +3275,17 @@ export function renderInventory() {
     grouped.get(row.category).push(row);
   });
 
-  const categoryOrder = Object.keys(accountCategories);
-  const total = rows.reduce((sum, r) => sum + (Number(r.value) || 0), 0);
+  // Known account categories first (fixed order), then any other categories so
+  // every aggregated row is actually shown. Previously rows in a category outside
+  // accountCategories were dropped from the display yet still counted in the
+  // header total, so the header disagreed with the visible rows.
+  const knownOrder = Object.keys(accountCategories).filter((cat) => grouped.has(cat));
+  const extraOrder = [...grouped.keys()].filter((cat) => !accountCategories[cat]);
+  const categoryOrder = [...knownOrder, ...extraOrder];
+  const total = categoryOrder.reduce((sum, cat) => sum + grouped.get(cat).reduce((s, r) => s + (Number(r.value) || 0), 0), 0);
   const selectedId = state.selection?.kind === "item" ? state.selection.id : null;
 
   const sections = categoryOrder
-    .filter((cat) => grouped.has(cat))
     .map((cat) => {
       const items = grouped.get(cat);
       const catTotal = items.reduce((sum, r) => sum + (Number(r.value) || 0), 0);
@@ -3242,15 +3293,15 @@ export function renderInventory() {
         .map((row) => `
           <div class="inventory-row ${row.id === selectedId ? "is-selected" : ""}" data-inventory-id="${escapeHtml(row.id)}" role="button" tabindex="0">
             <span class="row-name">${escapeHtml(row.label)}</span>
-            <span class="row-value">${escapeHtml(compactDollars(row.value))}</span>
+            <span class="row-value">${escapeHtml(inventoryDollars(row.value))}</span>
           </div>
         `)
         .join("");
       return `
         <section class="inventory-group">
           <div class="inventory-group-head">
-            <span class="group-name">${escapeHtml(accountCategories[cat])}</span>
-            <span class="group-total">${escapeHtml(compactDollars(catTotal))}</span>
+            <span class="group-name">${escapeHtml(accountCategories[cat] || cat)}</span>
+            <span class="group-total">${escapeHtml(inventoryDollars(catTotal))}</span>
           </div>
           ${rowsHtml}
         </section>
@@ -3261,7 +3312,7 @@ export function renderInventory() {
   dom.inventoryPopover.innerHTML = `
     <div class="inventory-head">
       <h4>Account inventory</h4>
-      <span class="inventory-total">${escapeHtml(compactDollars(total))} total</span>
+      <span class="inventory-total">${escapeHtml(inventoryDollars(total))} total</span>
     </div>
     ${sections}
   `;

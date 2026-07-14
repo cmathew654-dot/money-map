@@ -3965,6 +3965,20 @@ body.inspector-open:not(.presentation) .zoom-cluster {
   letter-spacing: 0.01em;
 }
 
+/* Computed net balances that fall below $0 read as an explicit shortfall
+   (warning color + tooltip) rather than a bare negative number. */
+.finance-value.is-shortfall,
+.computed-readout.is-shortfall {
+  color: var(--accent-2);
+}
+
+.finance-value.is-shortfall::before,
+.computed-readout.is-shortfall::before {
+  content: "\26A0\FE0E";
+  margin-right: 4px;
+  font-size: 0.86em;
+}
+
 .hud-row input[type="text"],
 .hud-row input[type="number"] {
   width: 100%;
