@@ -1,8 +1,8 @@
 {
-  "name": "account-flow-visualizer-prototype",
+  "name": "money-map",
   "version": "0.1.0",
   "private": true,
-  "description": "Static advisor canvas prototype with Playwright E2E coverage.",
+  "description": "Desktop advisor meeting canvas for visualizing accounts and money movement.",
   "scripts": {
     "dev": "http-server -p 4173 --silent",
     "audit:layout": "node tests/audit/inspect-layout.js",

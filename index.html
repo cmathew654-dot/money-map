@@ -3,15 +3,33 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Account Flow Visualizer Prototype</title>
+    <title>Money Map</title>
+    <meta name="description" content="A desktop advisor meeting canvas for visualizing client account flow and money movement with fictional demonstration scenarios.">
+    <link rel="canonical" href="https://cmathew654-dot.github.io/money-map/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Money Map">
+    <meta property="og:description" content="A desktop advisor meeting canvas for visualizing client account flow and money movement.">
+    <meta property="og:url" content="https://cmathew654-dot.github.io/money-map/">
+    <meta property="og:image" content="https://cmathew654-dot.github.io/money-map/docs/media/social-preview.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Money Map">
+    <meta name="twitter:description" content="A desktop advisor meeting canvas for visualizing client account flow and money movement.">
+    <meta name="twitter:image" content="https://cmathew654-dot.github.io/money-map/docs/media/social-preview.png">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body data-theme="stewardship">
+    <section class="narrow-screen-gate" id="narrowScreenGate" aria-labelledby="narrowScreenTitle">
+      <div class="narrow-screen-gate-card">
+        <p class="eyebrow">Money Map</p>
+        <h1 id="narrowScreenTitle">Open this meeting canvas on a larger screen</h1>
+        <p>The interactive editor requires a viewport at least 1060 CSS pixels wide. No client data is loaded or stored on this screen.</p>
+      </div>
+    </section>
     <div class="local-server-notice" id="localServerNotice" role="alert" hidden>
       <strong>Run npm run dev</strong>
       <span>Open http://localhost:4173 instead of this file directly.</span>
     </div>
-    <div class="app-shell">
+    <div class="app-shell" id="appShell">
       <header class="topbar" aria-label="Command bar">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">
@@ -25,6 +43,7 @@
               <span class="sub">Wealth</span>
             </div>
           </div>
+          <span class="demo-data-marker" id="demoDataMarker">Fictional demo data</span>
           <div>
             <p class="eyebrow" id="themeEyebrow">Stewardship Review · Aster Ridge Wealth</p>
             <h1 id="templateTitle">Create New Visual</h1>
@@ -190,10 +209,16 @@
         const localServerNotice = document.getElementById("localServerNotice");
         if (localServerNotice) localServerNotice.hidden = false;
       } else {
-        const appScript = document.createElement("script");
-        appScript.type = "module";
-        appScript.src = "src/main.js";
-        document.body.append(appScript);
+        const MIN_EDITOR_WIDTH = 1060;
+        const narrowQuery = window.matchMedia(`(max-width: ${MIN_EDITOR_WIDTH - 1}px)`);
+        document.body.classList.toggle("narrow-screen-blocked", narrowQuery.matches);
+        if (!narrowQuery.matches) {
+          const appScript = document.createElement("script");
+          appScript.type = "module";
+          appScript.src = "src/main.js";
+          document.body.append(appScript);
+        }
+        narrowQuery.addEventListener("change", () => window.location.reload());
       }
     </script>
   </body>
