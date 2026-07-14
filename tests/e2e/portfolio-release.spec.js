@@ -23,6 +23,7 @@ test("every shipped scenario carries visible synthetic-data provenance", async (
   await page.goto(APP_URL);
   await page.waitForFunction(() => window.__AFV_TEST__);
   await expect(page.locator("#demoDataMarker")).toContainText(/fictional demo data/i);
+  await expect(page.locator("#demoDataMarker")).toBeVisible();
 
   const templateIds = await page.evaluate(() => (
     [...document.querySelectorAll(".template-catalog-card[data-template-id]")]
@@ -39,6 +40,6 @@ test("every shipped scenario carries visible synthetic-data provenance", async (
     expect(disclosure, templateId).toBeTruthy();
     expect(disclosure.label, templateId).toMatch(/synthetic demo data/i);
     expect(disclosure.locked, templateId).toBe(true);
-    await expect(page.locator(`[data-item-id="${disclosure.id}"]`)).toBeAttached();
+    await expect(page.locator(`[data-item-id="${disclosure.id}"]`)).toBeVisible();
   }
 });
