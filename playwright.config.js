@@ -1,6 +1,8 @@
 const { defineConfig } = require("@playwright/test");
 
 const visualSpec = /visual\.spec\.js/;
+const narrowSpec = /narrow-screen\.spec\.js/;
+const desktopIgnore = [visualSpec, narrowSpec];
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
@@ -22,9 +24,14 @@ module.exports = defineConfig({
     screenshot: "only-on-failure"
   },
   projects: [
-    { name: "chromium-1366", testIgnore: visualSpec, use: { browserName: "chromium", viewport: { width: 1366, height: 768 } } },
-    { name: "chromium-1440", testIgnore: visualSpec, use: { browserName: "chromium", viewport: { width: 1440, height: 900 } } },
-    { name: "chromium-1920", testIgnore: visualSpec, use: { browserName: "chromium", viewport: { width: 1920, height: 1080 } } },
-    { name: "screenshots", testMatch: visualSpec, use: { browserName: "chromium", viewport: { width: 1440, height: 900 } } }
+    { name: "chromium-1366", testIgnore: desktopIgnore, use: { browserName: "chromium", viewport: { width: 1366, height: 768 } } },
+    { name: "chromium-1440", testIgnore: desktopIgnore, use: { browserName: "chromium", viewport: { width: 1440, height: 900 } } },
+    { name: "chromium-1920", testIgnore: desktopIgnore, use: { browserName: "chromium", viewport: { width: 1920, height: 1080 } } },
+    { name: "screenshots", testMatch: visualSpec, use: { browserName: "chromium", viewport: { width: 1440, height: 900 } } },
+    {
+      name: "chromium-390-gate",
+      testMatch: narrowSpec,
+      use: { browserName: "chromium", viewport: { width: 390, height: 844 } }
+    }
   ]
 });
