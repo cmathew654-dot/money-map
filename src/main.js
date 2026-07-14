@@ -1,4 +1,4 @@
-import { state, dom, WORLD, initDomRefs, setRenderAllCallback, TEST_MODE, defaultScenario, defaultMeetingState, defaultMotionState, clone, clearHistory, commitHistory, commitHistoryFrom, restoreHistorySnapshot, undoHistory, redoHistory, compactDollars, parseMoney, formatMoneyInput, plainMoneyInput, clamp, getItem, getGroup, getConnector, clearMultiSelection, selectedItemIds, hasMultiSelection, isFormField, isLockedNode, toggleMultiSelectItem, escapeHtml, kebab } from "./state.js";
+import { state, dom, WORLD, initDomRefs, setRenderAllCallback, TEST_MODE, defaultScenario, defaultMeetingState, defaultMotionState, clone, clearHistory, commitHistory, commitHistoryFrom, restoreHistorySnapshot, undoHistory, redoHistory, compactDollars, parseMoney, formatMoneyInput, plainMoneyInput, clamp, getItem, getGroup, getConnector, clearMultiSelection, selectedItemIds, hasMultiSelection, isFormField, isTextEntryTarget, isPresentationMode, isLockedNode, toggleMultiSelectItem, escapeHtml, kebab } from "./state.js";
 import { templateFactories, applyTheme } from "./templates.js";
 import { constrainViewport, syncComputedValues, computeCanvasViewModel, invalidateComputedViewModel, getComputeDiagnostics, resetComputeDiagnostics, connectorStoredAmountFromDisplay } from "./compute.js";
 import { renderAll, renderCanvasSurface, renderCanvasOnly, renderItems, renderConnectors, renderHud, renderInventory, updateItemValues, updateConnectorValues, restoreHudScroll, selectionKey, setConnectorLabelHandlers, renderTemplateCatalog, findSubBucket, sectionForPopoverKind, getRenderDiagnostics, resetRenderDiagnostics, setHudRangeDragActive } from "./render.js";
@@ -777,6 +777,7 @@ function sendSelectionBackward() {
 }
 
 function nudgeSelection(dx, dy) {
+  if (isPresentationMode()) return false;
   if (hasMultiSelection()) {
     const selected = selectedItemIds().map((id) => getItem(id)).filter((item) => item && !isLockedNode(item));
     if (!selected.length) return false;
@@ -1125,7 +1126,11 @@ dom.itemLayer.addEventListener("click", (event) => {
     state.suppressDirectEditClickUntil = 0;
   }
   const directEdit = event.target.closest("[data-edit-kind='item'], [data-edit-kind='group']");
-  if (event.detail === 1 && directEdit && !isFormField(event.target) && !event.metaKey && !event.ctrlKey) {
+  // A single click on a card's note must NOT enter edit mode / steal
+  // contenteditable focus (that trap silently blocked Delete/undo). Notes edit
+  // on double-click only, like the value/need fields.
+  const directEditField = directEdit?.dataset.editField || "label";
+  if (event.detail === 1 && directEdit && directEditField !== "note" && !isFormField(event.target) && !event.metaKey && !event.ctrlKey) {
     const itemNode = event.target.closest(".canvas-item");
     const groupNode = event.target.closest(".canvas-group");
     const field = directEdit.dataset.editField || "label";
@@ -1713,17 +1718,21 @@ if (dom.toastHost) {
 
 window.addEventListener("keydown", (event) => {
   const formField = isFormField(event.target) || isFormField(document.activeElement);
+  // Undo/redo is only suppressed during genuine text entry so it survives the
+  // browser's native field-level undo. Checkboxes, sliders and buttons keeping
+  // focus (e.g. after toggling annuityOn) must not block Ctrl+Z / Ctrl+Y.
+  const textEntry = isTextEntryTarget(event.target) || isTextEntryTarget(document.activeElement);
   const modKey = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
 
-  if (modKey && !formField && key === "z") {
+  if (modKey && !textEntry && key === "z") {
     event.preventDefault();
     if (event.shiftKey) performRedo();
     else performUndo();
     return;
   }
 
-  if (modKey && !formField && key === "y") {
+  if (modKey && !textEntry && key === "y") {
     event.preventDefault();
     performRedo();
     return;

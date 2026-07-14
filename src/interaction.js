@@ -1,4 +1,4 @@
-import { state, dom, WORLD, clone, commitHistory, clearHistory, historySnapshot, commitHistoryFrom, restoreHistorySnapshot, escapeHtml, parseMoney, formatMoneyInput, plainMoneyInput, clamp, endpoint, cloneEndpoint, isAttachedEndpoint, isFreeEndpoint, getItem, getGroup, getConnector, getNode, getAnchorableNodes, selectedItemIds, hasMultiSelection, itemIsSelected, isLockedNode, clearMultiSelection, setSingleSelection, isFormField, nextZIndex, accountCategories, defaultScenario, routeStyles } from "./state.js";
+import { state, dom, WORLD, clone, commitHistory, clearHistory, historySnapshot, commitHistoryFrom, restoreHistorySnapshot, escapeHtml, parseMoney, formatMoneyInput, plainMoneyInput, clamp, endpoint, cloneEndpoint, isAttachedEndpoint, isFreeEndpoint, getItem, getGroup, getConnector, getNode, getAnchorableNodes, selectedItemIds, hasMultiSelection, itemIsSelected, isLockedNode, clearMultiSelection, setSingleSelection, isFormField, isPresentationMode, nextZIndex, accountCategories, defaultScenario, routeStyles } from "./state.js";
 import { shapePalette, textPalette, financePalette, groupPalette, connectorPalette, connectorDefaults, connector, groupBox } from "./templates.js";
 import { syncComputedValues, computeConnectorPath, pointFromEvent, visibleWorldCenter, screenPoint, resolveEndpoint, rawEndpoint, computeConnectorWidth, getConnectorColor, markerUrl, connectorHasManualAmount, scenarioAmountForConnector, connectorDisplayAmount, connectorStoredAmountFromDisplay } from "./compute.js";
 import { renderAll, renderCanvasSurface, renderCanvasOnly, renderItems, renderConnectors, renderHud, updateItemValues, updateConnectorValues, updateScenarioReadouts, nodeScreenBounds, relativeRect, selectionKey, findSubBucket } from "./render.js";
@@ -682,6 +682,7 @@ export function createConnectorFromPalette(id) {
 }
 
 export function deleteSelection() {
+  if (isPresentationMode()) return false;
   if (!state.selection) return false;
   if (hasMultiSelection()) {
     const ids = new Set(selectedItemIds().filter((id) => !isLockedNode(getItem(id))));
@@ -741,7 +742,29 @@ export function deleteSelection() {
   return true;
 }
 
+// A duplicated connector keeps its visual amount and geometry but drops every
+// semantic binding, so it becomes an inert manual flow. Without this, cloning a
+// scenario-linked income connector double-counts MAPPED cashflow (and would
+// re-drive/re-total on scenario edits). The copy no longer contributes to
+// cashflow coverage, scenario totals, or balances.
+function stripConnectorSemanticBinding(copy) {
+  copy.flowType = "transfer";
+  copy.manualAmount = true;
+  copy.amountSource = "manual";
+  copy.sourceEffect = "none";
+  copy.targetEffect = "none";
+  copy.affectsSource = false;
+  copy.affectsTarget = false;
+  copy.includeInCurrentCashflow = false;
+  copy.includeInProposedBalances = false;
+  delete copy.scenarioKey;
+  delete copy.flowSemantic;
+  delete copy.domainRole;
+  delete copy.role;
+}
+
 export function duplicateSelection() {
+  if (isPresentationMode()) return;
   if (!state.selection) return;
   if (state.selection.kind === "item") {
     const item = getItem(state.selection.id);
@@ -803,6 +826,7 @@ export function duplicateSelection() {
     copy.id = `${conn.id}-copy-${state.nextConnectorNumber++}`;
     copy.label = `${conn.label} copy`;
     copy.mid = conn.mid ? { x: conn.mid.x + 32, y: conn.mid.y + 32 } : null;
+    stripConnectorSemanticBinding(copy);
     state.connectors.push(copy);
     state.selection = { kind: "connector", id: copy.id };
     clearMultiSelection();
@@ -904,6 +928,7 @@ export function reverseConnector() {
 }
 
 export function quickAdjustSelectedValue(delta) {
+  if (isPresentationMode()) return;
   const step = Number(delta);
   if (!Number.isFinite(step) || step === 0) return;
 
@@ -976,6 +1001,7 @@ export function reattachConnectorEndpoints(options = {}) {
 }
 
 export function startEditing(id, field = null) {
+  if (isPresentationMode()) return;
   const item = getItem(id);
   const group = getGroup(id);
   if (isLockedNode(item || group)) return;
@@ -995,6 +1021,7 @@ export function startEditing(id, field = null) {
 }
 
 export function startSleeveEditing(itemId, sleeveId, field = "value") {
+  if (isPresentationMode()) return;
   if (!findSubBucket(itemId, sleeveId)) return;
   state.editingHistoryBefore = historySnapshot();
   state.editingItemId = null;
@@ -1112,6 +1139,7 @@ export function startHudResize(event, node) {
 }
 
 export function startDragNode(event, kind, id, options = {}) {
+  if (isPresentationMode()) return;
   const node = kind === "item" ? getItem(id) : getGroup(id);
   if (!node || isLockedNode(node)) return;
   const point = pointFromEvent(event);
@@ -1207,6 +1235,7 @@ function promoteMaybeDragToEdgeConnector(event) {
 }
 
 export function startResizeNode(event, kind, id, handle) {
+  if (isPresentationMode()) return;
   event.preventDefault();
   event.stopPropagation();
   const node = kind === "item" ? getItem(id) : getGroup(id);
@@ -1332,6 +1361,7 @@ export function startCanvasPlacement(event) {
 }
 
 export function startConnectorToolDrag(event, node) {
+  if (isPresentationMode()) return false;
   const choice = activeCreationChoice();
   if (!choice || choice.kind !== "connector" || !node || isFormField(event.target)) return false;
   const kind = node.classList.contains("canvas-group") ? "group" : "item";
@@ -1730,6 +1760,7 @@ export function updateEdgeConnectorPreview() {
 }
 
 export function startEdgeConnectorDrag(event, sourceId, edge = null, options = {}) {
+  if (isPresentationMode()) return;
   event.preventDefault();
   event.stopPropagation();
   const source = getNode(sourceId);
