@@ -791,7 +791,7 @@ export function connector(id, label, flowType, amount, source, target, options =
 export function templateText(meta) {
   return [
     textItem(`${meta.id}-headline`, meta.canvasTitle || meta.name, meta.canvasEyebrow || "Client meeting visual", 420, 170, 400, 92, "title", 14),
-    textItem(`${meta.id}-disclosure`, meta.disclosure || "For illustration only. Advisor-entered approximate values. Not a projection or investment recommendation.", "", meta.disclosureX || 545, meta.disclosureY || 930, meta.disclosureW || 790, 44, "disclosure", 14, { locked: true })
+    textItem(`${meta.id}-disclosure`, meta.disclosure || "SYNTHETIC DEMO DATA. Advisor-entered approximate values for illustration only. Not a projection or investment recommendation.", "", meta.disclosureX || 545, meta.disclosureY || 930, meta.disclosureW || 790, 44, "disclosure", 14, { locked: true })
   ];
 }
 
