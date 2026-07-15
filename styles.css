@@ -4709,7 +4709,7 @@ body.presentation-entering .meeting-panel-button {
   outline: 3px solid var(--focus-ring, var(--accent));
   outline-offset: 3px;
 }
-.scenario-rail {
+body.presentation-entering .scenario-rail {
   transform: translateY(10px);
 }
 
