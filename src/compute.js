@@ -81,6 +81,15 @@ const computeDiagnostics = {
 
 export function invalidateComputedViewModel() {
   computedViewModelCache = null;
+  // Drop the cross-call auto-label placement cache whenever computed values are
+  // invalidated. The fingerprint cache keys on connector id, so a stale obstacle
+  // rect from a previously-loaded diagram (its ids reused, or its label rects
+  // still cached) leaks into auto-label scoring and places labels
+  // non-deterministically -- e.g. bridgeDraw landing on futureIncome's path only
+  // when SS-bridge is opened after other templates. This runs on value recompute
+  // (syncComputedValues), not on the synchronous geometry pointer-up path, so
+  // the P3 scoped-repair budget keeps its per-drag fingerprint reuse.
+  labelRectFingerprintCache.clear();
 }
 
 export function resetComputeDiagnostics() {
