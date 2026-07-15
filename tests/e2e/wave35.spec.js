@@ -186,6 +186,13 @@ test.describe("wave 3.5 editor polish", () => {
       window.__AFV_TEST__.openPopover("connector-data");
     });
     const initial = (await state(page)).connectors.find((conn) => conn.id === "transfer");
+    // c8499b3 (Stage 2): flow-type changes are atomic and amount-PRESERVING at the
+    // display level -- the visible magnitude is invariant while the stored amount is
+    // normalized to the new cadence's unit (e.g. monthly stores x12). Assert the
+    // display invariant, not the raw stored amount which legitimately re-normalizes.
+    const initialDisplay = await page.evaluate(
+      () => window.__AFV_TEST__.getComputedViewModel().connectors.transfer.displayAmount
+    );
 
     for (const [flowType, preset] of Object.entries(presets)) {
       await page.locator(`[data-set='connector-field'][data-field='flowType'][data-value='${flowType}']`).click();
@@ -193,8 +200,13 @@ test.describe("wave 3.5 editor polish", () => {
       expect(conn).toMatchObject({ flowType, ...preset });
       expect(conn.source).toEqual(initial.source);
       expect(conn.target).toEqual(initial.target);
-      expect(conn.amount).toBe(initial.amount);
       expect(conn.max).toBe(initial.max);
+
+      const view = await page.evaluate(
+        () => window.__AFV_TEST__.getComputedViewModel().connectors.transfer
+      );
+      expect(view.displayAmount).toBe(initialDisplay); // amount-preserving transition
+      expect(view.amountText).toMatch(/\$/); // preset visibly relabels the cadence unit
 
       const draw = page.locator(".connector-draw[data-connector-id='transfer']");
       await expect(draw).toHaveClass(new RegExp(`route-${preset.routeStyle}`));

@@ -69,7 +69,9 @@ test.describe("remediation :: relevance gating", () => {
     const errors = await open(page);
     await page.evaluate(() => window.__AFV_TEST__.loadTemplate("estate"));
     await settle(page);
-    await page.locator("#scenarioRail").hover();
+    // c8499b3: open the meeting panel via its button (hover is now intercepted
+    // by the overlapping Meeting toggle). Banner must stay absent even when open.
+    await page.locator("#meetingPanelButton").click();
     expect(await page.locator(".cashflow-strip").count()).toBe(0);
     expect(await page.locator(".paycheck-surface .cashflow-mini-grid").count()).toBe(0);
     expect(errors).toEqual([]);
@@ -94,7 +96,9 @@ test.describe("remediation :: relevance gating", () => {
     const mapped = await page.evaluate(() => window.__AFV_TEST__.getComputedViewModel().cashflow.mapped);
     // No income connectors cover a paycheck -> mapped is honest $0, not fabricated.
     expect(mapped).toBe(0);
-    await page.locator("#scenarioRail").hover();
+    // c8499b3: reveal the cashflow strip via the Controls tab instead of hover.
+    await page.locator("#meetingPanelButton").click();
+    await page.locator('[data-meeting-tab="controls"]').click();
     await expect(page.locator(".cashflow-strip")).toBeVisible();
     await expect(page.locator(".cashflow-strip")).toContainText("Mapped $0");
     expect(errors).toEqual([]);

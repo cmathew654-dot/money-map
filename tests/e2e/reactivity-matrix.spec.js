@@ -76,7 +76,14 @@ async function settle(page) {
 }
 
 async function revealControls(page) {
-  await page.locator("#scenarioRail").hover();
+  // c8499b3 gates the scenario rail behind an explicit, visible Controls tab.
+  // The Meeting toggle button now overlaps #scenarioRail and intercepts hover,
+  // so open the panel via its button and select the Controls tab instead.
+  const panelButton = page.locator("#meetingPanelButton");
+  if ((await panelButton.getAttribute("aria-expanded")) !== "true") {
+    await panelButton.click();
+  }
+  await page.locator('[data-meeting-tab="controls"]').click();
   await expect(page.locator(".cashflow-strip")).toBeVisible();
 }
 
@@ -199,8 +206,16 @@ async function runMatrixCell(page, templateId, alias) {
       expect(labelText, `${templateId} x ${alias}: connector label reflects max amount`).toBe(connectorDisplayText(maxConnector, maxState));
     }
 
+    // The RMD withholding leg is a carve-out of the FIXED gross distribution
+    // (Stage 4): the IRA decreases by the full gross set by monthlyDistribution, and
+    // taxReservePct only re-splits that fixed total between the spendable and tax legs.
+    // So the withholding connector's SOURCE (IRA) balance is invariant to taxPayment by
+    // design -- corroborated by remediation-critical-journeys (expectedIra = start - gross - qcd).
+    // Reactivity is still asserted via the connector amount (above) and the TARGET
+    // (tax reserve) balance reaction (below); only the source-reacts check is exempt here.
+    const isFixedGrossCarveOut = initialConnector.domainRole === "rmdWithholding";
     const sourceFinanceId = financeIdForItem(maxState, initialConnector.source?.itemId);
-    if (sourceFinanceId && sourceEffect(initialConnector) === "decreaseBalance" && initialState.currentValues[sourceFinanceId] !== undefined) {
+    if (!isFixedGrossCarveOut && sourceFinanceId && sourceEffect(initialConnector) === "decreaseBalance" && initialState.currentValues[sourceFinanceId] !== undefined) {
       expect(
         maxState.currentValues[sourceFinanceId],
         `${templateId} x ${alias}: source ${sourceFinanceId} current value reacts`

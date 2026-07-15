@@ -17,12 +17,13 @@ async function open(page) {
 }
 
 async function revealControls(page) {
-  await page.locator("#scenarioRail").hover();
-  await page.waitForTimeout(300);
-  await page.locator('[data-meeting-tab="controls"]').click().catch(() => {});
-  await page.waitForTimeout(150);
-  await page.locator("#scenarioRail").hover();
-  await page.waitForTimeout(300);
+  // c8499b3 gates scenario controls behind a visible Controls tab; the Meeting
+  // toggle now overlaps #scenarioRail and intercepts hover. Open via its button.
+  const panelButton = page.locator("#meetingPanelButton");
+  if ((await panelButton.getAttribute("aria-expanded")) !== "true") {
+    await panelButton.click();
+  }
+  await page.locator('[data-meeting-tab="controls"]').click();
 }
 
 test.describe("remediation :: undo survives non-text focus", () => {

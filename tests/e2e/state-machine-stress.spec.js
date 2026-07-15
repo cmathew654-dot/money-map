@@ -40,6 +40,9 @@ test.describe("state machine stress", () => {
     await settle(page);
     expect((await connectorLabelTexts(page)).some((text, index) => text !== initial[index])).toBe(true);
 
+    // c8499b3 (Stage 1) added an explicit, reversible confirmation to reset.
+    // Accept it; reset must still visibly restore template default labels/values.
+    page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#resetButton").click();
     await page.waitForTimeout(650);
     await settle(page);
