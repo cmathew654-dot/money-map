@@ -52,7 +52,11 @@ async function paycheckMetrics(page) {
     const need = paycheck?.querySelector('[data-cashflow-value="need"]');
     const miniGrid = paycheck?.querySelector(".cashflow-mini-grid");
     const accountNames = [...document.querySelectorAll(".canvas-item:not(.finance-paycheck) .finance-surface:not(.finance-tag-surface) .finance-name")];
-    const accountValues = [...document.querySelectorAll(".canvas-item:not(.finance-paycheck) .finance-surface:not(.finance-tag-surface) .finance-value")];
+    // The paycheck gap is the hero relative to ordinary account CARDS. Sleeved
+    // containers (trust/liquidity) render their reconciled total at a distinct,
+    // deliberately larger container display scale (e.g. roth's C4-funded family
+    // trust), which is a separate visual tier, not an account-card value.
+    const accountValues = [...document.querySelectorAll(".canvas-item:not(.finance-paycheck) .finance-surface:not(.finance-tag-surface):not(.trust-container-surface):not(.liquidity-container-surface) .finance-value")];
     const root = getComputedStyle(document.documentElement);
 
     function fontSize(node) {
