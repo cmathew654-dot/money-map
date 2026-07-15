@@ -311,7 +311,7 @@ export const themes = {
     const other = [];
     const conns = [
       connector("taxFromBonus", "Tax reserve", "tax", 95000, { itemId: "salaryBonus", port: "right.out", offsetY: -52 }, { itemId: "taxReserve", port: "left.in", offsetY: -44 }, { colorMode: "red", routeStyle: "straight", labelMode: "start", labelPoint: null, max: 220000 }),
-      connector("taxFromRsu", "RSU tax", "tax", 75000, "rsu", "taxReserve", { colorMode: "red", strokeStyle: "dotted", widthMode: "subtle", labelMode: "auto", presentationRole: "secondary", max: 220000 }),
+      connector("taxFromRsu", "RSU tax", "tax", 75000, "rsu", "taxReserve", { colorMode: "red", strokeStyle: "dotted", widthMode: "subtle", labelMode: "hidden", presentationRole: "secondary", max: 220000 }),
       connector("investRsu", "Diversify", "transfer", 180000, "rsu", "brokerage", { colorMode: "accent", max: 420000 }),
       connector("lifestyle", "Monthly lifestyle", "income", 90000, { itemId: "salaryBonus", port: "right.out", offsetY: 58 }, { itemId: "paycheck", port: "left.income", offsetY: 48 }, { scenarioKey: "monthlyDistribution", affectsSource: false, routeStyle: "sCurve", mid: { x: 780, y: 715 }, manualMid: true, labelMode: "end", labelPoint: null, max: 220000 })
     ];
@@ -335,7 +335,7 @@ export const themes = {
     const other = [];
     const conns = [
       connector("quarterlyTax", "Tax reserve", "tax", 160000, { itemId: "operatingCash", port: "right.out", offsetY: -46 }, { itemId: "taxSetAside", port: "left.in", offsetY: -42 }, { colorMode: "red", routeStyle: "straight", labelMode: "start", labelPoint: null, max: 360000 }),
-      connector("planContribution", "Plan contribution", "transfer", 66000, "operatingCash", "retirementPlan", { colorMode: "metal", widthMode: "subtle", labelMode: "auto", presentationRole: "secondary", max: 120000 }),
+      connector("planContribution", "Plan contribution", "transfer", 66000, "operatingCash", "retirementPlan", { colorMode: "metal", widthMode: "subtle", labelMode: "hidden", presentationRole: "secondary", max: 120000 }),
       connector("ownerDraw", "Owner draw", "income", 120000, { itemId: "operatingCash", port: "right.out", offsetY: 54 }, { itemId: "paycheck", port: "left.income", offsetY: 44 }, { scenarioKey: "monthlyDistribution", affectsSource: false, routeStyle: "sCurve", mid: { x: 790, y: 720 }, manualMid: true, labelMode: "end", max: 240000 }),
       connector("surplusInvest", "Invest surplus", "transfer", 140000, { itemId: "operatingCash", port: "bottom.out", offsetX: -82 }, { itemId: "brokerage", port: "top.in", offsetX: -68 }, { strokeStyle: "dotted", colorMode: "accent", routeStyle: "smartArc", labelMode: "below", max: 320000 })
     ];
@@ -861,7 +861,7 @@ export const templateFactories = {
     const other = [];
     const conns = [
       connector("rollover", "Rollover", "rollover", 325000, { itemId: "employer401k", port: "bottom.out" }, { itemId: "rolloverIra", port: "top.in" }, { scenarioKey: "rollover", colorMode: "teal", widthMode: "subtle", labelMode: "hidden", presentationRole: "secondary", max: 600000 }),
-      connector("annuityPremium", "Annuity premium", "annuity", 250000, { itemId: "rolloverIra", port: "right.out" }, { itemId: "incomeAnnuity", port: "left.funding" }, { scenarioKey: "annuityPremium", targetEffect: "increaseBalance", routeStyle: "smartArc", strokeStyle: "solid", colorMode: "teal", widthMode: "subtle", labelMode: "auto", presentationRole: "secondary", max: 500000 }),
+      connector("annuityPremium", "Annuity premium", "annuity", 250000, { itemId: "rolloverIra", port: "right.out" }, { itemId: "incomeAnnuity", port: "left.funding" }, { scenarioKey: "annuityPremium", targetEffect: "increaseBalance", routeStyle: "smartArc", strokeStyle: "solid", colorMode: "teal", widthMode: "subtle", labelMode: "hidden", presentationRole: "secondary", max: 500000 }),
       connector("transfer", "Fund reserve", "transfer", 75000, { itemId: "managedPortfolio", port: "bottom.out" }, { itemId: "cashReserve", port: "left.in" }, { sourceEffect: "none", targetEffect: "none", max: 250000, colorMode: "teal", widthMode: "subtle", routeStyle: "smartArc", mid: { x: 460, y: 850 }, manualMid: true, labelMode: "auto", labelPoint: null, presentationRole: "primary" }),
       connector("annuityIncome", "Annuity income", "income", 21600, { itemId: "incomeAnnuity", port: "top.review", offsetX: -72 }, { itemId: "clientIncome", port: "right.household", offsetY: 50 }, { scenarioKey: "annuityIncome", affectsSource: false, colorMode: "teal", strokeStyle: "longDash", routeStyle: "straight", widthMode: "medium", labelMode: "manual", labelPoint: { x: 1010, y: 460 }, presentationRole: "primary", max: 120000 }),
       connector("incomeDistribution", "Portfolio draw", "income", 48000, { itemId: "managedPortfolio", port: "right.out" }, { itemId: "clientIncome", port: "left.income" }, { scenarioKey: "monthlyDistribution", colorMode: "teal", widthMode: "medium", routeStyle: "elbow", mid: { x: 620, y: 470 }, manualMid: true, labelMode: "manual", labelPoint: { x: 600, y: 430 }, presentationRole: "primary", max: 180000 }),
@@ -926,7 +926,7 @@ export const templateFactories = {
     const conns = [
       connector("annuityPremium", "Annuity premium", "annuity", 250000, "portfolio", "annuityPolicy", { scenarioKey: "annuityPremium", colorMode: "metal", strokeStyle: "longDash", max: 550000 }),
       connector("annuityIncome", "Income start", "income", 21600, "annuityPolicy", "incomeFloor", { scenarioKey: "annuityIncome", affectsSource: false, colorMode: "accent", max: 120000 }),
-      connector("cashTransfer", "Buffer transfer", "transfer", 85000, "portfolio", "cashBuffer", { colorMode: "red", widthMode: "subtle", labelMode: "auto", presentationRole: "secondary", max: 250000 })
+      connector("cashTransfer", "Buffer transfer", "transfer", 85000, "portfolio", "cashBuffer", { colorMode: "red", widthMode: "subtle", labelMode: "hidden", presentationRole: "secondary", max: 250000 })
     ];
     return assembleTemplate(
       { id: "annuity", name: "Annuity Funding + Income Start", shortName: "Annuity", canvasTitle: "Income Floor Scenario", layout: storyLayout("standard") },
