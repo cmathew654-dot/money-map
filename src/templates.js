@@ -959,7 +959,7 @@ export const templateFactories = {
       financeItem("retirementAccount", "card", "ira", "Retirement IRA", "Beneficiary asset", "Designation review", 300, 680, 260, 132, 760000, 1100000),
       financeItem("lifePolicy", "policy", "insurance", "Life Insurance Policy", "Legacy protection", "Beneficiary review", 300, 875, 292, 138, 500000, 1000000, 20, { meta: lifePolicyMeta }),
       financeItem("revocableTrust", "trust", "trust", "Revocable Trust", "Central estate container", "Client-facing distribution sleeves", 800, 388, 480, 390, 0, 1600000, 22, { subBuckets: trustSleeves }),
-      financeItem("cashReserve", "bucket", "cash", "Estate Liquidity Reserve", "Tax / admin support", "Cash for taxes, filings, and closing costs", 875, 760, 410, 288, 280000, 540000, 20, { subBuckets: liquiditySleeves }),
+      financeItem("cashReserve", "bucket", "cash", "Estate Liquidity Reserve", "Tax / admin support", "Cash for taxes, filings, and closing costs", 875, 760, 410, 316, 280000, 540000, 20, { subBuckets: liquiditySleeves }),
       financeItem("survivingHousehold", "household", "household", "Surviving Household", "Lifestyle outcome", "Approximate support branch", 1460, 315, 270, 112, 0, 1),
       financeItem("beneficiaries", "household", "household", "Heirs / Beneficiaries", "Legacy outcome", "Approximate future transfer", 1460, 555, 270, 118, 0, 1, 20, { productRole: "beneficiary" }),
       financeItem("charity", "amountTag", "charity", "Charitable Gifts", "Optional outcome", "Advisor-entered branch", 1460, 795, 230, 92, 0, 200000, 20, { productRole: "charity" })

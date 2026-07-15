@@ -3093,6 +3093,14 @@ body.dragging .item-edge-handles {
   font-size: clamp(6px, 2.35cqi, 8px);
 }
 
+/* Reclaim the container-level description line so a sleeved liquidity reserve
+   carrying an auto Unallocated remainder row (C4) fits every row inside its box.
+   The per-sleeve notes already carry the detail; the redundant container note is
+   dropped only in this composed layout. */
+.liquidity-container-surface > .finance-copy > .finance-note {
+  display: none;
+}
+
 .canvas-item.finance-trust .trust-container-surface .sub-bucket-card,
 .canvas-item[data-product-role="trustEstate"] .trust-container-surface .sub-bucket-card {
   padding: 4px 8px;
