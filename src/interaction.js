@@ -2307,6 +2307,18 @@ export function updateConnectorAmount(conn, value, options = {}) {
   }
 }
 
+let connectorPreviewFrame = null;
+function flushConnectorPreview() {
+  connectorPreviewFrame = null;
+  // C8: the slider input path drives the same coupled update as commit so the
+  // banner, account balance, fill, and inventory move with the connector -- no
+  // mid-drag split state where the flow has changed but everything else lags.
+  syncComputedValues({ animateDelta: false });
+  updateItemValues();
+  updateConnectorValues({ geometry: false });
+  updateScenarioReadouts();
+}
+
 export function previewConnectorAmount(conn, value) {
   const displayAmount = parseMoney(value);
   const nextAmount = clamp(connectorStoredAmountFromDisplay(conn, displayAmount), 0, conn.max || 1000000);
@@ -2314,14 +2326,21 @@ export function previewConnectorAmount(conn, value) {
   conn.manualAmount = true;
   conn.amountSource = "manual";
   state.pendingConnectorAmountPreview = { id: conn.id };
-  updateConnectorValues({ geometry: false });
+  if (connectorPreviewFrame != null) return;
+  if (typeof requestAnimationFrame === "function") connectorPreviewFrame = requestAnimationFrame(flushConnectorPreview);
+  else flushConnectorPreview();
 }
 
 export function resetConnectorAmountLink(conn, options = {}) {
   if (!conn?.scenarioKey) return;
+  // C7: restore the linked amount (driver value, else the authored template
+  // amount) AND commit exactly one reversible history entry so the button resets
+  // the money, not just the badge, and Ctrl+Z returns to the manual value.
+  const before = options.skipHistory ? null : historySnapshot();
   delete conn.manualAmount;
   delete conn.amountSource;
   conn.amount = scenarioAmountForConnector(conn);
+  if (before) commitHistoryFrom(before);
   state.pendingConnectorAmountPreview = null;
   syncComputedValues({ animateDelta: true });
   setHotStateForConnectors([conn], options.duration || 520);

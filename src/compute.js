@@ -237,7 +237,7 @@ export function scenarioAmountForConnector(conn) {
   if (semantics.scenarioKey === "flexibleIncome") return (Number(state.scenario.flexibleIncome || state.scenario.monthlyDistribution) || 0) * 12;
   if (semantics.scenarioKey === "annuityIncome") return state.scenario.annuityOn ? (Number(state.scenario.annuityMonthlyIncome) || 0) * 12 : 0;
   if (semantics.scenarioKey === "annuityPremium") return Number(state.scenario.annuityPremium) || 0;
-  if (semantics.scenarioKey === "rollover") return Number(state.scenario.rollover ?? conn.amount) || 0;
+  if (semantics.scenarioKey === "rollover") return Number(state.scenario.rollover ?? conn.templateAmount ?? conn.amount) || 0;
   if (semantics.scenarioKey === "rothConversion") return Number(state.scenario.rothConversion) || 0;
   if (semantics.scenarioKey === "taxPayment") return Math.round((Number(state.scenario.rothConversion) || 0) * ((Number(state.scenario.taxReservePct) || 0) / 100));
   return Number(conn.amount) || 0;
@@ -320,8 +320,15 @@ export function connectorTargetEffect(conn) {
   return connectorSemantic(conn).targetEffect;
 }
 
+export function connectorPostsToLedger(conn) {
+  // Invariant (C3): a connector that posts to balances or cashflow must be
+  // visible. Visibility is enforced as styling in the render layer and here in
+  // the accounting layer so an invisible arrow can never silently move money.
+  return conn?.visible !== false;
+}
+
 export function connectorCountsTowardCashflow(conn) {
-  return connectorIncludedInCurrentCashflow(conn) && connectorTargetEffect(conn) === "cashflowCoverage";
+  return connectorPostsToLedger(conn) && connectorIncludedInCurrentCashflow(conn) && connectorTargetEffect(conn) === "cashflowCoverage";
 }
 
 export function connectorDisplayAmount(conn) {
@@ -371,6 +378,14 @@ export function connectorStoredAmountFromDisplay(conn, displayAmount) {
   return connectorUsesMonthlyDisplay(conn) ? amount * 12 : amount;
 }
 
+export function sleeveSumForData(data) {
+  if (!Array.isArray(data?.subBuckets) || data.subBuckets.length === 0) return null;
+  return data.subBuckets.reduce((sum, bucket) => {
+    const value = bucket?.value ?? bucket?.amount ?? bucket?.balance;
+    return sum + (Number(value) || 0);
+  }, 0);
+}
+
 export function computeValues() {
   computeDiagnostics.computeValuesCalls += 1;
   const next = {};
@@ -380,6 +395,7 @@ export function computeValues() {
 
   if (state.viewMode === "proposed") {
     state.connectors.forEach((conn) => {
+      if (!connectorPostsToLedger(conn)) return;
       if (!connectorIncludedInProposedBalances(conn)) return;
       const sourceId = conn.source.itemId;
       const targetId = conn.target.itemId;
@@ -395,7 +411,28 @@ export function computeValues() {
     });
   }
 
+  // Sleeve coherence (C4): where an account has sleeves, the parent value is the
+  // sum of sleeve values plus an auto-maintained (non-negative) Unallocated
+  // remainder. Editing a sleeve beyond the parent grows the parent so the card,
+  // computed balance, and inventory always agree with the displayed sleeves.
+  Object.entries(state.financeData).forEach(([id, data]) => {
+    const sleeveSum = sleeveSumForData(data);
+    if (sleeveSum === null) return;
+    const base = next[id] !== undefined ? next[id] : Number(data.value) || 0;
+    next[id] = Math.max(base, sleeveSum);
+  });
+
   return next;
+}
+
+export function unallocatedSleeveRemainder(financeId) {
+  const data = state.financeData[financeId];
+  const sleeveSum = sleeveSumForData(data);
+  if (sleeveSum === null) return 0;
+  const values = state.currentValues && state.currentValues[financeId] !== undefined
+    ? state.currentValues[financeId]
+    : Number(data.value) || 0;
+  return Math.max(0, Math.round(Number(values) || 0) - Math.round(sleeveSum));
 }
 
 export function flowBreakdownForItem(itemId) {
@@ -403,6 +440,7 @@ export function flowBreakdownForItem(itemId) {
   let inflow = 0;
   let outflow = 0;
   state.connectors.forEach((conn) => {
+    if (!connectorPostsToLedger(conn)) return;
     if (!connectorIncludedInProposedBalances(conn)) return;
     const amount = Number(conn.amount) || 0;
     if (conn.target.itemId === itemId && connectorTargetEffect(conn) === "increaseBalance") inflow += amount;
