@@ -1043,8 +1043,9 @@ export function renderConnectors() {
       const amountEditing = editingTargetMatches("connector", "amount", { id: conn.id });
       const relationshipEditing = editingTargetMatches("connector", "relationship", { id: conn.id });
       const amountText = amountEditing ? plainMoneyInput(connectorEditorAmount(conn)) : connectorAmountText(conn);
+      const cadenceMarker = connectorTimeProfile(conn).cadence === "oneTime" ? `<small class="cadence-marker">One-time</small>` : "";
       const sourceBadge = connectorHasManualAmount(conn) ? `<small class="connector-source-badge">Manual</small>` : "";
-      label.innerHTML = `<strong class="amount editable-text editable-money" data-geometry-surface="text" ${editableAttrs("connector", "amount", { connectorId: conn.id }, amountEditing)}>${escapeHtml(amountText)}</strong><span class="relationship editable-text" data-geometry-surface="text" ${editableAttrs("connector", "relationship", { connectorId: conn.id }, relationshipEditing)}>${escapeHtml(conn.label)}</span>${sourceBadge}`;
+      label.innerHTML = `<strong class="amount editable-text editable-money" data-geometry-surface="text" ${editableAttrs("connector", "amount", { connectorId: conn.id }, amountEditing)}>${escapeHtml(amountText)}</strong><span class="relationship editable-text" data-geometry-surface="text" ${editableAttrs("connector", "relationship", { connectorId: conn.id }, relationshipEditing)}>${escapeHtml(conn.label)}</span>${cadenceMarker}${sourceBadge}`;
       label.addEventListener("pointerdown", (event) => {
         event.preventDefault();
         event.stopPropagation();
