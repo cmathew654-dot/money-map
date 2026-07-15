@@ -245,10 +245,32 @@ svg {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.brand-lockup > div:last-child {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar .eyebrow {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.topbar h1 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .brand-mark {
   display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
 }
 .brand-square {
   width: 32px; height: 32px;
