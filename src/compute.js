@@ -320,8 +320,15 @@ export function connectorTargetEffect(conn) {
   return connectorSemantic(conn).targetEffect;
 }
 
+export function connectorPostsToLedger(conn) {
+  // Invariant (C3): a connector that posts to balances or cashflow must be
+  // visible. Visibility is enforced as styling in the render layer and here in
+  // the accounting layer so an invisible arrow can never silently move money.
+  return conn?.visible !== false;
+}
+
 export function connectorCountsTowardCashflow(conn) {
-  return connectorIncludedInCurrentCashflow(conn) && connectorTargetEffect(conn) === "cashflowCoverage";
+  return connectorPostsToLedger(conn) && connectorIncludedInCurrentCashflow(conn) && connectorTargetEffect(conn) === "cashflowCoverage";
 }
 
 export function connectorDisplayAmount(conn) {
@@ -380,6 +387,7 @@ export function computeValues() {
 
   if (state.viewMode === "proposed") {
     state.connectors.forEach((conn) => {
+      if (!connectorPostsToLedger(conn)) return;
       if (!connectorIncludedInProposedBalances(conn)) return;
       const sourceId = conn.source.itemId;
       const targetId = conn.target.itemId;
@@ -403,6 +411,7 @@ export function flowBreakdownForItem(itemId) {
   let inflow = 0;
   let outflow = 0;
   state.connectors.forEach((conn) => {
+    if (!connectorPostsToLedger(conn)) return;
     if (!connectorIncludedInProposedBalances(conn)) return;
     const amount = Number(conn.amount) || 0;
     if (conn.target.itemId === itemId && connectorTargetEffect(conn) === "increaseBalance") inflow += amount;
