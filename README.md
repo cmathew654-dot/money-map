@@ -4,7 +4,7 @@ A browser-based canvas for visualizing a client's account structure and the move
 
 **[▶ Try the live demo](https://cmathew654-dot.github.io/money-map/)** — no install, no data entry; it opens on a template catalog of synthetic client scenarios.
 
-![Tests](https://img.shields.io/badge/tests-1365%2F1365-2ea44f) ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Tests](https://img.shields.io/badge/tests-1517%2F1517-2ea44f) ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ![Retirement income flow scenario on the Money Map canvas](docs/media/hero.png)
 
@@ -52,14 +52,16 @@ Money Map has no tax engine. The `taxReservePct` field on a template is a displa
 
 Deliberately dependency-light: vanilla JavaScript (native ES modules, no framework, no bundler, no build step) rendering to a hybrid canvas — DOM tiles for account and finance cards, SVG for flow lines and connectors. Served locally by `http-server`.
 
-The source is split into seven modules with a one-directional dependency graph (`state → templates → compute → viewport → render → interaction → main`), covered by 448 Playwright end-to-end tests run across three viewport sizes plus a dedicated visual-regression project — 1,365 checks per full run.
+The source is split into nine modules with a one-directional dependency graph (`state → templates → canvasGeometry → compute → viewport → layoutQuality → render → interaction → main`), covered by 499 Playwright end-to-end tests run across three viewport sizes, a dedicated visual-regression project, and a narrow-screen gate check — 1,517 checks per full run.
 
 | File | Responsibility |
 |-|-|
 | `src/state.js` | Shared mutable state, constants, utilities |
 | `src/templates.js` | Template factories, theme registry |
+| `src/canvasGeometry.js` | Rect/port geometry helpers for connector routing |
 | `src/compute.js` | Value math and connector geometry |
 | `src/viewport.js` | Zoom, pan, fit-to-view |
+| `src/layoutQuality.js` | Collision detection, auto-placement, and layout tidy-up |
 | `src/render.js` | DOM/SVG rendering, popovers, HUD |
 | `src/interaction.js` | Drag, resize, selection, keyboard handling |
 | `src/main.js` | Bootstrap and event wiring |
