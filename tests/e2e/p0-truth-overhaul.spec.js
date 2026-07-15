@@ -258,7 +258,13 @@ test.describe("P0 truth-first computed contract", () => {
     expect(errors).toEqual([]);
   });
 
-  test("connector range drag previews cheaply and commits one manual override", async ({ page }) => {
+  test("connector range drag recomputes coupled surfaces live and commits one manual override", async ({ page }) => {
+    // C8 supersedes the old "cheap preview" contract: connector slider INPUT now
+    // drives a rAF-throttled FULL recompute so coupled surfaces move live. This
+    // guards (a) coherence DURING input, (b) exactly one undoable history entry
+    // per gesture (commit-on-change, no preview commits), and (c) an rAF budget
+    // -- rapid input events coalesce into a single recompute, never a per-event
+    // full-recompute thrash.
     const errors = await openApp(page, "retirementPaycheck");
     await page.evaluate(() => {
       window.__AFV_TEST__.select("connector", "portfolioDraw");
@@ -266,27 +272,46 @@ test.describe("P0 truth-first computed contract", () => {
       window.__AFV_TEST__.resetComputeDiagnostics();
       window.__AFV_TEST__.resetRenderDiagnostics();
     });
+    const historyBefore = (await state(page)).diagnostics.historyPastLength;
+    const paycheckGap = page.locator('.paycheck-surface [data-cashflow-value="gap"]').first();
+    const gapBefore = (await paycheckGap.textContent())?.trim();
 
     const range = page.locator('.selection-inspector input[data-input="connector-amount-range"]');
     await expect(range).toBeVisible();
+    // Begin the real slider gesture: focus snapshots history-before so the commit
+    // on `change` produces a single undoable entry.
+    await range.focus();
     await range.evaluate((node) => {
       ["4500", "5000", "5500"].forEach((value) => {
         node.value = value;
         node.dispatchEvent(new Event("input", { bubbles: true }));
       });
     });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
+    // (c) rAF budget: three synchronous input events coalesce into at most one
+    // recompute -- not three -- and preview does not force a full geometry pass.
     const duringCompute = await computeDiagnostics(page);
     const duringRender = await renderDiagnostics(page);
-    expect(duringCompute.computeValuesCalls).toBe(0);
-    expect(duringRender.connectorGeometryPasses).toBe(0);
+    expect(duringCompute.computeValuesCalls, "3 input events coalesce into <=1 recompute").toBeLessThanOrEqual(1);
+    expect(duringRender.connectorGeometryPasses, "preview input must not force a full connector geometry pass").toBeLessThanOrEqual(1);
+
+    // (a) Coupled surfaces stay coherent DURING input (before commit): the
+    // connector label and the paycheck gap both reflect the live $5,500/mo draw.
     await expect(page.locator(".connector-label[data-connector-id='portfolioDraw'] .amount")).toHaveText("$5,500/mo");
+    const gapDuring = (await paycheckGap.textContent())?.trim();
+    expect(gapDuring, "paycheck gap tracks the live slider input").not.toBe(gapBefore);
+
+    // (b) No history is committed during preview.
+    expect((await state(page)).diagnostics.historyPastLength, "preview must not commit history").toBe(historyBefore);
 
     await range.dispatchEvent("change");
     const after = await state(page);
     const conn = after.connectors.find((entry) => entry.id === "portfolioDraw");
     expect(conn.amount).toBe(66000);
     expect(conn.manualAmount).toBe(true);
+    // (b) Exactly one undoable history entry for the whole gesture.
+    expect(after.diagnostics.historyPastLength, "one undoable history entry per slider gesture").toBe(historyBefore + 1);
     expect((await computeDiagnostics(page)).computeValuesCalls).toBeLessThanOrEqual(2);
     expect(errors).toEqual([]);
   });
