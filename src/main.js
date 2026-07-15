@@ -1,4 +1,4 @@
-import { state, dom, WORLD, initDomRefs, setRenderAllCallback, TEST_MODE, defaultScenario, defaultMeetingState, defaultMotionState, clone, clearHistory, commitHistory, commitHistoryFrom, restoreHistorySnapshot, undoHistory, redoHistory, compactDollars, parseMoney, formatMoneyInput, plainMoneyInput, clamp, getItem, getGroup, getConnector, clearMultiSelection, selectedItemIds, hasMultiSelection, isFormField, isTextEntryTarget, isPresentationMode, isLockedNode, toggleMultiSelectItem, escapeHtml, kebab } from "./state.js";
+import { state, dom, WORLD, initDomRefs, setRenderAllCallback, TEST_MODE, defaultScenario, defaultMeetingState, defaultMotionState, clone, historySnapshot, clearHistory, commitHistory, commitHistoryFrom, pushHistorySnapshot, restoreHistorySnapshot, undoHistory, redoHistory, compactDollars, parseMoney, formatMoneyInput, plainMoneyInput, clamp, getItem, getGroup, getConnector, clearMultiSelection, selectedItemIds, hasMultiSelection, isFormField, isTextEntryTarget, isPresentationMode, isLockedNode, toggleMultiSelectItem, escapeHtml, kebab } from "./state.js";
 import { templateFactories, applyTheme } from "./templates.js";
 import { constrainViewport, syncComputedValues, computeCanvasViewModel, invalidateComputedViewModel, getComputeDiagnostics, resetComputeDiagnostics, connectorStoredAmountFromDisplay } from "./compute.js";
 import { renderAll, renderCanvasSurface, renderCanvasOnly, renderItems, renderConnectors, renderHud, renderInventory, updateItemValues, updateConnectorValues, restoreHudScroll, selectionKey, setConnectorLabelHandlers, renderTemplateCatalog, findSubBucket, sectionForPopoverKind, getRenderDiagnostics, resetRenderDiagnostics, setHudRangeDragActive } from "./render.js";
@@ -209,7 +209,7 @@ function loadTemplate(id, options = {}) {
   state.hoverItemId = null;
   state.layoutFeedback = null;
   state.floatingLayouts = {};
-  clearHistory();
+  if (options.clearHistory !== false) clearHistory();
   dom.templateTitle.textContent = template.name;
   dom.templateButtonText.textContent = template.shortName;
   if (options.repair === true) repairPresentationLayout({ restorePrimaryLabels: true });
@@ -219,8 +219,13 @@ function loadTemplate(id, options = {}) {
 }
 
 function resetCanvas() {
-  if (state.activeTemplateId) loadTemplate(state.activeTemplateId);
-  else showStartScreen();
+  if (!state.activeTemplateId) {
+    showStartScreen();
+    return;
+  }
+  if (!window.confirm("Reset this scenario to its original template values? You can undo this action.")) return;
+  const before = historySnapshot();
+  if (loadTemplate(state.activeTemplateId, { clearHistory: false })) pushHistorySnapshot(before);
 }
 
 function testState() {
@@ -816,28 +821,28 @@ function alignMultiSelection(action) {
   commitHistory();
 
   if (action === "align-left") {
-    const x = Math.min(...selected.map((item) => item.x));
-    selected.forEach((item) => { item.x = x; });
+    const left = Math.min(...selected.map((item) => item.x - item.w / 2));
+    selected.forEach((item) => { item.x = left + item.w / 2; });
   }
   if (action === "align-center-x") {
     const x = selected.reduce((sum, item) => sum + item.x, 0) / selected.length;
     selected.forEach((item) => { item.x = x; });
   }
   if (action === "align-right") {
-    const x = Math.max(...selected.map((item) => item.x));
-    selected.forEach((item) => { item.x = x; });
+    const right = Math.max(...selected.map((item) => item.x + item.w / 2));
+    selected.forEach((item) => { item.x = right - item.w / 2; });
   }
   if (action === "align-top") {
-    const y = Math.min(...selected.map((item) => item.y));
-    selected.forEach((item) => { item.y = y; });
+    const top = Math.min(...selected.map((item) => item.y - item.h / 2));
+    selected.forEach((item) => { item.y = top + item.h / 2; });
   }
   if (action === "align-middle-y") {
     const y = selected.reduce((sum, item) => sum + item.y, 0) / selected.length;
     selected.forEach((item) => { item.y = y; });
   }
   if (action === "align-bottom") {
-    const y = Math.max(...selected.map((item) => item.y));
-    selected.forEach((item) => { item.y = y; });
+    const bottom = Math.max(...selected.map((item) => item.y + item.h / 2));
+    selected.forEach((item) => { item.y = bottom - item.h / 2; });
   }
   if (action === "distribute-x") {
     const sorted = [...selected].sort((a, b) => a.x - b.x);
@@ -936,8 +941,8 @@ function handleHudClick(event) {
   if (action.startsWith("align-") || action.startsWith("distribute-")) alignMultiSelection(action);
   if (action === "split-finance") splitFinancePreset();
   if (action === "reverse-connector") reverseConnector();
-  if (action === "detach-connector") detachConnectorEndpoints();
-  if (action === "reattach-connector") reattachConnectorEndpoints();
+  if (action === "detach-connector") detachConnectorEndpoints({ connectorId: actionButton.dataset.connectorId });
+  if (action === "reattach-connector") reattachConnectorEndpoints({ connectorId: actionButton.dataset.connectorId });
   if (action === "reset-connector-amount-link" && state.selection?.kind === "connector") {
     const conn = getConnector(state.selection.id);
     if (conn) resetConnectorAmountLink(conn);
@@ -1480,7 +1485,23 @@ dom.hudLayer.addEventListener("focusout", (event) => {
   formatMoneyInputTarget(event.target);
   finishHudInputHistory(event.target);
 });
-dom.hudLayer.addEventListener("click", handleHudClick);
+dom.hudLayer.addEventListener("pointerup", (event) => {
+  const setButton = event.target.closest("[data-set]");
+  if (setButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedField(setButton.dataset.set, setButton.dataset.field, setButton.dataset.value);
+    return;
+  }
+  const button = event.target.closest("[data-action='detach-connector'], [data-action='reattach-connector']");
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const options = { connectorId: button.dataset.connectorId };
+  if (button.dataset.action === "detach-connector") detachConnectorEndpoints(options);
+  else reattachConnectorEndpoints(options);
+}, { capture: true });
+dom.hudLayer.addEventListener("click", handleHudClick, { capture: true });
 dom.hudLayer.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && isTextMoneyInput(event.target)) {
     event.preventDefault();
@@ -1564,6 +1585,10 @@ document.querySelectorAll("[data-zoom]").forEach((button) => {
 document.getElementById("fitButton").addEventListener("click", fitView);
 document.getElementById("tidyButton").addEventListener("click", tidyCanvasLayout);
 document.getElementById("resetButton").addEventListener("click", resetCanvas);
+dom.meetingPanelButton?.addEventListener("click", () => {
+  state.meeting.panelOpen = !state.meeting.panelOpen;
+  renderAll();
+});
 
 function cycleMeetingStatus(current) {
   if (current === "open") return "agreed";
@@ -1774,6 +1799,14 @@ window.addEventListener("keydown", (event) => {
     }
   }
 
+  if (event.key === "Escape" && state.meeting?.panelOpen && !textEntry) {
+    event.preventDefault();
+    state.meeting.panelOpen = false;
+    renderAll();
+    requestAnimationFrame(() => dom.meetingPanelButton?.focus());
+    return;
+  }
+
   if (event.key === "Escape" && !formField) {
     if (state.interaction && cancelInteraction()) return;
     if (dom.inventoryPopover && dom.inventoryPopover.classList.contains("is-open")) {
@@ -1808,7 +1841,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if ((event.key === "Delete" || event.key === "Backspace") && state.selection && !formField) {
+  if ((event.key === "Delete" || event.key === "Backspace") && state.selection && !textEntry) {
     event.preventDefault();
     deleteSelectionWithToast();
     return;
@@ -1819,13 +1852,6 @@ window.addEventListener("keydown", (event) => {
     const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
     const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
     if (nudgeSelection(dx, dy)) event.preventDefault();
-    return;
-  }
-
-  if (!modKey && (event.key === "+" || event.key === "=" || event.key === "-") && !formField && state.selection) {
-    event.preventDefault();
-    const sign = event.key === "-" ? -1 : 1;
-    quickAdjustSelectedValue(sign * (event.shiftKey ? 10000 : 1000));
     return;
   }
 

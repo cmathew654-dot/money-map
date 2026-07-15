@@ -971,13 +971,13 @@ export function quickAdjustSelectedValue(delta) {
 }
 
 export function detachConnectorEndpoints(options = {}) {
-  if (state.selection?.kind !== "connector") return;
-  const conn = getConnector(state.selection.id);
+  const connectorId = options.connectorId || (state.selection?.kind === "connector" ? state.selection.id : null);
+  const conn = connectorId ? getConnector(connectorId) : null;
   if (!conn) return;
   if (!options.skipHistory) commitHistory();
   const computed = computeConnectorPath(conn);
-  conn.source = { x: computed.source.x, y: computed.source.y };
-  conn.target = { x: computed.target.x, y: computed.target.y };
+  conn.source = { ...conn.source, x: computed.source.x, y: computed.source.y, detached: true };
+  conn.target = { ...conn.target, x: computed.target.x, y: computed.target.y, detached: true };
   conn.mid = computed.control;
   conn.manualMid = (conn.routeStyle || "smartArc") !== "straight";
   state.activePopover = null;
@@ -985,8 +985,8 @@ export function detachConnectorEndpoints(options = {}) {
 }
 
 export function reattachConnectorEndpoints(options = {}) {
-  if (state.selection?.kind !== "connector") return;
-  const conn = getConnector(state.selection.id);
+  const connectorId = options.connectorId || (state.selection?.kind === "connector" ? state.selection.id : null);
+  const conn = connectorId ? getConnector(connectorId) : null;
   if (!conn) return;
   const computed = computeConnectorPath(conn);
   const sourceSnap = nearestSnapNode(computed.source, conn, "source");
@@ -1412,13 +1412,16 @@ export function connectorEndpointOwnsNode(conn, role, node) {
 }
 
 function applyFlowTypePreset(conn, flowType) {
+  const displayedAmount = connectorDisplayAmount(conn);
   conn.flowType = flowType;
   const preset = flowTypePresets[flowType];
   if (!preset) return;
   Object.assign(conn, preset);
   const target = conn.target?.itemId ? getNode(conn.target.itemId) : null;
   const targetIsPaycheck = target?.visual === "paycheck";
-  conn.cadence = flowType === "income" ? "monthly" : flowType === "rmd" || flowType === "qcd" ? "annual" : "oneTime";
+  conn.cadence = targetIsPaycheck && (flowType === "income" || flowType === "rmd")
+    ? "monthly"
+    : flowType === "rmd" || flowType === "qcd" ? "annual" : flowType === "income" ? "monthly" : "oneTime";
   conn.timing = conn.timing || "current";
   conn.sourceEffect = flowType === "beneficiary" ? "none" : "decreaseBalance";
   conn.targetEffect = targetIsPaycheck && (flowType === "income" || flowType === "rmd")
@@ -1429,6 +1432,10 @@ function applyFlowTypePreset(conn, flowType) {
       ? "none"
       : "increaseBalance";
   conn.domainRole = flowType;
+  conn.scenarioKey = null;
+  conn.manualAmount = true;
+  conn.amountSource = "manual";
+  conn.amount = connectorStoredAmountFromDisplay(conn, displayedAmount);
 }
 
 export function edgePointForNode(node, edge) {
@@ -2253,7 +2260,10 @@ export function endInteraction(event) {
   }
   if (["drag-node", "resize-node", "drag-connector", "drag-connector-body", "maybe-drag-connector-body", "connector-body-noop"].includes(endedInteraction?.type)) {
     commitHistoryFrom(endedInteraction.historyBefore);
-    applyPresentationRepairFeedback();
+    // Placement and route previews already validate the affected object. A second
+    // full-document geometry audit here caused >1s pointer-up stalls on Estate.
+    // The explicit Tidy command and presentation entry retain full repair.
+    if (endedInteraction.type !== "drag-node") clearLayoutFeedback();
   }
   if (endedInteraction?.type === "drag-node") {
     const now = window.performance?.now?.() || Date.now();
@@ -2410,6 +2420,7 @@ export function setSelectedField(kind, field, value) {
   if (kind === "item-field" && state.selection?.kind === "item") {
     const item = getItem(state.selection.id);
     if (!item) return;
+    commitHistory();
     if (field === "shape") item.shape = value;
     if (field === "visual" && item.type === "finance") item.visual = value;
     if (field === "category" && item.financeId) {
@@ -2429,6 +2440,7 @@ export function setSelectedField(kind, field, value) {
   if (kind === "connector-field" && state.selection?.kind === "connector") {
     const conn = getConnector(state.selection.id);
     if (!conn) return;
+    commitHistory();
     if (field === "flowType") {
       applyFlowTypePreset(conn, value);
     } else if (field === "routeStyle") {

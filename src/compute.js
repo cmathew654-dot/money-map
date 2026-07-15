@@ -221,10 +221,14 @@ export function monthlyDistributionIncludesAnnuity(conn) {
 export function scenarioAmountForConnector(conn) {
   const semantics = connectorSemantic(conn);
   if (semantics.domainRole === "rmdWithholding") {
-    const spendableRmd = (Number(state.scenario.monthlyDistribution) || 0) * 12;
-    return Math.round(spendableRmd * ((Number(state.scenario.taxReservePct) || 0) / 100));
+    const grossDistribution = (Number(state.scenario.monthlyDistribution) || 0) * 12;
+    return Math.round(grossDistribution * ((Number(state.scenario.taxReservePct) || 0) / 100));
   }
-  if (semantics.domainRole === "rmdSpendable") return (Number(state.scenario.monthlyDistribution) || 0) * 12;
+  if (semantics.domainRole === "rmdSpendable") {
+    const grossDistribution = (Number(state.scenario.monthlyDistribution) || 0) * 12;
+    const withholdingRate = (Number(state.scenario.taxReservePct) || 0) / 100;
+    return Math.round(grossDistribution * (1 - withholdingRate));
+  }
   if (semantics.scenarioKey === "monthlyDistribution") {
     const annuity = monthlyDistributionIncludesAnnuity(conn) ? Number(state.scenario.annuityMonthlyIncome) || 0 : 0;
     return (Number(state.scenario.monthlyDistribution) || 0) * 12 + annuity * 12;
@@ -719,6 +723,9 @@ export function computeContentBoundingBox() {
 }
 
 export function rawEndpoint(endpointValue) {
+  if (endpointValue?.detached && Number.isFinite(endpointValue.x) && Number.isFinite(endpointValue.y)) {
+    return { x: endpointValue.x, y: endpointValue.y };
+  }
   if (endpointValue.itemId) {
     const node = getNode(endpointValue.itemId);
     if (node) {
@@ -812,6 +819,9 @@ function adjustedNamedPortPoint(node, endpointValue, portInfo) {
 }
 
 function resolveComputedEndpointPort(endpointValue, toward) {
+  if (endpointValue?.detached && Number.isFinite(endpointValue.x) && Number.isFinite(endpointValue.y)) {
+    return { point: { x: endpointValue.x, y: endpointValue.y }, routePoint: { x: endpointValue.x, y: endpointValue.y }, port: null, edge: null, corridor: null, node: null };
+  }
   if (endpointValue?.itemId) {
     const node = getNode(endpointValue.itemId);
     if (node && endpointHasLegacyOffset(endpointValue)) {

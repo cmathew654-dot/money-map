@@ -4113,13 +4113,40 @@ body.inspector-open:not(.presentation) .zoom-cluster {
   background: color-mix(in srgb, var(--accent-2) 8%, var(--item-bg));
 }
 
+.meeting-panel-button {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 81;
+  width: 36px;
+  min-height: 132px;
+  padding: 12px 8px;
+  border: 1px solid var(--panel-border);
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  color: #1a1410;
+  background: linear-gradient(180deg, var(--brass-light), var(--brass-deep));
+  font-family: var(--ui-font);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+  cursor: pointer;
+}
+
+.meeting-panel-button:focus-visible {
+  outline: 3px solid var(--focus-ring, var(--accent));
+  outline-offset: 3px;
+}
 .scenario-rail {
   position: absolute;
   top: 14px;
-  right: 0;
+  right: 36px;
   bottom: 14px;
   z-index: 80;
-  width: 14px;
+  width: 0;
   max-height: calc(100vh - 100px);
   overflow: hidden;
   padding: 0;
@@ -4157,6 +4184,7 @@ body.inspector-open:not(.presentation) .zoom-cluster {
   transition: opacity 160ms ease;
 }
 
+.scenario-rail.is-open,
 .scenario-rail:hover,
 .scenario-rail:focus-within {
   width: 390px;
@@ -4170,6 +4198,7 @@ body.inspector-open:not(.presentation) .zoom-cluster {
   overflow: auto;
 }
 
+.scenario-rail.is-open::before,
 .scenario-rail:hover::before,
 .scenario-rail:focus-within::before {
   opacity: 0;
@@ -4181,6 +4210,7 @@ body.inspector-open:not(.presentation) .zoom-cluster {
   transition: opacity 160ms ease 0ms, visibility 0s linear 160ms;
 }
 
+.scenario-rail.is-open > *,
 .scenario-rail:hover > *,
 .scenario-rail:focus-within > * {
   opacity: 1;
@@ -4591,9 +4621,12 @@ body.presentation .canvas-dock,
 body.presentation .dock-flyout,
 body.presentation .hud-layer,
 body.presentation .zoom-cluster,
+body.presentation .meeting-panel-button,
 body.presentation .resize-handle,
-body.presentation .connector-handle {
+body.presentation .connector-handle,
+body.presentation .item-edge-handles {
   display: none;
+  pointer-events: none;
 }
 
 body.presentation .workspace {
@@ -4649,7 +4682,34 @@ body.presentation .scenario-rail {
   transition: transform 180ms ease;
 }
 
-body.presentation-entering .scenario-rail {
+body.presentation-entering .meeting-panel-button {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 81;
+  width: 36px;
+  min-height: 132px;
+  padding: 12px 8px;
+  border: 1px solid var(--panel-border);
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  color: #1a1410;
+  background: linear-gradient(180deg, var(--brass-light), var(--brass-deep));
+  font-family: var(--ui-font);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+  cursor: pointer;
+}
+
+.meeting-panel-button:focus-visible {
+  outline: 3px solid var(--focus-ring, var(--accent));
+  outline-offset: 3px;
+}
+.scenario-rail {
   transform: translateY(10px);
 }
 

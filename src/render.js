@@ -2029,7 +2029,7 @@ export function toolbarButtonsForSelection(summary) {
       <button type="button" data-popover="connector-style">Style</button>
       <button type="button" data-popover="connector-label">Label</button>
       <button type="button" data-action="reverse-connector" title="Reverse flow direction" aria-label="Reverse flow direction">Reverse</button>
-      <button type="button" data-action="${endpointAction}">${endpointLabel}</button>
+      <button type="button" data-action="${endpointAction}" data-connector-id="${attr(conn?.id || "")}">${endpointLabel}</button>
       <button class="is-danger" type="button" data-action="delete" title="Delete" aria-label="Delete">Del</button>
     `;
   }
@@ -2257,7 +2257,7 @@ function inspectorActionsForSelection(summary) {
     const endpointLabel = endpointAction === "detach-connector" ? "Detach" : "Reattach";
     return `
       <button type="button" data-action="reverse-connector">Reverse</button>
-      <button type="button" data-action="${endpointAction}">${endpointLabel}</button>
+      <button type="button" data-action="${endpointAction}" data-connector-id="${attr(conn?.id || "")}">${endpointLabel}</button>
       <button type="button" data-action="duplicate">Duplicate</button>
       <button class="is-danger" type="button" data-action="delete">Delete</button>
     `;
@@ -2480,8 +2480,8 @@ function connectorInspectorBody(conn, section) {
     return `
       <p class="popover-note">${escapeHtml(connectorAttachmentText(conn))}</p>
       <div class="hud-actions compact">
-        <button class="secondary-action" type="button" data-action="detach-connector">Detach</button>
-        <button class="secondary-action" type="button" data-action="reattach-connector">Reattach</button>
+        <button class="secondary-action" type="button" data-action="detach-connector" data-connector-id="${attr(conn.id)}">Detach</button>
+        <button class="secondary-action" type="button" data-action="reattach-connector" data-connector-id="${attr(conn.id)}">Reattach</button>
         <button class="secondary-action" type="button" data-action="reverse-connector">Reverse</button>
       </div>
     `;
@@ -2791,8 +2791,8 @@ export function renderConnectorPopover(conn, kind) {
   return popoverShell("Endpoints", `
     <p class="popover-note">${escapeHtml(connectorAttachmentText(conn))}</p>
     <div class="hud-actions compact">
-      <button class="secondary-action" type="button" data-action="detach-connector">Detach</button>
-      <button class="secondary-action" type="button" data-action="reattach-connector">Reattach</button>
+      <button class="secondary-action" type="button" data-action="detach-connector" data-connector-id="${attr(conn.id)}">Detach</button>
+      <button class="secondary-action" type="button" data-action="reattach-connector" data-connector-id="${attr(conn.id)}">Reattach</button>
       <button class="secondary-action" type="button" data-action="reverse-connector">Reverse</button>
     </div>
   `, { kicker: "Flow", width: 260, height: 180 });
@@ -3179,6 +3179,9 @@ export function shouldHideCashflowBanner(cashflow) {
 }
 
 export function renderScenarioRail() {
+  const panelOpen = Boolean(state.meeting?.panelOpen);
+  dom.scenarioRail.classList.toggle("is-open", panelOpen);
+  dom.meetingPanelButton?.setAttribute("aria-expanded", String(panelOpen));
   const cashflow = computeCanvasViewModel().cashflow;
   const gapLabel = cashflow.gap >= 0 ? "Surplus" : "Gap";
   if (document.body.classList.contains("presentation")) {

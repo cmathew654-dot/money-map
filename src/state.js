@@ -201,7 +201,8 @@ export function defaultMeetingState() {
     activeTab: "actions",
     actionStatuses: {},
     decisionStatuses: {},
-    focus: null
+    focus: null,
+    panelOpen: false
   };
 }
 
@@ -287,6 +288,7 @@ export const dom = {
   labelLayer: null,
   hudLayer: null,
   scenarioRail: null,
+  meetingPanelButton: null,
   themeEyebrow: null,
   themeButtonText: null,
   templateTitle: null,
@@ -311,6 +313,7 @@ export function initDomRefs() {
   dom.labelLayer = document.getElementById("labelLayer");
   dom.hudLayer = document.getElementById("hudLayer");
   dom.scenarioRail = document.getElementById("scenarioRail");
+  dom.meetingPanelButton = document.getElementById("meetingPanelButton");
   dom.themeEyebrow = document.getElementById("themeEyebrow");
   dom.themeButtonText = document.getElementById("themeButtonText");
   dom.templateTitle = document.getElementById("templateTitle");
@@ -336,7 +339,11 @@ export function historySnapshot() {
     groups: clone(state.groups),
     financeData: clone(state.financeData),
     connectors: clone(state.connectors),
-    scenario: clone(state.scenario)
+    scenario: clone(state.scenario),
+    activeTemplateId: state.activeTemplateId,
+    templateLayout: clone(state.templateLayout),
+    viewMode: state.viewMode,
+    meeting: clone(state.meeting)
   };
 }
 
@@ -370,6 +377,10 @@ export function restoreHistorySnapshot(snapshot) {
   state.financeData = clone(snapshot.financeData || {});
   state.connectors = clone(snapshot.connectors || []);
   state.scenario = clone(snapshot.scenario || defaultScenario);
+  state.activeTemplateId = snapshot.activeTemplateId ?? state.activeTemplateId;
+  state.templateLayout = clone(snapshot.templateLayout || state.templateLayout || { lanes: [] });
+  state.viewMode = snapshot.viewMode || "proposed";
+  state.meeting = clone(snapshot.meeting || defaultMeetingState());
   state.selection = null;
   clearMultiSelection();
   state.editingItemId = null;
@@ -454,11 +465,11 @@ export function endpoint(value) {
 }
 
 export function isAttachedEndpoint(value) {
-  return Boolean(value?.itemId);
+  return Boolean(value?.itemId) && value?.detached !== true;
 }
 
 export function isFreeEndpoint(value) {
-  return value && Number.isFinite(Number(value.x)) && Number.isFinite(Number(value.y)) && !value.itemId;
+  return value && Number.isFinite(Number(value.x)) && Number.isFinite(Number(value.y)) && (!value.itemId || value.detached === true);
 }
 
 export function cloneEndpoint(value) {

@@ -46,7 +46,7 @@ Every scenario renders in any of three visual themes, switchable mid-meeting.
 
 ## What it is not
 
-Money Map has no tax engine. The `taxReservePct` field on a template is a display-only value the advisor types in — the app performs no tax calculation, projection, or investment analysis. It's a visualization and communication tool for a meeting, not a planning or compliance engine.
+Money Map has no tax engine. The `taxReservePct` field on a template is a display-only value the advisor types in — the app shows illustrative withholding arithmetic but does not determine a statutory RMD or QCD eligibility, projection, or investment analysis. It's a visualization and communication tool for a meeting, not a planning or compliance engine.
 
 ## Tech stack
 

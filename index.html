@@ -191,6 +191,7 @@
         </section>
 
         <div class="hud-layer" id="hudLayer" aria-label="Context controls"></div>
+        <button class="meeting-panel-button" type="button" id="meetingPanelButton" aria-controls="scenarioRail" aria-expanded="false">Meeting</button>
         <aside class="scenario-rail" id="scenarioRail" aria-label="Scenario controls"></aside>
         <div class="zoom-cluster" aria-label="Canvas zoom controls">
           <button type="button" data-zoom="out" aria-label="Zoom out">-</button>
@@ -211,14 +212,21 @@
       } else {
         const MIN_EDITOR_WIDTH = 1060;
         const narrowQuery = window.matchMedia(`(max-width: ${MIN_EDITOR_WIDTH - 1}px)`);
-        document.body.classList.toggle("narrow-screen-blocked", narrowQuery.matches);
-        if (!narrowQuery.matches) {
+        let appLoaded = false;
+        const loadApp = () => {
+          if (appLoaded) return;
+          appLoaded = true;
           const appScript = document.createElement("script");
           appScript.type = "module";
           appScript.src = "src/main.js";
           document.body.append(appScript);
-        }
-        narrowQuery.addEventListener("change", () => window.location.reload());
+        };
+        const applyResponsiveGate = () => {
+          document.body.classList.toggle("narrow-screen-blocked", narrowQuery.matches);
+          if (!narrowQuery.matches) loadApp();
+        };
+        applyResponsiveGate();
+        narrowQuery.addEventListener("change", applyResponsiveGate);
       }
     </script>
   </body>

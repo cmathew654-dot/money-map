@@ -3,7 +3,7 @@ const http = require("http");
 const path = require("path");
 
 const REPO_ROOT = path.join(__dirname, "..", "..");
-const PORT = 4173;
+const PORT = Number(process.env.MONEY_MAP_AUDIT_PORT) || 54217;
 const URL = `http://127.0.0.1:${PORT}/index.html?test=1`;
 
 function canReachServer() {
@@ -23,8 +23,8 @@ function canReachServer() {
 async function startAuditServer() {
   if (await canReachServer()) return { url: URL, stop: async () => {} };
 
-  const command = process.platform === "win32" ? "npx.cmd" : "npx";
-  const child = spawn(command, ["http-server", "-p", String(PORT), "--silent"], {
+  const httpServerScript = require.resolve("http-server/bin/http-server");
+  const child = spawn(process.execPath, [httpServerScript, "-p", String(PORT), "--silent"], {
     cwd: REPO_ROOT,
     stdio: "ignore"
   });
