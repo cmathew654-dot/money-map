@@ -302,8 +302,12 @@ test.describe("connector freedom and visual dynamics", () => {
     await page.locator("[data-action='detach-connector']").click();
 
     const detached = await page.evaluate(() => window.__AFV_TEST__.getState().connectors.find((conn) => conn.id === "rollover"));
-    expect(detached.source.itemId).toBeUndefined();
-    expect(detached.target.itemId).toBeUndefined();
+    // Detach frees both endpoints. The detachment contract marks the endpoint
+    // `detached` (isAttachedEndpoint/isFreeEndpoint key on this flag) and keeps
+    // the former itemId as origin memory for reattach; freedom is driven by the
+    // `detached` flag, not a nulled itemId.
+    expect(detached.source.detached).toBe(true);
+    expect(detached.target.detached).toBe(true);
 
     const handle = page.locator(".connector-handle.source");
     await expect(handle).toHaveCount(1);
