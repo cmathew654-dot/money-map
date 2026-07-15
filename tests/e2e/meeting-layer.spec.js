@@ -16,7 +16,11 @@ async function state(page) {
 test.describe("advisor meeting layer", () => {
   test("action rail focuses canvas targets and carries next steps into presentation", async ({ page }) => {
     await openTemplate(page, "retirementPaycheck");
-    await page.locator("#scenarioRail").hover();
+    // Open the meeting panel through its discoverable toggle. The rail also
+    // expands on :hover, but it collapses to width 0 and the Meeting button
+    // (aria-controls="scenarioRail") sits over the rail's hover point, so the
+    // button click is the canonical open affordance.
+    await page.locator("#meetingPanelButton").click();
 
     await expect(page.locator(".meeting-tabs")).toBeVisible();
     await expect(page.locator('[data-meeting-pane="actions"]')).toBeVisible();
@@ -43,7 +47,7 @@ test.describe("advisor meeting layer", () => {
 
   test("estate meeting layer uses trust and beneficiary-specific actions", async ({ page }) => {
     await openTemplate(page, "estate");
-    await page.locator("#scenarioRail").hover();
+    await page.locator("#meetingPanelButton").click();
 
     await expect(page.locator('[data-meeting-row="attorney-review"]')).toContainText("estate attorney");
     await page.locator('[data-meeting-row="attorney-review"] .meeting-focus-button').click();
