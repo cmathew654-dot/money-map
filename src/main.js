@@ -601,6 +601,14 @@ function handleHudInput(event) {
     if (input === "sleeve-note") bucket.note = event.target.value;
     if (input === "sleeve-value") bucket.value = Math.max(0, parseMoney(event.target.value));
     if (input === "sleeve-capacity") bucket.capacity = Math.max(1, parseMoney(event.target.value) || 1);
+    // Sleeve value/capacity edits change the reconciled parent (C4): recompute so
+    // the parent card, computed balance, and inventory track the displayed sleeves.
+    if (input === "sleeve-value" || input === "sleeve-capacity") {
+      syncComputedValues({ animateDelta: true });
+      renderItems();
+      renderInventory();
+      return;
+    }
     renderItems();
     return;
   }

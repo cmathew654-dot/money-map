@@ -378,6 +378,14 @@ export function connectorStoredAmountFromDisplay(conn, displayAmount) {
   return connectorUsesMonthlyDisplay(conn) ? amount * 12 : amount;
 }
 
+export function sleeveSumForData(data) {
+  if (!Array.isArray(data?.subBuckets) || data.subBuckets.length === 0) return null;
+  return data.subBuckets.reduce((sum, bucket) => {
+    const value = bucket?.value ?? bucket?.amount ?? bucket?.balance;
+    return sum + (Number(value) || 0);
+  }, 0);
+}
+
 export function computeValues() {
   computeDiagnostics.computeValuesCalls += 1;
   const next = {};
@@ -403,7 +411,28 @@ export function computeValues() {
     });
   }
 
+  // Sleeve coherence (C4): where an account has sleeves, the parent value is the
+  // sum of sleeve values plus an auto-maintained (non-negative) Unallocated
+  // remainder. Editing a sleeve beyond the parent grows the parent so the card,
+  // computed balance, and inventory always agree with the displayed sleeves.
+  Object.entries(state.financeData).forEach(([id, data]) => {
+    const sleeveSum = sleeveSumForData(data);
+    if (sleeveSum === null) return;
+    const base = next[id] !== undefined ? next[id] : Number(data.value) || 0;
+    next[id] = Math.max(base, sleeveSum);
+  });
+
   return next;
+}
+
+export function unallocatedSleeveRemainder(financeId) {
+  const data = state.financeData[financeId];
+  const sleeveSum = sleeveSumForData(data);
+  if (sleeveSum === null) return 0;
+  const values = state.currentValues && state.currentValues[financeId] !== undefined
+    ? state.currentValues[financeId]
+    : Number(data.value) || 0;
+  return Math.max(0, Math.round(Number(values) || 0) - Math.round(sleeveSum));
 }
 
 export function flowBreakdownForItem(itemId) {

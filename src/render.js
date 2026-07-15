@@ -324,8 +324,9 @@ export function findSubBucket(itemId, sleeveId) {
   return { item, data, bucket: rows[index], index, sleeveId };
 }
 
-function renderSubBucketStack(item, subBuckets) {
-  const rows = normalizeSubBuckets(subBuckets)
+function renderSubBucketStack(item, subBuckets, parentValue = null) {
+  const normalized = normalizeSubBuckets(subBuckets);
+  const rows = normalized
     .map((entry, index) => {
       const bucket = entry && typeof entry === "object" ? entry : { label: entry };
       const sleeveId = subBucketStableId(bucket, index);
@@ -345,6 +346,22 @@ function renderSubBucketStack(item, subBuckets) {
       `;
     })
     .filter(Boolean);
+  if (parentValue != null) {
+    const sleeveSum = normalized.reduce((sum, entry) => {
+      const bucket = entry && typeof entry === "object" ? entry : { value: entry };
+      const raw = bucket.value ?? bucket.amount ?? bucket.balance;
+      return sum + (Number(raw) || 0);
+    }, 0);
+    const unallocated = Math.max(0, Math.round(Number(parentValue) || 0) - Math.round(sleeveSum));
+    if (unallocated > 0) {
+      rows.push(`
+        <div class="sub-bucket-card is-unallocated" data-sub-bucket-role="unallocated">
+          <span class="sub-bucket-label">Unallocated</span>
+          <strong class="sub-bucket-value">${escapeHtml(formatSubBucketValue(unallocated))}</strong>
+        </div>
+      `);
+    }
+  }
   if (!rows.length) return "";
   return `<div class="sub-bucket-stack">${rows.join("")}</div>`;
 }
@@ -827,7 +844,7 @@ export function renderFinanceSurface(item, delta, showDelta) {
   const value = viewModel.financeValues[item.financeId] ?? state.currentValues[item.financeId] ?? data.value ?? 0;
   const deltaClass = delta < 0 ? " is-negative" : "";
   const deltaText = `${delta > 0 ? "+" : ""}${compactDollars(delta)}`;
-  const subBucketStack = hasSubBucketSurface(item, data) ? renderSubBucketStack(item, data.subBuckets) : "";
+  const subBucketStack = hasSubBucketSurface(item, data) ? renderSubBucketStack(item, data.subBuckets, value) : "";
   const productMetaGrid = hasPolicyMetaSurface(item, data) ? renderProductMetaGrid(data.meta) : "";
 
   if (isRothTaxReserveTradeoff(item)) {

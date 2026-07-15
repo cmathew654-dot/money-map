@@ -897,7 +897,7 @@ export const templateFactories = {
       financeItem("liquidityBucket", "bucket", "cash", "Liquidity Bucket", "Tax reserve strategy", "Purpose-built reserve sleeves", 750, 575, 340, 280, 250000, 540000, 20, { surface: "container", subBuckets: liquiditySleeves }),
       taxReserveEntry,
       financeItem("household", "household", "household", "Johnson Family", "Household", "Lifestyle and legacy", 1240, 315, 260, 122, 0, 1, 20, { surface: "marker" }),
-      financeItem("familyTrust", "trust", "trust", "Johnson Family Trust", "Estate container", "Lifestyle, legacy, charitable sleeves", 1180, 560, 360, 258, 0, 1200000, 20, { surface: "container", subBuckets: trustSleeves })
+      financeItem("familyTrust", "trust", "trust", "Johnson Family Trust", "Estate container", "Lifestyle, legacy, charitable sleeves", 1180, 560, 360, 258, 840000, 1640000, 20, { surface: "container", subBuckets: trustSleeves })
     ];
     const other = [];
     const conns = [
