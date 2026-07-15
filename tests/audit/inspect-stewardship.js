@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "screenshots/stewardship-audit");
 mkdirSync(OUT, { recursive: true });
 
-const URL = "http://localhost:4173/index.html?test=1";
+const URL = "http://localhost:54217/index.html?test=1";
 const log = (...args) => console.log("[audit]", ...args);
 
 async function inspectAt(viewport, label) {

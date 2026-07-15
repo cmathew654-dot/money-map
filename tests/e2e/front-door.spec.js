@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 const { pathToFileURL } = require("url");
 
-const BASE_URL = "http://localhost:4173/index.html";
+const BASE_URL = "http://localhost:54217/index.html";
 const APP_URL = `${BASE_URL}?test=1`;
 const FILE_URL = pathToFileURL(path.resolve(__dirname, "../../index.html")).href;
 

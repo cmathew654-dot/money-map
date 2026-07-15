@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "screenshots/categories-audit");
 mkdirSync(OUT, { recursive: true });
-const URL = "http://localhost:4173/index.html?test=1";
+const URL = "http://localhost:54217/index.html?test=1";
 const log = (...args) => console.log("[cat]", ...args);
 
 const browser = await chromium.launch();

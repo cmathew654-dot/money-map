@@ -12,7 +12,7 @@ page.on("console", (m) => {
 });
 page.on("pageerror", (e) => console.log("[pageerror]", e.message, "\nstack:", e.stack));
 
-await page.goto("http://localhost:4173/index.html?test=1");
+await page.goto("http://localhost:54217/index.html?test=1");
 await page.waitForFunction(() => window.__AFV_TEST__);
 await page.waitForTimeout(1000);
 

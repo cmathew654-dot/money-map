@@ -7,7 +7,7 @@ const { test, expect } = require("@playwright/test");
 // intended edge-draw feature (pulling from an edge ONTO another tile to create a
 // connector) is exercised separately in wave35.spec.js and tool-mode-draw.spec.js.
 
-const APP_URL = "http://localhost:4173/index.html?test=1";
+const APP_URL = "http://localhost:54217/index.html?test=1";
 
 async function openScenario(page, templateId = "cashReserve") {
   const errors = [];

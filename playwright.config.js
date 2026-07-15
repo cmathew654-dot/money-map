@@ -9,8 +9,8 @@ module.exports = defineConfig({
   timeout: 30000,
   workers: 3,
   webServer: {
-    command: "npx http-server -p 4173 --silent",
-    port: 4173,
+    command: "npx http-server -p 54217 --silent",
+    port: 54217,
     reuseExistingServer: !process.env.CI,
     timeout: 30000
   },

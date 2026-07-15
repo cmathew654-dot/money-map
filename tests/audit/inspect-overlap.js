@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
-await page.goto("http://localhost:4173/index.html?test=1");
+await page.goto("http://localhost:54217/index.html?test=1");
 await page.waitForFunction(() => window.__AFV_TEST__);
 await page.evaluate(() => window.__AFV_TEST__.loadTemplate("retirement"));
 await page.waitForTimeout(300);

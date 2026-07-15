@@ -3,7 +3,7 @@
  * element, captures screenshots + console errors at each step. Records to
  * tests/audit/screenshots/bug-hunt/ and prints a structured findings log.
  *
- * Run after: npx http-server -p 4173 --silent
+ * Run after: npx http-server -p 54217 --silent
  * Run cmd:   node tests/audit/inspect-bug-hunt.js
  */
 import { chromium } from "playwright";
@@ -15,7 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "screenshots/bug-hunt");
 mkdirSync(OUT, { recursive: true });
 
-const URL = "http://localhost:4173/index.html?test=1";
+const URL = "http://localhost:54217/index.html?test=1";
 const findings = [];
 const errors = [];
 

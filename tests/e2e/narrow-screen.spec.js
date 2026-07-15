@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-const BASE_URL = "http://localhost:4173/index.html";
+const BASE_URL = "http://localhost:54217/index.html";
 
 test("390px shows the intentional desktop-canvas gate", async ({ page }) => {
   const errors = [];

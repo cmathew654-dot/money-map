@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-const APP_URL = "http://localhost:4173/index.html?test=1";
+const APP_URL = "http://localhost:54217/index.html?test=1";
 const DEFAULT_FINANCE_TEMPLATES = ["retirement", "roth", "annuity", "estate", "cashReserve"];
 const PRESENTATION_STORY_LABELS = {
   retirement: ["incomeDistribution", "annuityIncome", "transfer"],

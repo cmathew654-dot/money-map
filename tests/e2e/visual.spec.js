@@ -4,7 +4,7 @@ const templates = ["retirement", "roth", "annuity", "estate", "cashReserve"];
 const themes = ["stewardship", "horizon", "camino"];
 
 function appUrl() {
-  return "http://localhost:4173/index.html?test=1";
+  return "http://localhost:54217/index.html?test=1";
 }
 
 async function settle(page) {

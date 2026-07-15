@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const scenarios = require("./fixtures/scenarios");
 
-const APP_URL = "http://localhost:4173/index.html?test=1";
+const APP_URL = "http://localhost:54217/index.html?test=1";
 
 async function openApp(page) {
   const errors = [];

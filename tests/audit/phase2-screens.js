@@ -4,7 +4,7 @@ const { chromium } = require('@playwright/test');
 (async () => {
   const browser = await chromium.launch({ args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto('http://localhost:4173', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:54217', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2500); // onboarding thumbnails render
 
   // 1. Onboarding overlay (ONBD-01/02)

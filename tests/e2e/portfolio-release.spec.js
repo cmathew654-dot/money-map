@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-const BASE_URL = "http://localhost:4173/index.html";
+const BASE_URL = "http://localhost:54217/index.html";
 const APP_URL = `${BASE_URL}?test=1`;
 
 test("publishes Money Map release metadata", async ({ page }) => {

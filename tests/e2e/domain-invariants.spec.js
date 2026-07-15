@@ -13,7 +13,7 @@ function makeLcg(seed) {
 
 const GLOBAL_SEED = Number(process.env.AFV_SEED) || 0xdeadbeef;
 
-const APP_URL = "http://localhost:4173/index.html?test=1";
+const APP_URL = "http://localhost:54217/index.html?test=1";
 const N_FUZZ = 20;
 const N_CHAOS = 5;
 

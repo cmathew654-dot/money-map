@@ -15,7 +15,7 @@ const errors = [];
 page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message + "\n" + e.stack));
 
-await page.goto("http://localhost:4173/index.html?test=1");
+await page.goto("http://localhost:54217/index.html?test=1");
 await page.waitForFunction(() => window.__AFV_TEST__);
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${OUT}/00-boot.png`, fullPage: false });

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Desktop advisor meeting canvas for visualizing accounts and money movement.",
   "scripts": {
-    "dev": "http-server -p 4173 --silent",
+    "dev": "http-server -p 54217 --silent",
     "audit:layout": "node tests/audit/inspect-layout.js",
     "audit:layout:strict": "node tests/audit/inspect-layout.js --strict",
     "test": "playwright test",

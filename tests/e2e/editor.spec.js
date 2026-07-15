@@ -4,7 +4,7 @@ const DISPLAY_FONT_RE = /Cormorant Garamond|Book Antiqua|Georgia/i;
 const LOCAL_UI_FONT_RE = /Aptos|Segoe UI|system-ui|-apple-system/i;
 
 function appUrl() {
-  return "http://localhost:4173/index.html?test=1";
+  return "http://localhost:54217/index.html?test=1";
 }
 
 async function openApp(page) {
@@ -351,7 +351,7 @@ test.describe("connector freedom and visual dynamics", () => {
 });
 
 test("Stewardship font stacks are local/offline", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => document.fonts?.ready);
 
@@ -369,7 +369,7 @@ test("Stewardship font stacks are local/offline", async ({ page }) => {
 });
 
 test("Stewardship theme is default and switchable", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   expect(await page.evaluate(() => document.body.dataset.theme)).toBe("stewardship");
 
@@ -381,7 +381,7 @@ test("Stewardship theme is default and switchable", async ({ page }) => {
 });
 
 test("Stewardship palette tokens resolve to spec values", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => window.__AFV_TEST__.setTheme("stewardship"));
 
@@ -403,7 +403,7 @@ test("Stewardship palette tokens resolve to spec values", async ({ page }) => {
 });
 
 test("Account card uses Stewardship typography and hover state", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => window.__AFV_TEST__.loadTemplate("retirement"));
 
@@ -469,7 +469,7 @@ test("Account card uses Stewardship typography and hover state", async ({ page }
 });
 
 test("Brand mark renders three-peak silhouette + Aster Ridge wordmark", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
 
   const pathD = await page.evaluate(() => document.querySelector(".brand-square svg path")?.getAttribute("d"));
@@ -483,7 +483,7 @@ test("Brand mark renders three-peak silhouette + Aster Ridge wordmark", async ({
 });
 
 test("Connector renders amount + italic relationship label", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => window.__AFV_TEST__.loadTemplate("retirement"));
 
@@ -513,7 +513,7 @@ test("Connector renders amount + italic relationship label", async ({ page }) =>
 });
 
 test("Paycheck tile emits data-state attribute matching canvas state", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => window.__AFV_TEST__.loadTemplate("retirement"));
 
@@ -535,7 +535,7 @@ test("Paycheck tile emits data-state attribute matching canvas state", async ({ 
 });
 
 test("Roth Conversion paycheck tile renders tradeoff state", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
   await page.evaluate(() => window.__AFV_TEST__.loadTemplate("roth"));
 
@@ -543,7 +543,7 @@ test("Roth Conversion paycheck tile renders tradeoff state", async ({ page }) =>
 });
 
 test("Stage shows mountain-motif atmospheric SVGs", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
 
   const watermarkExists = await page.locator(".motif-title-watermark").count();
@@ -557,7 +557,7 @@ test("Stage shows mountain-motif atmospheric SVGs", async ({ page }) => {
 });
 
 test("Topbar uses neutral graphite chrome border", async ({ page }) => {
-  await page.goto("http://localhost:4173/index.html?test=1");
+  await page.goto("http://localhost:54217/index.html?test=1");
   await page.waitForFunction(() => window.__AFV_TEST__);
 
   const chrome = await page.locator(".topbar").evaluate((el) => {
