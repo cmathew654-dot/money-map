@@ -118,9 +118,22 @@ async function financeSurfaceTexts(page) {
 
 function stateSubBucketLabels(snapshot, itemId) {
   const financeId = snapshot.items.find((item) => item.id === itemId)?.financeId || itemId;
-  return (snapshot.financeData[financeId]?.subBuckets || [])
-    .map((bucket) => String(bucket.label || "").trim())
-    .filter(Boolean);
+  const buckets = snapshot.financeData[financeId]?.subBuckets || [];
+  const labels = buckets.map((bucket) => String(bucket.label || "").trim()).filter(Boolean);
+  // C4: sleeved accounts render an auto-maintained, non-negative "Unallocated"
+  // remainder row whenever the reconciled parent value exceeds the sum of its
+  // authored sleeves (e.g. estate liquidity carries a legitimate $180K
+  // remainder). Mirror that derived row so this stays a real DOM/state coherence
+  // check instead of drifting on the intended remainder.
+  const sleeveSum = buckets.reduce(
+    (sum, bucket) => sum + (Number(bucket.value ?? bucket.amount ?? bucket.balance) || 0),
+    0
+  );
+  const parentValue = Number(snapshot.currentValues?.[financeId] ?? snapshot.financeData[financeId]?.value) || 0;
+  if (buckets.length && Math.round(parentValue) - Math.round(sleeveSum) > 0) {
+    labels.push("Unallocated");
+  }
+  return labels;
 }
 
 function expectNoLegacySubBucketLabels(labels, context) {
