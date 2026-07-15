@@ -192,6 +192,11 @@ function loadTemplate(id, options = {}) {
   state.groups = clone(template.groups || []);
   state.financeData = clone(template.financeData || {});
   state.connectors = clone(template.connectors || []);
+  // C7: persist each connector's authored amount so "Reset to linked" can restore
+  // it when a scenario driver value is undefined (e.g. rollover has no scenario field).
+  state.connectors.forEach((conn) => {
+    if (conn.templateAmount === undefined) conn.templateAmount = Number(conn.amount) || 0;
+  });
   state.templateLayout = clone(template.layout || { lanes: [] });
   state.scenario = clone(template.scenario || defaultScenario);
   state.selection = null;

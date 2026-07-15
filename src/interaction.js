@@ -2319,9 +2319,14 @@ export function previewConnectorAmount(conn, value) {
 
 export function resetConnectorAmountLink(conn, options = {}) {
   if (!conn?.scenarioKey) return;
+  // C7: restore the linked amount (driver value, else the authored template
+  // amount) AND commit exactly one reversible history entry so the button resets
+  // the money, not just the badge, and Ctrl+Z returns to the manual value.
+  const before = options.skipHistory ? null : historySnapshot();
   delete conn.manualAmount;
   delete conn.amountSource;
   conn.amount = scenarioAmountForConnector(conn);
+  if (before) commitHistoryFrom(before);
   state.pendingConnectorAmountPreview = null;
   syncComputedValues({ animateDelta: true });
   setHotStateForConnectors([conn], options.duration || 520);

@@ -237,7 +237,7 @@ export function scenarioAmountForConnector(conn) {
   if (semantics.scenarioKey === "flexibleIncome") return (Number(state.scenario.flexibleIncome || state.scenario.monthlyDistribution) || 0) * 12;
   if (semantics.scenarioKey === "annuityIncome") return state.scenario.annuityOn ? (Number(state.scenario.annuityMonthlyIncome) || 0) * 12 : 0;
   if (semantics.scenarioKey === "annuityPremium") return Number(state.scenario.annuityPremium) || 0;
-  if (semantics.scenarioKey === "rollover") return Number(state.scenario.rollover ?? conn.amount) || 0;
+  if (semantics.scenarioKey === "rollover") return Number(state.scenario.rollover ?? conn.templateAmount ?? conn.amount) || 0;
   if (semantics.scenarioKey === "rothConversion") return Number(state.scenario.rothConversion) || 0;
   if (semantics.scenarioKey === "taxPayment") return Math.round((Number(state.scenario.rothConversion) || 0) * ((Number(state.scenario.taxReservePct) || 0) / 100));
   return Number(conn.amount) || 0;
