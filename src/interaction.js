@@ -51,6 +51,39 @@ let interactionChromeFrame = null;
 let interactionChromeFrameStartedAt = 0;
 let pendingInteractionConnectorIds = null;
 let hotClearTimer = null;
+let idleReconcileHandle = null;
+
+// Pointer-up used to run a full-document connector geometry + presentation
+// repair pass (repairPresentationLayout / detectLayoutIssues) no matter how
+// many connectors were actually touched by the drag. On Estate-sized scenes
+// that scan (autoLabelPoint x labelObstacleScore across every connector) is
+// the dominant cost of the drop and blocked the main thread for >1s. The
+// synchronous pointer-up path below is restricted to the moved node's own
+// attached connectors; the full-document quality pass still runs, just off
+// the input-handling critical path via requestIdleCallback.
+function scheduleIdleFullReconcile() {
+  const runIdle = typeof window.requestIdleCallback === "function"
+    ? (cb) => window.requestIdleCallback(cb, { timeout: 500 })
+    : (cb) => window.setTimeout(() => cb({ didTimeout: true, timeRemaining: () => 0 }), 120);
+  const cancelIdle = typeof window.cancelIdleCallback === "function" ? window.cancelIdleCallback : window.clearTimeout;
+  if (idleReconcileHandle != null) {
+    cancelIdle(idleReconcileHandle);
+    idleReconcileHandle = null;
+  }
+  idleReconcileHandle = runIdle(() => {
+    idleReconcileHandle = null;
+    applyPresentationRepairFeedback();
+    renderAll();
+  });
+}
+
+function finalReconcileConnectorIds(endedInteraction) {
+  if (endedInteraction?.type === "drag-node") {
+    return endedInteraction.impactedConnectorIds ? [...endedInteraction.impactedConnectorIds] : [];
+  }
+  if (endedInteraction?.connectorId) return [endedInteraction.connectorId];
+  return endedInteraction?.impactedConnectorIds ? [...endedInteraction.impactedConnectorIds] : [];
+}
 
 function cssIdent(value) {
   if (window.CSS?.escape) return window.CSS.escape(String(value ?? ""));
@@ -2270,7 +2303,8 @@ export function endInteraction(event) {
     state.suppressDirectEditClickUntil = now + 500;
   }
   if (["drag-node", "drag-connector", "drag-connector-body", "maybe-drag-connector-body", "connector-body-noop"].includes(endedInteraction?.type)) {
-    updateConnectorValues({ finalReconcile: true });
+    updateConnectorValues({ finalReconcile: true, connectorIds: finalReconcileConnectorIds(endedInteraction) });
+    scheduleIdleFullReconcile();
     return;
   }
   renderAll();

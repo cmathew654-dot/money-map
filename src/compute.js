@@ -1146,6 +1146,32 @@ function labelSurfaceObstacleScore(conn, labelRectOrPoint) {
   return score;
 }
 
+// Cross-call cache for scoringLabelRectForConnector, keyed by connector id.
+// withConnectorScoringCache's Map is recreated empty on every single call
+// (every drag frame, every pointer-up), so before this cache existed every
+// connector NOT involved in the current interaction still paid the full
+// autoLabelPoint candidate scan (obstacle-scored against every other
+// connector) on every call. The fingerprint below captures every input that
+// can change a connector's scored label rect (resolved endpoint ports, mid,
+// manual label point, label mode/route/text/amount); when a connector's own
+// geometry hasn't moved, the fingerprint is identical between calls and the
+// expensive scan is skipped entirely.
+const labelRectFingerprintCache = new Map();
+
+function labelRectFingerprint(conn, ports) {
+  return [
+    ports.routeSource.x.toFixed(1), ports.routeSource.y.toFixed(1),
+    ports.routeTarget.x.toFixed(1), ports.routeTarget.y.toFixed(1),
+    conn.mid ? `${conn.mid.x.toFixed(1)},${conn.mid.y.toFixed(1)}` : "",
+    conn.labelPoint ? `${conn.labelPoint.x.toFixed(1)},${conn.labelPoint.y.toFixed(1)}` : "",
+    conn.labelMode || "auto",
+    conn.routeStyle || "smartArc",
+    conn.label || "",
+    Math.round(connectorDisplayAmount(conn) || 0),
+    conn.visible === false ? "0" : "1"
+  ].join("|");
+}
+
 function scoringLabelRectForConnector(conn) {
   const mode = conn.labelMode || "auto";
   if (mode === "hidden") return null;
@@ -1154,6 +1180,11 @@ function scoringLabelRectForConnector(conn) {
   const sourceInfo = resolveComputedEndpointPort(conn.source, targetRaw);
   const targetInfo = resolveComputedEndpointPort(conn.target, sourceRaw);
   const ports = withEndpointPortStubs(conn, sourceInfo, targetInfo);
+
+  const fingerprint = labelRectFingerprint(conn, ports);
+  const cached = labelRectFingerprintCache.get(conn.id);
+  if (cached && cached.fp === fingerprint) return cached.rect;
+
   const route = conn.routeStyle || "smartArc";
   const control = conn.mid || fallbackControlPoint(ports.routeSource, ports.routeTarget, route);
   const mid = {
@@ -1188,7 +1219,9 @@ function scoringLabelRectForConnector(conn) {
     }
   }
 
-  return point ? labelRectForPoint(clampLabelPoint(point, conn), conn) : null;
+  const rect = point ? labelRectForPoint(clampLabelPoint(point, conn), conn) : null;
+  labelRectFingerprintCache.set(conn.id, { fp: fingerprint, rect });
+  return rect;
 }
 
 function visibleLabelRectsForScoring(exceptConn = null) {
