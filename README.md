@@ -4,7 +4,7 @@ A browser-based canvas for visualizing a client's account structure and the move
 
 **[▶ Try the live demo](https://cmathew654-dot.github.io/money-map/)** — no install, no data entry; it opens on a template catalog of synthetic client scenarios.
 
-![Tests](https://img.shields.io/badge/tests-1517%2F1517-2ea44f) ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ![Retirement income flow scenario on the Money Map canvas](docs/media/hero.png)
 
