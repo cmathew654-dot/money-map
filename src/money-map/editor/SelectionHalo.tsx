@@ -1,5 +1,6 @@
 import type { CommandDefinition } from "../commands/types";
 import type { WorkspaceCommandContext, WorkspaceCommandResult } from "./commands";
+import { useToolbarNavigation } from "./useToolbarNavigation";
 
 interface SelectionHaloProps {
   selectionCount: number;
@@ -36,14 +37,20 @@ function projectCommands(
 
 export function SelectionHalo({ selectionCount, commands, onExecute }: SelectionHaloProps) {
   const projectedCommands = projectCommands(commands, selectionCount);
+  const toolbar = useToolbarNavigation(projectedCommands.length);
   if (selectionCount < 1 || projectedCommands.length === 0) return null;
   const label =
     selectionCount === 1 ? "Selected module actions" : `${selectionCount} selected items`;
 
   return (
-    <div className="selection-halo" role="toolbar" aria-label={label}>
-      {projectedCommands.map((command) => (
-        <button key={command.id} type="button" onClick={() => onExecute(command.id)}>
+    <div className="selection-halo" role="toolbar" aria-label={label} onKeyDown={toolbar.onKeyDown}>
+      {projectedCommands.map((command, index) => (
+        <button
+          {...toolbar.itemProps(index)}
+          key={command.id}
+          type="button"
+          onClick={() => onExecute(command.id)}
+        >
           {command.label}
         </button>
       ))}

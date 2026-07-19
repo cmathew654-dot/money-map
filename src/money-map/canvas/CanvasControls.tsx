@@ -1,3 +1,5 @@
+import { useToolbarNavigation } from "../editor/useToolbarNavigation";
+
 export interface CanvasController {
   zoomOut(): void;
   resetZoom(): void;
@@ -12,13 +14,25 @@ interface CanvasControlsProps {
 }
 
 export function CanvasControls({ controller, zoomPercentage }: CanvasControlsProps) {
+  const toolbar = useToolbarNavigation(5);
   return (
-    <div className="canvas-controls" role="toolbar" aria-label="Canvas camera">
+    <div
+      className="canvas-controls"
+      role="toolbar"
+      aria-label="Canvas camera"
+      onKeyDown={toolbar.onKeyDown}
+    >
       <div className="canvas-controls__zoom">
-        <button type="button" aria-label="Zoom out" onClick={controller.zoomOut}>
+        <button
+          {...toolbar.itemProps(0)}
+          type="button"
+          aria-label="Zoom out"
+          onClick={controller.zoomOut}
+        >
           <span aria-hidden="true">−</span>
         </button>
         <button
+          {...toolbar.itemProps(1)}
           className="canvas-controls__percentage"
           type="button"
           aria-label="Reset zoom to 100%"
@@ -26,14 +40,29 @@ export function CanvasControls({ controller, zoomPercentage }: CanvasControlsPro
         >
           {zoomPercentage}%
         </button>
-        <button type="button" aria-label="Zoom in" onClick={controller.zoomIn}>
+        <button
+          {...toolbar.itemProps(2)}
+          type="button"
+          aria-label="Zoom in"
+          onClick={controller.zoomIn}
+        >
           <span aria-hidden="true">+</span>
         </button>
       </div>
-      <button type="button" aria-label="Fit map" onClick={controller.fitMap}>
+      <button
+        {...toolbar.itemProps(3)}
+        type="button"
+        aria-label="Fit map"
+        onClick={controller.fitMap}
+      >
         Fit map
       </button>
-      <button type="button" aria-label="Fit selection" onClick={controller.fitSelection}>
+      <button
+        {...toolbar.itemProps(4)}
+        type="button"
+        aria-label="Fit selection"
+        onClick={controller.fitSelection}
+      >
         Fit selection
       </button>
     </div>

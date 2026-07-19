@@ -34,7 +34,7 @@
 - Unit/component: 33 files, 210 tests passed.
 - Chromium: 17/17 journeys passed.
 - Production bundle: 137.26 kB gzip JavaScript and 7.49 kB gzip CSS.
-- Authoring preflight: command palette now uses a valid non-tabbable active-descendant combobox pattern; starter index contrast is 5.31:1. Focused tests, ESLint, TypeScript, and formatting pass.
+- Authoring preflight: command palette uses a valid non-tabbable active-descendant combobox pattern; starter index contrast is 5.31:1; the three authoring toolbars share roving focus with Arrow and Home/End navigation. Focused tests, ESLint, TypeScript, and formatting pass.
 
 ## Known limitations
 

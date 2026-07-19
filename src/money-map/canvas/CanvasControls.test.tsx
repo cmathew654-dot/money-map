@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -29,5 +29,29 @@ describe("CanvasControls", () => {
     expect(controller.zoomIn).toHaveBeenCalledOnce();
     expect(controller.fitMap).toHaveBeenCalledOnce();
     expect(controller.fitSelection).toHaveBeenCalledOnce();
+  });
+  it("uses one roving tab stop with Arrow and Home/End navigation", () => {
+    const controller = {
+      zoomOut: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomIn: vi.fn(),
+      fitMap: vi.fn(),
+      fitSelection: vi.fn(),
+    };
+
+    render(<CanvasControls controller={controller} zoomPercentage={100} />);
+    const toolbar = screen.getByRole("toolbar", { name: "Canvas camera" });
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.map((button) => button.tabIndex)).toEqual([0, -1, -1, -1, -1]);
+
+    buttons[0].focus();
+    fireEvent.keyDown(buttons[0], { key: "ArrowRight" });
+    expect(document.activeElement).toBe(buttons[1]);
+    expect(buttons[1].tabIndex).toBe(0);
+
+    fireEvent.keyDown(toolbar, { key: "End" });
+    expect(document.activeElement).toBe(buttons[4]);
+    fireEvent.keyDown(buttons[4], { key: "Home" });
+    expect(document.activeElement).toBe(buttons[0]);
   });
 });

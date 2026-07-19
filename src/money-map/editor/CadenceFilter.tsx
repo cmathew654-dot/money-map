@@ -1,4 +1,5 @@
 import type { CadenceFilter as CadenceFilterValue } from "../canvas/adapters";
+import { useToolbarNavigation } from "./useToolbarNavigation";
 
 interface CadenceFilterProps {
   value: CadenceFilterValue;
@@ -13,11 +14,18 @@ const options: Array<{ id: CadenceFilterValue; label: string }> = [
 ];
 
 export function CadenceFilter({ value, onChange }: CadenceFilterProps) {
+  const toolbar = useToolbarNavigation(options.length);
   return (
-    <div className="cadence-filter" role="toolbar" aria-label="Filter relationships by cadence">
+    <div
+      className="cadence-filter"
+      role="toolbar"
+      aria-label="Filter relationships by cadence"
+      onKeyDown={toolbar.onKeyDown}
+    >
       <span>Cadence</span>
-      {options.map((option) => (
+      {options.map((option, index) => (
         <button
+          {...toolbar.itemProps(index)}
           aria-pressed={value === option.id}
           key={option.id}
           onClick={() => onChange(option.id)}
