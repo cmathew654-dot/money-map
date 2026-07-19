@@ -3,7 +3,7 @@
 ## Status
 
 - Status: DONE
-- Local checkpoint: this commit (`feat: add custom relationship editing`)
+- Local checkpoint: this commit (`fix: harden relationship editing`), atop `0e3880d`
 - Push/deploy: not performed
 - Schema/persistence validator: unchanged
 
@@ -28,13 +28,22 @@
 - Browser regression exposed two genuine integration defects: portal clicks reached the canvas and cleared the relationship; then React Flow's node selection superseded an externally controlled edge during Shift-click. Both were repaired without weakening assertions; focused mixed-selection browser coverage passes 2/2.
 - Three lean Task 3C journeys pass 3/3: exact label + appearance + undo/redo; pointer drag + keyboard nudge + reset/undo; keyboard reconnect + exact custom cadence + filter + reload.
 
+## Review repair
+
+- Axis-aligned orthogonal routes retain an intentional dogleg; curved routes retain a visible perpendicular bow; label anchors stay on the authored route.
+- Create/reconnect mutations reject self-links and invalid endpoints with the exact original document reference; endpoint selectors omit the opposing endpoint.
+- Pointer reconnect is available whenever exactly one relationship is selected, while create handles are lifecycle-bound to the live Connections tab.
+- The delayed mixed-selection bridge was replaced by synchronous selection intent/revision state; rapid Shift-add, filtering, and Escape cannot replay stale selections.
+- Fine/coarse connector targets are 28/44 px; visible create/reconnect handles are 24/44 px.
+- A browser-discovered render race in drag click suppression received a RED rerender regression and a ref-backed fix with pointer-cancel/lost-capture cleanup.
+
 ## Fresh verification
 
 - `npm run verify`: exit 0.
 - Format, lint, TypeScript, source guard, and production build: pass.
-- Unit/component: 26 files, 160 tests.
-- Playwright Chromium: 15/15 journeys.
-- Production bundle: 427.05 kB JavaScript / 133.17 kB gzip; 32.86 kB CSS / 6.54 kB gzip.
+- Unit/component: 27 files, 177 tests.
+- Playwright Chromium: 16/16 journeys.
+- Production bundle: 429.69 kB JavaScript / 134.04 kB gzip; 33.21 kB CSS / 6.57 kB gzip.
 - `git diff --check`: pass before commit.
 
 ## Design and safety decisions
@@ -48,5 +57,5 @@
 ## Remaining concerns
 
 - No Critical or Important Task 3C concern is known.
-- Pointer reconnect is callback/mutation covered and implemented with public handles; the E2E contract uses the keyboard endpoint control. Perform one manual two-endpoint pointer pass during the Task 4/5 visual audit.
+- Pointer reconnect is verified through public callbacks, immutable mutations, adapter eligibility, and a physical Chromium journey that drags both source and target endpoints.
 - Windows Vite/Vitest/Playwright child processes require the approved out-of-sandbox execution path.

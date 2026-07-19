@@ -39,12 +39,18 @@ function renderEdge(overrides: Partial<MoneyMapCanvasEdge["data"]> = {}) {
     data: { flow, handlers, editing: false, ...overrides },
     selected: false,
   } as unknown as EdgeProps<MoneyMapCanvasEdge>;
-  render(
+  const view = render(
     <ReactFlowProvider>
       <MoneyMapEdge {...props} />
     </ReactFlowProvider>,
   );
-  return { flow, handlers };
+  const rerender = () =>
+    view.rerender(
+      <ReactFlowProvider>
+        <MoneyMapEdge {...props} />
+      </ReactFlowProvider>,
+    );
+  return { flow, handlers, rerender };
 }
 
 describe("MoneyMapEdge", () => {
@@ -75,6 +81,20 @@ describe("MoneyMapEdge", () => {
     fireEvent.pointerMove(label, { clientX: 108, clientY: 100, pointerId: 1 });
     fireEvent.pointerUp(label, { clientX: 108, clientY: 100, pointerId: 1 });
     fireEvent.click(label);
+    expect(handlers.moveWaypoint).toHaveBeenCalledWith({ x: 108, y: 100 });
+    expect(handlers.beginEdit).not.toHaveBeenCalled();
+  });
+
+  it("preserves drag click suppression across the selection rerender", () => {
+    const { handlers, rerender } = renderEdge();
+    const label = screen.getByRole("button");
+    fireEvent.pointerDown(label, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(label, { clientX: 108, clientY: 100, pointerId: 1 });
+    fireEvent.pointerUp(label, { clientX: 108, clientY: 100, pointerId: 1 });
+
+    rerender();
+    fireEvent.click(screen.getByRole("button"));
+
     expect(handlers.moveWaypoint).toHaveBeenCalledWith({ x: 108, y: 100 });
     expect(handlers.beginEdit).not.toHaveBeenCalled();
   });
@@ -111,6 +131,7 @@ describe("MoneyMapEdge", () => {
     const { handlers } = renderEdge();
     const target = document.querySelector(".react-flow__edge-interaction");
     if (!target) throw new Error("Expected interaction path");
+    expect(target.getAttribute("stroke-width")).toBe("28");
     fireEvent.click(target);
     expect(handlers.select).toHaveBeenCalledTimes(1);
   });

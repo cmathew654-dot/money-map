@@ -81,23 +81,24 @@ vi.mock("@xyflow/react", async (importOriginal) => {
       return (
         <div data-testid="react-flow-pane" onClick={() => emitControlledSelection([], [])}>
           {nodes.map((node) => (
-            <button
-              data-selected={node.selected ? "true" : "false"}
-              key={node.id}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                const selectedNodes = event.shiftKey
-                  ? nodes.filter((candidate) => candidate.selected || candidate.id === node.id)
-                  : [node];
-                const selectedEdges = event.shiftKey
-                  ? edges.filter((candidate) => candidate.selected)
-                  : [];
-                emitControlledSelection(selectedNodes, selectedEdges);
-              }}
-            >
-              {node.data.module.title}
-            </button>
+            <div className="react-flow__node" data-id={node.id} key={node.id}>
+              <button
+                data-selected={node.selected ? "true" : "false"}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  const selectedNodes = event.shiftKey
+                    ? nodes.filter((candidate) => candidate.selected || candidate.id === node.id)
+                    : [node];
+                  const selectedEdges = event.shiftKey
+                    ? edges.filter((candidate) => candidate.selected)
+                    : [];
+                  emitControlledSelection(selectedNodes, selectedEdges);
+                }}
+              >
+                {node.data.module.title}
+              </button>
+            </div>
           ))}
           {edges.map((edge) => (
             <button
@@ -162,6 +163,17 @@ function renderCanvas(
         />,
       );
     },
+    rerenderWithFilter(nextSelection: typeof selection, cadenceFilter: "monthly" | "all") {
+      view.rerender(
+        <MoneyMapCanvas
+          cadenceFilter={cadenceFilter}
+          document={document}
+          selection={nextSelection}
+          onSelectionChange={onSelectionChange}
+          onDocumentChange={onDocumentChange}
+        />,
+      );
+    },
   };
 }
 
@@ -206,6 +218,7 @@ describe("MoneyMapCanvas selection", () => {
     });
     expect(screen.getByRole("status").textContent).toBe("2 modules selected.");
 
+    fireEvent.pointerDown(screen.getByTestId("react-flow-pane"));
     fireEvent.click(screen.getByTestId("react-flow-pane"));
     expect(onSelectionChange).toHaveBeenLastCalledWith({ moduleIds: [], flowIds: [] });
     expect(screen.getByRole("status").textContent).toBe("Selection cleared.");
@@ -412,6 +425,63 @@ describe("MoneyMapCanvas selection", () => {
   });
 });
 
+describe("MoneyMapCanvas additive relationship selection ordering", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    flowMock.props = {};
+  });
+
+  it("reconciles a Shift node intent synchronously and accumulates rapid additions", () => {
+    const onSelectionChange = vi.fn();
+    renderCanvas({ moduleIds: [], flowIds: ["funding-flow"] }, onSelectionChange);
+    const source = screen.getByRole("button", { name: "Investment account" });
+    const annuity = screen.getByRole("button", { name: "Illustrative annuity" });
+
+    fireEvent.pointerDown(source, { shiftKey: true });
+    fireEvent.click(source, { shiftKey: true });
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      moduleIds: ["source-account"],
+      flowIds: ["funding-flow"],
+    });
+
+    fireEvent.pointerDown(annuity, { shiftKey: true });
+    fireEvent.click(annuity, { shiftKey: true });
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      moduleIds: ["source-account", "annuity-policy"],
+      flowIds: ["funding-flow"],
+    });
+  });
+
+  it("cannot resurrect a filtered relationship from a queued Shift intent", async () => {
+    const onSelectionChange = vi.fn();
+    const view = renderCanvas({ moduleIds: [], flowIds: ["funding-flow"] }, onSelectionChange);
+    const source = screen.getByRole("button", { name: "Investment account" });
+    fireEvent.pointerDown(source, { shiftKey: true });
+    fireEvent.click(source, { shiftKey: true });
+
+    view.rerenderWithFilter({ moduleIds: ["source-account"], flowIds: [] }, "monthly");
+    onSelectionChange.mockClear();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(
+      onSelectionChange.mock.calls.some(([selection]) =>
+        (selection as { flowIds: string[] }).flowIds.includes("funding-flow"),
+      ),
+    ).toBe(false);
+  });
+
+  it("cannot replay a queued relationship after Escape clears selection", async () => {
+    const onSelectionChange = vi.fn();
+    const view = renderCanvas({ moduleIds: [], flowIds: ["funding-flow"] }, onSelectionChange);
+    const source = screen.getByRole("button", { name: "Investment account" });
+    fireEvent.pointerDown(source, { shiftKey: true });
+    fireEvent.click(source, { shiftKey: true });
+    fireEvent.keyDown(view.container.firstElementChild as Element, { key: "Escape" });
+    onSelectionChange.mockClear();
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+});
 describe("MoneyMapCanvas command shortcuts", () => {
   it("routes Backspace through the available removal command definition", () => {
     const mapDocument = createTestDocument();
@@ -561,7 +631,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       commitModuleMove: vi.fn(),
     };
 
-    render(
+    const view = render(
       <EditorInteractionContext.Provider value={interaction}>
         <MoneyMapCanvas
           document={mapDocument}
@@ -581,6 +651,29 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     expect(createConnection).toHaveBeenCalledTimes(1);
     expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
 
+    const reconnectInteraction = { ...interaction, connectMode: false };
+    view.rerender(
+      <EditorInteractionContext.Provider value={reconnectInteraction}>
+        <MoneyMapCanvas
+          document={mapDocument}
+          selection={{ moduleIds: [], flowIds: ["funding-flow"] }}
+          onSelectionChange={vi.fn()}
+          onDocumentChange={vi.fn()}
+        />
+      </EditorInteractionContext.Provider>,
+    );
+    expect(flowMock.props.nodesConnectable).toBe(true);
+    expect(
+      (
+        flowMock.props.nodes as Array<{ data: { reconnectMode: boolean; connectMode: boolean } }>
+      ).every(({ data }) => data.reconnectMode && !data.connectMode),
+    ).toBe(true);
+    expect(
+      (flowMock.props.edges as Array<{ id: string; reconnectable: boolean }>).filter(
+        ({ reconnectable }) => reconnectable,
+      ),
+    ).toEqual([expect.objectContaining({ id: "funding-flow" })]);
+
     const funding = (
       flowMock.props.edges as Array<{ id: string; source: string; target: string }>
     ).find(({ id }) => id === "funding-flow");
@@ -593,10 +686,22 @@ describe("MoneyMapCanvas relationship callbacks", () => {
         ) => void
       )(funding, { source: "annuity-policy", target: "monthly-need" });
     });
-    expect(reconnectRelationship).toHaveBeenCalledTimes(1);
-    expect(reconnectRelationship).toHaveBeenCalledWith("funding-flow", {
+    act(() => {
+      (
+        flowMock.props.onReconnect as (
+          edge: typeof funding,
+          connection: { source: string; target: string },
+        ) => void
+      )(funding, { source: "monthly-need", target: "annuity-policy" });
+    });
+    expect(reconnectRelationship).toHaveBeenCalledTimes(2);
+    expect(reconnectRelationship).toHaveBeenNthCalledWith(1, "funding-flow", {
       source: "annuity-policy",
       target: "monthly-need",
+    });
+    expect(reconnectRelationship).toHaveBeenNthCalledWith(2, "funding-flow", {
+      source: "monthly-need",
+      target: "annuity-policy",
     });
   });
 });

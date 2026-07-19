@@ -77,6 +77,19 @@ describe("relationship mutations", () => {
     ).toBe(document);
   });
 
+  it("rejects self reconnect and self creation with the exact original document", () => {
+    const document = createTestDocument();
+    expect(
+      reconnectFlow(document, "funding-flow", {
+        source: "source-account",
+        target: "source-account",
+      }),
+    ).toBe(document);
+    expect(createRelationship(document, "source-account", "source-account", () => "self")).toBe(
+      document,
+    );
+  });
+
   it("creates one neutral relationship with an injected stable ID", () => {
     const document = createTestDocument();
     const created = createRelationship(

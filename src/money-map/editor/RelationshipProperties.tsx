@@ -117,11 +117,13 @@ export function RelationshipProperties({
               onReconnect({ source: event.currentTarget.value, target: flow.target })
             }
           >
-            {document.modules.map((module) => (
-              <option key={module.id} value={module.id}>
-                {module.title}
-              </option>
-            ))}
+            {document.modules
+              .filter((module) => module.id !== flow.target)
+              .map((module) => (
+                <option key={module.id} value={module.id}>
+                  {module.title}
+                </option>
+              ))}
           </select>
         </label>
         <label>
@@ -133,11 +135,13 @@ export function RelationshipProperties({
               onReconnect({ source: flow.source, target: event.currentTarget.value })
             }
           >
-            {document.modules.map((module) => (
-              <option key={module.id} value={module.id}>
-                {module.title}
-              </option>
-            ))}
+            {document.modules
+              .filter((module) => module.id !== flow.source)
+              .map((module) => (
+                <option key={module.id} value={module.id}>
+                  {module.title}
+                </option>
+              ))}
           </select>
         </label>
       </div>

@@ -4,9 +4,9 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 3C custom relationship editing
+**Checkpoint:** Task 3C review repair
 
-**Phase:** Task 3C complete locally; ready for Task 4 starter composition
+**Phase:** Task 3C review findings repaired locally; ready for Task 4 starter composition
 
 ## Current product
 
@@ -24,25 +24,25 @@
 
 - Geometry is owned by a deterministic path builder and depends only on endpoints, route, and waypoints.
 - Resting relationship color/weight are constant. Direction and class are redundant through marker, dash pattern, and literal label; accent indicates selection only.
-- Portal label events are isolated from the canvas pane. A controlled-selection bridge preserves an already selected relationship when Shift-click adds a module.
+- Portal label events are isolated from the canvas pane. A synchronous controlled-selection state machine preserves rapid additive mixed selection without delayed requestAnimationFrame replay, and hidden flows cannot return through stale events.
 - All relationship mutations are immutable, exact-string, command/history backed, and persistence-compatible. The existing schema and validator required no change.
-- No private or Pro React Flow implementation was copied; connection/reconnect use public callbacks and handles.
+- No private or Pro React Flow implementation was copied; connection/reconnect use public callbacks and handles. Create handles exist only while the Connections tab is live; one selected relationship enables both public pointer reconnect endpoints.
 
 ## Verification
 
 - Test-first RED evidence covered absent geometry/mutations/commands, absent custom edge and surfaces, connection creation, filter selection cleanup, portal event bubbling, and controlled mixed selection.
 - Fresh `npm run verify`: pass.
 - Prettier, ESLint, TypeScript, production build, and financial source guard: pass.
-- Unit/component: 26 files, 160 tests passed.
-- Chromium: 15/15 journeys passed, including the three Task 3C contract journeys.
-- Production bundle: 133.17 kB gzip JavaScript and 6.54 kB gzip CSS.
+- Unit/component: 27 files, 177 tests passed.
+- Chromium: 16/16 journeys passed, including rapid mixed-selection/filter cleanup and physical source-plus-target pointer reconnect.
+- Production bundle: 134.04 kB gzip JavaScript and 6.57 kB gzip CSS.
 - `git diff --check`: pass before checkpoint.
 
 ## Known limitations
 
 - The four starters are still intermediate scaffolds; Task 4 must give every story a finished wealth-advisor composition and resolve final routing/label placement at target viewports.
-- Presentation mode, named story steps, final presentation chrome, and export remain Task 5.
-- Pointer reconnect is implemented with React Flow's public reconnect handles and covered at callback/mutation level; the lean browser contract exercises the keyboard endpoint path because pointer-handle automation is brittle. Task 4/5 visual audit should manually exercise both endpoints once.
+- Presentation mode, named story steps, and final presentation chrome remain Task 5. Export is an explicit v0.1 non-goal, not a Task 5 promise.
+- Pointer reconnect is covered at adapter, callback, immutable-mutation, and physical Chromium-drag layers for both endpoints. Coarse-pointer targets are contract-tested at 44 px.
 - Draft persistence is local and synchronous. There is no backend, cloud sync, collaboration, arbitrary import/export, or production security posture.
 - Nothing from this rebuild has been pushed or deployed.
 

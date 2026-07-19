@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 
 import { InlineField } from "../editor/InlineField";
@@ -29,34 +29,39 @@ export function MoneyMapEdge({
     { x: targetX, y: targetY },
     flow.waypoints,
   );
-  let pointerStart: Point | null = null;
-  let pointerDragged = false;
-  let suppressClick = false;
+  const pointerStart = useRef<Point | null>(null);
+  const pointerDragged = useRef(false);
+  const suppressClick = useRef(false);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    pointerStart = { x: event.clientX, y: event.clientY };
-    pointerDragged = false;
+    pointerStart.current = { x: event.clientX, y: event.clientY };
+    pointerDragged.current = false;
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (!pointerStart) return;
-    if (pointerMovedBeyondThreshold(pointerStart, { x: event.clientX, y: event.clientY })) {
-      pointerDragged = true;
+    if (!pointerStart.current) return;
+    if (pointerMovedBeyondThreshold(pointerStart.current, { x: event.clientX, y: event.clientY })) {
+      pointerDragged.current = true;
     }
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (pointerStart && pointerDragged) {
-      suppressClick = true;
+    if (pointerStart.current && pointerDragged.current) {
+      suppressClick.current = true;
       handlers?.select();
       handlers?.moveWaypoint({ x: event.clientX, y: event.clientY });
     }
-    pointerStart = null;
-    pointerDragged = false;
+    pointerStart.current = null;
+    pointerDragged.current = false;
+  };
+
+  const resetPointerGesture = () => {
+    pointerStart.current = null;
+    pointerDragged.current = false;
   };
 
   const ariaLabel = `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`;
@@ -101,8 +106,8 @@ export function MoneyMapEdge({
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                if (suppressClick) {
-                  suppressClick = false;
+                if (suppressClick.current) {
+                  suppressClick.current = false;
                   return;
                 }
                 handlers?.select();
@@ -139,6 +144,8 @@ export function MoneyMapEdge({
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
+              onPointerCancel={resetPointerGesture}
+              onLostPointerCapture={resetPointerGesture}
             >
               <strong>{flow.label}</strong>
               {flow.secondaryLabel ? <span>{flow.secondaryLabel}</span> : null}

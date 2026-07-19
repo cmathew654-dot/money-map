@@ -44,6 +44,16 @@ describe("RelationshipProperties", () => {
     ]);
   });
 
+  it("keeps current endpoints valid while excluding the opposing endpoint from each selector", () => {
+    renderProperties();
+    const source = screen.getByRole("combobox", { name: "Source module" });
+    const target = screen.getByRole("combobox", { name: "Target module" });
+    expect(source.querySelector('option[value="source-account"]')).toBeTruthy();
+    expect(source.querySelector('option[value="annuity-policy"]')).toBeNull();
+    expect(target.querySelector('option[value="annuity-policy"]')).toBeTruthy();
+    expect(target.querySelector('option[value="source-account"]')).toBeNull();
+  });
+
   it("commits exact secondary/cadence literals and keyboard endpoint alternatives", () => {
     const props = renderProperties();
     const secondary = screen.getByRole("textbox", { name: "Secondary label" });

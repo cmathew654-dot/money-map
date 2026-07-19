@@ -295,6 +295,36 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await expect(page.getByRole("button", { name: "Edit module" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remove selection" })).toBeVisible();
+
+  await modules.nth(2).click({ modifiers: ["Shift"] });
+  await expect(page.getByRole("toolbar", { name: "3 selected items" })).toBeVisible();
+  await page.getByRole("button", { name: "Monthly", exact: true }).click();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await expect(page.locator('[data-flow-label-id="annuity-funding-flow"]')).toHaveCount(0);
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(0);
+  await expect(page.getByRole("toolbar", { name: "2 selected items" })).toBeVisible();
+
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const fundingFlowLabel = page.getByRole("button", {
+    name: /planned relationship from annuity-source/i,
+  });
+  await fundingFlowLabel.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await expect(fundingFlowLabel).toBeFocused();
+  await page.keyboard.press("Escape");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(0);
+  await expect(page.getByRole("toolbar", { name: /selected items/ })).toHaveCount(0);
 });
 
 test("keeps properties fresh, switches Connect, and makes style and properties exclusive", async ({
@@ -488,8 +518,10 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
-  await labelWrap.getByRole("button").click();
-  await page.keyboard.press("Escape");
+  const labelButton = labelWrap.getByRole("button");
+  await labelButton.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await expect(labelButton).toBeFocused();
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
   await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
@@ -517,5 +549,51 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
   await expect(restored.getByRole("button")).toHaveAccessibleName(
     /relationship from annuity-source to annuity-need/,
   );
+  await page.evaluate(() => localStorage.clear());
+});
+
+test("reconnects both relationship endpoints by pointer", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const fundingLabel = page.getByRole("button", {
+    name: /planned relationship from annuity-source to annuity-policy/i,
+  });
+  await fundingLabel.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await expect(fundingLabel).toBeFocused();
+
+  const dragCenterToCenter = async (from: Locator, to: Locator) => {
+    const fromBox = await from.boundingBox();
+    const toBox = await to.boundingBox();
+    if (!fromBox || !toBox) throw new Error("Expected reconnect endpoint bounds");
+    await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2, {
+      steps: 8,
+    });
+    await page.mouse.up();
+  };
+
+  await dragCenterToCenter(
+    page.locator(".react-flow__edgeupdater-target"),
+    page.locator('.react-flow__node[data-id="annuity-need"] .react-flow__handle-left.target'),
+  );
+  const targetReconnected = page.getByRole("button", {
+    name: /planned relationship from annuity-source to annuity-need/i,
+  });
+  await expect(targetReconnected).toBeVisible();
+
+  await dragCenterToCenter(
+    page.locator(".react-flow__edgeupdater-source"),
+    page.locator('.react-flow__node[data-id="annuity-policy"] .react-flow__handle-right.source'),
+  );
+  await expect(
+    page.getByRole("button", {
+      name: /planned relationship from annuity-policy to annuity-need/i,
+    }),
+  ).toBeVisible();
   await page.evaluate(() => localStorage.clear());
 });

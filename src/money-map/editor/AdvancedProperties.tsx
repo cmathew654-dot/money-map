@@ -23,6 +23,7 @@ interface AdvancedPropertiesProps {
   onCommitField(moduleId: string, field: PropertyField, value: string): void;
   onExecute(id: string): void;
   onCreateConnection?(source: string, target: string): void;
+  onTabChange?(tab: PropertiesTab): void;
   onClose(): void;
   style?: CSSProperties;
 }
@@ -83,6 +84,7 @@ export function AdvancedProperties({
   onCommitField,
   onExecute,
   onCreateConnection,
+  onTabChange,
   onClose,
   style,
 }: AdvancedPropertiesProps) {
@@ -116,6 +118,7 @@ export function AdvancedProperties({
     const next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     tabRefs.current[next]?.focus();
     setTab(tabs[next].id);
+    onTabChange?.(tabs[next].id);
   };
 
   const relationships = document.flows.filter(
@@ -140,7 +143,10 @@ export function AdvancedProperties({
             aria-selected={tab === candidate.id}
             id={`properties-tab-${candidate.id}`}
             key={candidate.id}
-            onClick={() => setTab(candidate.id)}
+            onClick={() => {
+              setTab(candidate.id);
+              onTabChange?.(candidate.id);
+            }}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
             ref={(element) => {
               tabRefs.current[index] = element;

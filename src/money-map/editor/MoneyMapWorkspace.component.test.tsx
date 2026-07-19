@@ -81,6 +81,25 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     expect(hookMock.editor.executeCommand).toHaveBeenCalledWith("selection.remove");
   });
 
+  it("limits create-connection mode to the live Connections surface", () => {
+    const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const workspace = view.container.querySelector(".money-map-workspace");
+    if (!workspace) throw new Error("Expected workspace");
+
+    openCommand("connect module");
+    expect(workspace.getAttribute("data-connect-mode")).toBe("true");
+    fireEvent.click(screen.getByRole("tab", { name: "Content" }));
+    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+
+    openCommand("connect module");
+    fireEvent.click(screen.getByRole("button", { name: "Close properties" }));
+    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+
+    openCommand("connect module");
+    fireEvent.click(screen.getByRole("button", { name: /Actions/ }));
+    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+  });
+
   it.each([
     {
       surface: "more properties",

@@ -95,7 +95,12 @@ export function reconnectFlow(
   connection: { source: string; target: string },
 ): MoneyMapDocument {
   const moduleIds = new Set(document.modules.map(({ id }) => id));
-  if (!moduleIds.has(connection.source) || !moduleIds.has(connection.target)) return document;
+  if (
+    connection.source === connection.target ||
+    !moduleIds.has(connection.source) ||
+    !moduleIds.has(connection.target)
+  )
+    return document;
   return updateFlow(document, flowId, (flow) =>
     flow.source === connection.source && flow.target === connection.target
       ? flow
@@ -110,7 +115,7 @@ export function createRelationship(
   createId: (kind: string) => string,
 ): MoneyMapDocument {
   const moduleIds = new Set(document.modules.map(({ id }) => id));
-  if (!moduleIds.has(source) || !moduleIds.has(target)) return document;
+  if (source === target || !moduleIds.has(source) || !moduleIds.has(target)) return document;
   return {
     ...document,
     flows: [

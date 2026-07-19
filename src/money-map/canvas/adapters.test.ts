@@ -127,6 +127,27 @@ describe("canvas document adapters", () => {
     expect(multiple.filter(({ data }) => data.haloAnchor)).toHaveLength(1);
   });
 
+  it("enables reconnect completion only for exactly one selected relationship", () => {
+    const document = createTestDocument();
+    const single = { moduleIds: [], flowIds: ["funding-flow"] };
+    const nodes = documentToNodes(document, single);
+    const edges = documentToEdges(document, single);
+    expect(nodes.every(({ data }) => data.reconnectMode && !data.connectMode)).toBe(true);
+    expect(edges.find(({ id }) => id === "funding-flow")?.reconnectable).toBe(true);
+    expect(edges.find(({ id }) => id === "income-flow")?.reconnectable).toBe(false);
+
+    const mixed = documentToNodes(document, {
+      moduleIds: ["annuity-policy"],
+      flowIds: ["funding-flow"],
+    });
+    expect(mixed.every(({ data }) => !data.reconnectMode)).toBe(true);
+    expect(
+      documentToEdges(document, { moduleIds: [], flowIds: [] }).every(
+        ({ reconnectable }) => !reconnectable,
+      ),
+    ).toBe(true);
+  });
+
   it("atomically removes only relationships hidden by a transient cadence filter", () => {
     const document = createTestDocument();
     const selection = {

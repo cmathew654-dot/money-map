@@ -5,11 +5,12 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
+  ConnectionMode,
   ReactFlow,
   ReactFlowProvider,
   type Connection,
@@ -30,6 +31,7 @@ import { CanvasControls, type CanvasController } from "./CanvasControls";
 import { MoneyMapEdge } from "./MoneyMapEdge";
 import { MoneyMapNode, type MoneyMapCanvasNode } from "./MoneyMapNode";
 import {
+  cadenceMatchesFilter,
   documentToEdges,
   documentToNodes,
   moveModule,
@@ -114,6 +116,7 @@ function MoneyMapCanvasInner({
   const screenToFlowPosition = flow.screenToFlowPosition;
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
+  const reconnectMode = selection.moduleIds.length === 0 && selection.flowIds.length === 1;
   const adaptedNodes = useMemo(
     () => documentToNodes(document, selection, editor?.connectMode ?? false),
     [document, editor?.connectMode, selection],
@@ -150,27 +153,49 @@ function MoneyMapCanvasInner({
   const [nodes, setNodes] = useState(adaptedNodes);
   const [edges, setEdges] = useState(adaptedEdges);
   const previousSelection = useRef(selection);
-  const selectionSyncPending = useRef(false);
+  const latestSelection = useRef(selection);
+  const selectionRevision = useRef(0);
+  const selectionSyncTarget = useRef<Selection | null>(null);
+  const additiveNodeIntent = useRef<{ moduleId: string; revision: number } | null>(null);
+  const visibleFlowIds = useMemo(
+    () =>
+      new Set(
+        document.flows
+          .filter((relationship) => cadenceMatchesFilter(relationship, cadenceFilter))
+          .map(({ id }) => id),
+      ),
+    [cadenceFilter, document.flows],
+  );
 
   if (
     !sameIds(previousSelection.current.moduleIds, selection.moduleIds) ||
     !sameIds(previousSelection.current.flowIds, selection.flowIds)
   ) {
     previousSelection.current = selection;
-    selectionSyncPending.current = true;
+    latestSelection.current = selection;
+    selectionRevision.current += 1;
+    selectionSyncTarget.current = selection;
+    additiveNodeIntent.current = null;
   }
 
-  const localSelectionIsCurrent =
+  const syncTarget = selectionSyncTarget.current;
+  const localSelectionMatchesTarget =
+    syncTarget !== null &&
     sameIds(
       nodes.filter((node) => node.selected).map(({ id }) => id),
-      selection.moduleIds,
+      syncTarget.moduleIds,
     ) &&
     sameIds(
       edges.filter((edge) => edge.selected).map(({ id }) => id),
-      selection.flowIds,
+      syncTarget.flowIds,
     );
-  if (selectionSyncPending.current && localSelectionIsCurrent) {
-    selectionSyncPending.current = false;
+  if (
+    syncTarget &&
+    localSelectionMatchesTarget &&
+    sameIds(selection.moduleIds, syncTarget.moduleIds) &&
+    sameIds(selection.flowIds, syncTarget.flowIds)
+  ) {
+    selectionSyncTarget.current = null;
   }
 
   useEffect(() => {
@@ -188,6 +213,9 @@ function MoneyMapCanvasInner({
 
   const applySelection = useCallback(
     (nextSelection: Selection) => {
+      latestSelection.current = nextSelection;
+      selectionRevision.current += 1;
+      selectionSyncTarget.current = nextSelection;
       onSelectionChange(nextSelection);
       setAnnouncement(selectionAnnouncement(document, nextSelection));
     },
@@ -251,34 +279,53 @@ function MoneyMapCanvasInner({
     OnSelectionChangeFunc<MoneyMapCanvasNode, MoneyMapCanvasEdge>
   >(
     ({ nodes: selectedNodes, edges: selectedEdges }) => {
-      if (selectionSyncPending.current) return;
+      if (selectionSyncTarget.current) return;
 
-      const nextSelection = {
-        moduleIds: selectedNodes.map((node) => node.id),
-        flowIds: selectedEdges.map((edge) => edge.id),
-      };
+      const emittedModuleIds = selectedNodes.map((node) => node.id);
+      const emittedFlowIds = selectedEdges
+        .map((edge) => edge.id)
+        .filter((id) => visibleFlowIds.has(id));
+      const intent = additiveNodeIntent.current;
+      const current = latestSelection.current;
+      const intentMatches =
+        intent !== null &&
+        intent.revision === selectionRevision.current &&
+        emittedModuleIds.includes(intent.moduleId);
+      additiveNodeIntent.current = null;
+      const nextSelection = intentMatches
+        ? {
+            moduleIds: [...new Set([...current.moduleIds, ...emittedModuleIds, intent.moduleId])],
+            flowIds: [
+              ...new Set([
+                ...current.flowIds.filter((id) => visibleFlowIds.has(id)),
+                ...emittedFlowIds,
+              ]),
+            ],
+          }
+        : { moduleIds: emittedModuleIds, flowIds: emittedFlowIds };
       if (
-        sameIds(nextSelection.moduleIds, selection.moduleIds) &&
-        sameIds(nextSelection.flowIds, selection.flowIds)
+        sameIds(nextSelection.moduleIds, current.moduleIds) &&
+        sameIds(nextSelection.flowIds, current.flowIds)
       ) {
         return;
       }
       applySelection(nextSelection);
     },
-    [applySelection, selection],
+    [applySelection, visibleFlowIds],
   );
 
-  const handleNodeClick = useCallback(
-    (event: MouseEvent, node: MoneyMapCanvasNode) => {
-      if (!event.shiftKey || selection.flowIds.length === 0) return;
-      const nextSelection = {
-        moduleIds: [...new Set([...selection.moduleIds, node.id])],
-        flowIds: selection.flowIds,
-      };
-      requestAnimationFrame(() => applySelection(nextSelection));
-    },
-    [applySelection, selection.flowIds, selection.moduleIds],
-  );
+  const handlePointerDownCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.shiftKey || !(event.target instanceof HTMLElement)) {
+      selectionSyncTarget.current = null;
+      additiveNodeIntent.current = null;
+      return;
+    }
+    const node = event.target.closest<HTMLElement>(".react-flow__node[data-id]");
+    const moduleId = node?.dataset.id;
+    if (!moduleId) return;
+    selectionSyncTarget.current = null;
+    additiveNodeIntent.current = { moduleId, revision: selectionRevision.current };
+  }, []);
 
   const handleNodeDragStop = useCallback<OnNodeDrag<MoneyMapCanvasNode>>(
     (_event, node) => {
@@ -316,6 +363,8 @@ function MoneyMapCanvasInner({
     [editor],
   );
   const clearSelection = useCallback(() => {
+    additiveNodeIntent.current = null;
+    applySelection({ moduleIds: [], flowIds: [] });
     setNodes((currentNodes) => {
       const changes: NodeChange<MoneyMapCanvasNode>[] = currentNodes
         .filter((node) => node.selected)
@@ -328,7 +377,7 @@ function MoneyMapCanvasInner({
         .map((edge) => ({ id: edge.id, type: "select", selected: false }));
       return changes.length > 0 ? applyEdgeChanges(changes, currentEdges) : currentEdges;
     });
-  }, []);
+  }, [applySelection]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
@@ -403,6 +452,7 @@ function MoneyMapCanvasInner({
       tabIndex={0}
       aria-label={`${document.title} authoring canvas`}
       onKeyDown={handleKeyDown}
+      onPointerDownCapture={handlePointerDownCapture}
     >
       <ReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>
         nodes={nodes}
@@ -412,7 +462,6 @@ function MoneyMapCanvasInner({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onSelectionChange={handleFlowSelectionChange}
-        onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
         onConnect={handleConnect}
         onReconnect={handleReconnect}
@@ -426,7 +475,8 @@ function MoneyMapCanvasInner({
         selectionKeyCode="Shift"
         multiSelectionKeyCode="Shift"
         selectionOnDrag={false}
-        nodesConnectable={editor?.connectMode ?? false}
+        nodesConnectable={(editor?.connectMode ?? false) || reconnectMode}
+        connectionMode={ConnectionMode.Loose}
         edgesReconnectable
         reconnectRadius={26}
         deleteKeyCode={null}

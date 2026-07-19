@@ -628,6 +628,10 @@
 }
 
 /* Relationship authoring */
+.money-map-canvas .react-flow__edge-interaction {
+  stroke-width: 28px;
+}
+
 .money-map-canvas .money-map-relationship-path {
   stroke: #5f5a50;
   stroke-width: 1.7;
@@ -711,7 +715,8 @@
   outline-offset: 2px;
 }
 
-.money-map-module[data-connect-mode="true"] .money-map-handle {
+.money-map-module[data-connect-mode="true"] .money-map-handle,
+.money-map-module[data-reconnect-mode="true"] .money-map-handle {
   width: 24px;
   height: 24px;
   border: 0;
@@ -852,6 +857,16 @@
 }
 
 @media (pointer: coarse) {
+  .money-map-canvas .react-flow__edge-interaction {
+    stroke-width: 44px !important;
+  }
+
+  .money-map-module[data-connect-mode="true"] .money-map-handle,
+  .money-map-module[data-reconnect-mode="true"] .money-map-handle {
+    width: 44px;
+    height: 44px;
+  }
+
   .money-map-flow-label,
   .cadence-filter button,
   .relationship-properties button,

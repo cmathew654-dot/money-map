@@ -27,6 +27,7 @@ export interface MoneyMapNodeData extends Record<string, unknown> {
   selectionModuleIds: string[];
   haloAnchor: boolean;
   connectMode: boolean;
+  reconnectMode: boolean;
 }
 
 export interface MoneyMapEdgeData extends Record<string, unknown> {
@@ -72,6 +73,7 @@ export function documentToNodes(
   connectMode = false,
 ): Node<MoneyMapNodeData>[] {
   const selected = new Set(selection.moduleIds);
+  const reconnectMode = selection.moduleIds.length === 0 && selection.flowIds.length === 1;
   const haloAnchorId = selection.moduleIds.find((id) =>
     document.modules.some((module) => module.id === id),
   );
@@ -89,6 +91,7 @@ export function documentToNodes(
         selectionModuleIds: selection.moduleIds,
         haloAnchor: module.id === haloAnchorId,
         connectMode,
+        reconnectMode,
       },
       style: { width: module.width },
       selected: selected.has(module.id),
@@ -104,6 +107,10 @@ export function documentToEdges(
   filter: CadenceFilter = "all",
 ): MoneyMapCanvasEdge[] {
   const selected = new Set(selection.flowIds);
+  const reconnectableId =
+    selection.moduleIds.length === 0 && selection.flowIds.length === 1
+      ? selection.flowIds[0]
+      : null;
 
   return document.flows.map((flow) => ({
     id: flow.id,
@@ -114,7 +121,7 @@ export function documentToEdges(
     selected: selected.has(flow.id),
     selectable: true,
     focusable: true,
-    reconnectable: true,
+    reconnectable: flow.id === reconnectableId,
     hidden: !cadenceMatchesFilter(flow, filter),
     markerEnd:
       flow.relationship === "association"

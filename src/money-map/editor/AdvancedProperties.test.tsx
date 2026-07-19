@@ -42,6 +42,26 @@ describe("AdvancedProperties", () => {
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Appearance" }));
   });
 
+  it("reports controlled tab changes from clicks and arrow keys", () => {
+    const onTabChange = vi.fn();
+    render(
+      <AdvancedProperties
+        commands={appearanceCommands()}
+        document={baseDocument}
+        moduleId="annuity-policy"
+        initialTab="content"
+        onClose={vi.fn()}
+        onCommitField={vi.fn()}
+        onExecute={vi.fn()}
+        onTabChange={onTabChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Connections" }));
+    expect(onTabChange).toHaveBeenCalledWith("connections");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Content" }), { key: "ArrowRight" });
+    expect(onTabChange).toHaveBeenLastCalledWith("appearance");
+  });
+
   it("commits exact fields and creates a keyboard-selected relationship target", () => {
     const commit = vi.fn();
     const execute = vi.fn();

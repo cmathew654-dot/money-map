@@ -21,6 +21,8 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
   const { module, outgoingCount } = data;
   const editor = useEditorInteraction();
   const active = editor?.activeInlineField;
+  const canStartConnection = data.connectMode;
+  const canEndConnection = data.connectMode || data.reconnectMode;
   const beginTitle = () =>
     editor?.beginInlineEdit({ moduleId: module.id, field: "title", original: module.title });
 
@@ -67,6 +69,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-primitive={module.primitive}
         data-selected={selected ? "true" : "false"}
         data-connect-mode={data.connectMode ? "true" : "false"}
+        data-reconnect-mode={data.reconnectMode ? "true" : "false"}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
         {handlePositions.map((position) => (
@@ -76,7 +79,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             key={`target-${position}`}
             position={position}
             type="target"
-            isConnectable={data.connectMode}
+            isConnectable={canEndConnection}
+            isConnectableStart={canStartConnection}
+            isConnectableEnd={canEndConnection}
           />
         ))}
         {handlePositions.map((position) => (
@@ -86,7 +91,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             key={`source-${position}`}
             position={position}
             type="source"
-            isConnectable={data.connectMode}
+            isConnectable={canEndConnection}
+            isConnectableStart={canStartConnection}
+            isConnectableEnd={canEndConnection}
           />
         ))}
 
