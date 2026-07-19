@@ -42,6 +42,7 @@ interface Dimensions {
 }
 
 const authoringMinimum = { width: 1180, height: 660 };
+const relationshipSurfaceSize = { width: 368, height: 604 };
 
 export function isAuthoringViewportSupported(width: number, height: number): boolean {
   return width >= authoringMinimum.width && height >= authoringMinimum.height;
@@ -180,10 +181,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     const label = document.querySelector<HTMLElement>(`[data-flow-label-id="${selectedFlowId}"]`);
     if (!label) return;
     setSurfacePosition(
-      positionEditorSurface(label.getBoundingClientRect(), {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      }),
+      positionEditorSurface(
+        label.getBoundingClientRect(),
+        { width: window.innerWidth, height: window.innerHeight },
+        relationshipSurfaceSize,
+      ),
     );
   }, [selectedFlowId]);
 

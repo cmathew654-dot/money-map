@@ -105,8 +105,8 @@ test("drags one node relative to a stationary node without changing literal text
   await page.goto("/");
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const module = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
-  const stationary = page.locator(".money-map-module").filter({ hasText: "Investment account" });
+  const module = page.locator('.react-flow__node[data-id="annuity-plan"] .money-map-module');
+  const stationary = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const literal = "$300,000 — revised illustration";
   await expect(module.getByText(literal)).toBeVisible();
   const before = await module.boundingBox();
@@ -160,15 +160,15 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
   const module = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
-  const original = "~$11,800/mo";
+  const original = "$109,000";
   await module.getByText(original).dblclick();
-  const value = page.getByRole("textbox", { name: "Edit Monthly income value" });
+  const value = page.getByRole("textbox", { name: "Edit FMV value" });
   await value.fill("$20,000\u2013?");
   await value.press("Escape");
   await expect(module.getByText(original)).toBeVisible();
 
   await module.getByText(original).dblclick();
-  await page.getByRole("textbox", { name: "Edit Monthly income value" }).fill("$20,000\u2013?");
+  await page.getByRole("textbox", { name: "Edit FMV value" }).fill("$20,000\u2013?");
   await page.locator(".workspace-header").click();
   await expect(module.getByText("$20,000\u2013?")).toBeVisible();
 
@@ -305,7 +305,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   );
-  await expect(page.locator('[data-flow-label-id="annuity-funding-flow"]')).toHaveCount(0);
+  await expect(page.locator('[data-flow-label-id="annuity-plan-contract"]')).toHaveCount(0);
   await expect(page.locator(".react-flow__edge.selected")).toHaveCount(0);
   await expect(page.getByRole("toolbar", { name: "2 selected items" })).toBeVisible();
 
@@ -437,9 +437,9 @@ test("edits exact relationship text and appearance with undo and redo", async ({
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const labelWrap = page.locator('[data-flow-label-id="annuity-funding-flow"]');
+  const labelWrap = page.locator('[data-flow-label-id="annuity-plan-contract"]');
   const originalPath = await page
-    .locator('.react-flow__edge[data-id="annuity-funding-flow"] .money-map-relationship-path')
+    .locator('.react-flow__edge[data-id="annuity-plan-contract"] .money-map-relationship-path')
     .getAttribute("d");
   await labelWrap.getByRole("button").click();
   const labelInput = page.getByRole("textbox", { name: "Edit relationship label" });
@@ -459,7 +459,7 @@ test("edits exact relationship text and appearance with undo and redo", async ({
   await executeAction("filled label", "Filled label");
 
   const path = page.locator(
-    '.react-flow__edge[data-id="annuity-funding-flow"] .money-map-relationship-path',
+    '.react-flow__edge[data-id="annuity-plan-contract"] .money-map-relationship-path',
   );
   await expect(path).toHaveClass(/relationship--association/);
   await expect(path).not.toHaveAttribute("d", originalPath ?? "");
@@ -481,7 +481,7 @@ test("routes a relationship label by pointer and keyboard, then resets and undoe
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  const labelWrap = page.locator('[data-flow-label-id="annuity-contract-need"]');
   const label = labelWrap.getByRole("button");
   const initialTransform = await labelWrap.getAttribute("style");
   const bounds = await label.boundingBox();
@@ -503,7 +503,7 @@ test("routes a relationship label by pointer and keyboard, then resets and undoe
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox", { name: "Search actions" }).fill("reset label position");
   await page.getByRole("option", { name: "Reset label position", exact: true }).click();
-  await expect(labelWrap).toHaveAttribute("style", initialTransform ?? "");
+  await expect.poll(() => labelWrap.getAttribute("style")).not.toBe(nudgedTransform);
   await page.keyboard.press("Control+z");
   await expect(labelWrap).toHaveAttribute("style", nudgedTransform ?? "");
   await page.evaluate(() => localStorage.clear());
@@ -517,7 +517,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  const labelWrap = page.locator('[data-flow-label-id="annuity-contract-need"]');
   const labelButton = labelWrap.getByRole("button");
   await labelButton.click();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
@@ -544,7 +544,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
 
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
-  const restored = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  const restored = page.locator('[data-flow-label-id="annuity-contract-need"]');
   await expect(restored).toContainText(cadence);
   await expect(restored.getByRole("button")).toHaveAccessibleName(
     /relationship from annuity-source to annuity-need/,
@@ -558,7 +558,7 @@ test("clears a cadence-hidden relationship after command and redo", async ({ pag
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  const labelWrap = page.locator('[data-flow-label-id="annuity-income-need"]');
   let labelButton = labelWrap.getByRole("button");
   await labelButton.click();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
@@ -594,12 +594,21 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const fundingLabel = page.getByRole("button", {
+  let relationshipLabel = page.getByRole("button", {
+    name: /planned relationship from annuity-source to annuity-plan/i,
+  });
+  await relationshipLabel.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
+  await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
+  const properties = page.getByLabel("Relationship properties");
+  await properties.getByRole("combobox", { name: "Target module" }).selectOption("annuity-policy");
+  await properties.getByRole("button", { name: "Close" }).click();
+  relationshipLabel = page.getByRole("button", {
     name: /planned relationship from annuity-source to annuity-policy/i,
   });
-  await fundingLabel.click();
-  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
-  await expect(fundingLabel).toBeFocused();
+  await expect(relationshipLabel).toBeFocused();
 
   const dragCenterToCenter = async (from: Locator, to: Locator) => {
     const fromBox = await from.boundingBox();

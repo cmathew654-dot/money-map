@@ -1,12 +1,49 @@
 .theme-foundation {
-  --map-canvas: #f1efe9;
-  --map-surface: #faf8f1;
-  --map-surface-alt: #e4e8e8;
-  --map-ink: #2f3336;
-  --map-muted: #5d6467;
-  --map-line: #545d61;
-  --map-border: #70787a;
-  --map-grid: rgba(71, 108, 123, 0.2);
-  --map-accent: #9a6a28;
-  --map-focus: #476c7b;
+  --map-canvas: #eceae4;
+  --map-surface: #fbfaf5;
+  --map-surface-alt: #dfe6e8;
+  --map-ink: #292e31;
+  --map-muted: #596165;
+  --map-line: #44545b;
+  --map-border: #6c777b;
+  --map-grid: rgba(72, 103, 114, 0.16);
+  --map-accent: #a36f2c;
+  --map-focus: #486e7a;
+}
+
+.theme-foundation .money-map-module[data-primitive="ledger"] {
+  background: linear-gradient(to bottom, rgba(72, 110, 122, 0.08), var(--map-surface) 42%);
+  border-color: var(--map-line);
+}
+
+.theme-foundation .money-map-module[data-primitive="plate"] {
+  background: linear-gradient(100deg, var(--map-surface-alt), var(--map-surface));
+  border-color: var(--map-focus);
+}
+
+.theme-foundation .money-map-module[data-primitive="tray"] {
+  border-color: var(--map-line);
+  box-shadow:
+    inset 0 -5px 0 rgba(163, 111, 44, 0.42),
+    0 5px 16px rgba(41, 46, 49, 0.08);
+}
+
+.theme-foundation .money-map-module[data-primitive="band"] {
+  background: linear-gradient(to bottom, var(--map-focus) 0 5px, var(--map-surface) 5px 100%);
+  border-color: var(--map-line);
+  box-shadow: 0 8px 20px rgba(41, 46, 49, 0.1);
+}
+
+.theme-foundation .money-map-module[data-primitive="roundel"] {
+  background: radial-gradient(circle at 50% 45%, var(--map-surface), var(--map-surface-alt));
+  border-color: var(--map-focus);
+  box-shadow:
+    inset 0 0 0 4px var(--map-surface),
+    inset 0 0 0 5px rgba(72, 110, 122, 0.42);
+}
+
+.theme-foundation .money-map-module[data-primitive="frame"] {
+  background: linear-gradient(135deg, rgba(163, 111, 44, 0.09), var(--map-surface) 42%);
+  border-color: var(--map-accent);
+  box-shadow: inset 0 0 0 4px var(--map-surface);
 }
