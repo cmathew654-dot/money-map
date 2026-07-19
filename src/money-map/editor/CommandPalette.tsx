@@ -12,7 +12,7 @@ interface CommandPaletteProps {
 }
 
 const focusableSelector =
-  'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
 export function CommandPalette({
   registry,
@@ -108,7 +108,9 @@ export function CommandPalette({
         <label htmlFor={`${listId}-search`}>Search actions</label>
         <input
           aria-activedescendant={commands[activeIndex] ? `${listId}-${activeIndex}` : undefined}
+          aria-autocomplete="list"
           aria-controls={listId}
+          aria-expanded="true"
           aria-label="Search actions"
           autoComplete="off"
           id={`${listId}-search`}
@@ -127,6 +129,7 @@ export function CommandPalette({
               onClick={() => execute(command.id)}
               onMouseEnter={() => setActiveIndex(index)}
               role="option"
+              tabIndex={-1}
               type="button"
             >
               <span>{command.label}</span>

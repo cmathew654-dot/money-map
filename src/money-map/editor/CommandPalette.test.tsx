@@ -29,8 +29,12 @@ describe("CommandPalette", () => {
       />,
     );
     const search = screen.getByRole("combobox", { name: "Search actions" });
+    expect(search.getAttribute("aria-expanded")).toBe("true");
+    expect(search.getAttribute("aria-autocomplete")).toBe("list");
     fireEvent.change(search, { target: { value: "width" } });
-    expect(screen.getAllByRole("option")).toHaveLength(3);
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(3);
+    expect(options.every((option) => option.tabIndex === -1)).toBe(true);
     fireEvent.keyDown(search, { key: "ArrowDown" });
     fireEvent.keyDown(search, { key: "Enter" });
     expect(execute).toHaveBeenCalledWith("module.width.standard");
@@ -76,14 +80,13 @@ describe("CommandPalette", () => {
     );
 
     const closeButton = screen.getByRole("button", { name: "Close actions" });
-    const lastOption = screen.getAllByRole("option").at(-1);
-    if (!lastOption) throw new Error("Expected palette options");
-    lastOption.focus();
-    fireEvent.keyDown(lastOption, { key: "Tab" });
+    const search = screen.getByRole("combobox", { name: "Search actions" });
+    search.focus();
+    fireEvent.keyDown(search, { key: "Tab" });
     expect(document.activeElement).toBe(closeButton);
     closeButton.focus();
     fireEvent.keyDown(closeButton, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(lastOption);
+    expect(document.activeElement).toBe(search);
     invoker.remove();
   });
 

@@ -4,9 +4,9 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 4 complete — four equal-finish starters
+**Checkpoint:** Task 4 complete — four equal-finish starters; authoring accessibility preflight closed
 
-**Phase:** Task 4 complete; shared presentation implementation next
+**Phase:** Shared presentation and GitHub packaging are in parallel implementation
 
 ## Current product
 
@@ -34,11 +34,11 @@
 - Unit/component: 33 files, 210 tests passed.
 - Chromium: 17/17 journeys passed.
 - Production bundle: 137.26 kB gzip JavaScript and 7.49 kB gzip CSS.
+- Authoring preflight: command palette now uses a valid non-tabbable active-descendant combobox pattern; starter index contrast is 5.31:1. Focused tests, ESLint, TypeScript, and formatting pass.
 
 ## Known limitations
 
 - All four final starters are integrated and green. The rendered 1440×760 probes report zero module/module, label/module, label/label, and unrelated path/module intersections.
-- Default author compositions still need cross-starter visual collision checks after all four branches land.
 - Presentation chrome, named-step navigation behavior, responsive presentation repair, and screenshot evidence remain Task 5.
 - Stale local v1 drafts can mask new defaults until Reset; visual verification must reset each starter first.
 - Draft persistence is local and synchronous. No backend, cloud sync, collaboration, arbitrary import/export, or production-advisory claim exists.
