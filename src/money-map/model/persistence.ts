@@ -15,12 +15,35 @@ export interface StorageLike {
 
 export const DRAFT_PREFIX = "money-map:v1:";
 
+const FORBIDDEN_DOCUMENT_KEYS = new Set([
+  "amount",
+  "balance",
+  "balancenumber",
+  "capacity",
+  "computedtotal",
+  "debit",
+  "fill",
+  "remainder",
+  "taxrate",
+  "warning",
+]);
+
 export function draftKey(starterId: StarterId): string {
   return `${DRAFT_PREFIX}${starterId}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function containsForbiddenDocumentKey(candidate: unknown): boolean {
+  if (Array.isArray(candidate)) return candidate.some(containsForbiddenDocumentKey);
+  if (!isRecord(candidate)) return false;
+
+  return Object.entries(candidate).some(([key, nested]) => {
+    const normalizedKey = key.replace(/[-_]/g, "").toLocaleLowerCase();
+    return FORBIDDEN_DOCUMENT_KEYS.has(normalizedKey) || containsForbiddenDocumentKey(nested);
+  });
 }
 
 function isPoint(value: unknown): value is Point {
@@ -119,6 +142,7 @@ function isPresentationStep(value: unknown): value is PresentationStep {
 function isDocument(value: unknown, starterId: StarterId): value is MoneyMapDocument {
   return (
     isRecord(value) &&
+    !containsForbiddenDocumentKey(value) &&
     value.schemaVersion === 1 &&
     value.id === starterId &&
     typeof value.title === "string" &&

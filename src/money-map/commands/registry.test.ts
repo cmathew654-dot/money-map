@@ -35,6 +35,13 @@ describe("command registry", () => {
       execute: (context) => ({ document: context.document, announcement: "Opened" }),
     });
     registry.register({
+      id: "second",
+      label: "Fit map",
+      keywords: ["viewport"],
+      isAvailable: () => true,
+      execute: (context) => ({ document: context.document, announcement: "Fitted" }),
+    });
+    registry.register({
       id: "never",
       label: "Hidden command",
       keywords: ["properties"],
@@ -42,10 +49,10 @@ describe("command registry", () => {
       execute: (context) => ({ document: context.document, announcement: "Hidden" }),
     });
 
-    expect(registry.available(emptyContext).map(({ id }) => id)).toEqual(["always"]);
+    expect(registry.available(emptyContext).map(({ id }) => id)).toEqual(["always", "second"]);
     expect(registry.search("PROPERTIES", emptyContext).map(({ id }) => id)).toEqual(["always"]);
     expect(registry.search("inspector", emptyContext).map(({ id }) => id)).toEqual(["always"]);
-    expect(registry.search("", emptyContext).map(({ id }) => id)).toEqual(["always"]);
+    expect(registry.search("", emptyContext).map(({ id }) => id)).toEqual(["always", "second"]);
     expect(registry.get("always")?.label).toBe("Open properties");
     expect(registry.get("missing")).toBeUndefined();
   });
@@ -57,6 +64,35 @@ describe("command registry", () => {
     expect(registry.get("selection.duplicate")).toBeDefined();
     expect(registry.get("selection.remove")).toBeDefined();
     expect(registry.available(emptyContext)).toEqual([]);
+  });
+
+  it("keeps document commands unavailable for stale selection IDs", () => {
+    const registry = createDocumentCommands(() => "unused");
+    const staleContext: CommandContext = {
+      document: createTestDocument(),
+      selection: { moduleIds: ["missing-module"], flowIds: ["missing-flow"] },
+    };
+
+    expect(registry.available(staleContext)).toEqual([]);
+  });
+
+  it("announces stale direct command execution as a no-op", () => {
+    const registry = createDocumentCommands(() => "unused");
+    const staleContext: CommandContext = {
+      document: createTestDocument(),
+      selection: { moduleIds: ["missing-module"], flowIds: ["missing-flow"] },
+    };
+    const duplicate = registry.get("selection.duplicate");
+    const remove = registry.get("selection.remove");
+    if (!duplicate || !remove) throw new Error("Document commands missing");
+
+    const duplicateMutation = duplicate.execute(staleContext);
+    const removeMutation = remove.execute(staleContext);
+
+    expect(duplicateMutation.document).toBe(staleContext.document);
+    expect(duplicateMutation.announcement).toMatch(/nothing to duplicate/i);
+    expect(removeMutation.document).toBe(staleContext.document);
+    expect(removeMutation.announcement).toMatch(/nothing to remove/i);
   });
 
   it("executes duplication through the shared document operation", () => {

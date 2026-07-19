@@ -40,17 +40,18 @@ export function removeSelection(
 ): MoneyMapDocument {
   const selectedModules = new Set(selection.moduleIds);
   const selectedFlows = new Set(selection.flowIds);
-  const modules = document.modules.filter((module) => !selectedModules.has(module.id));
-  const flows = document.flows.filter(
+  const filteredModules = document.modules.filter((module) => !selectedModules.has(module.id));
+  const filteredFlows = document.flows.filter(
     (flow) =>
       !selectedFlows.has(flow.id) &&
       !selectedModules.has(flow.source) &&
       !selectedModules.has(flow.target),
   );
+  const modules =
+    filteredModules.length === document.modules.length ? document.modules : filteredModules;
+  const flows = filteredFlows.length === document.flows.length ? document.flows : filteredFlows;
 
-  if (modules.length === document.modules.length && flows.length === document.flows.length) {
-    return document;
-  }
+  if (modules === document.modules && flows === document.flows) return document;
 
   return { ...document, modules, flows };
 }

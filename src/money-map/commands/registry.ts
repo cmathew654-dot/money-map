@@ -32,8 +32,15 @@ export class CommandRegistry {
   }
 }
 
-function hasSelection({ selection }: CommandContext): boolean {
-  return selection.moduleIds.length > 0 || selection.flowIds.length > 0;
+function hasSelectedModule({ document, selection }: CommandContext): boolean {
+  const selectedIds = new Set(selection.moduleIds);
+  return document.modules.some((module) => selectedIds.has(module.id));
+}
+
+function hasActionableSelection({ document, selection }: CommandContext): boolean {
+  if (hasSelectedModule({ document, selection })) return true;
+  const selectedIds = new Set(selection.flowIds);
+  return document.flows.some((flow) => selectedIds.has(flow.id));
 }
 
 export function createDocumentCommands(createId: (kind: string) => string): CommandRegistry {
@@ -44,11 +51,14 @@ export function createDocumentCommands(createId: (kind: string) => string): Comm
     label: "Duplicate selection",
     keywords: ["copy", "clone"],
     shortcut: "Ctrl/Cmd+D",
-    isAvailable: ({ selection }) => selection.moduleIds.length > 0,
-    execute: ({ document, selection }) => ({
-      document: duplicateSelection(document, selection, createId),
-      announcement: "Selection duplicated.",
-    }),
+    isAvailable: hasSelectedModule,
+    execute: ({ document, selection }) => {
+      const updated = duplicateSelection(document, selection, createId);
+      return {
+        document: updated,
+        announcement: updated === document ? "Nothing to duplicate." : "Selection duplicated.",
+      };
+    },
   });
 
   registry.register({
@@ -56,11 +66,14 @@ export function createDocumentCommands(createId: (kind: string) => string): Comm
     label: "Remove selection",
     keywords: ["delete"],
     shortcut: "Delete",
-    isAvailable: hasSelection,
-    execute: ({ document, selection }) => ({
-      document: removeSelection(document, selection),
-      announcement: "Selection removed.",
-    }),
+    isAvailable: hasActionableSelection,
+    execute: ({ document, selection }) => {
+      const updated = removeSelection(document, selection);
+      return {
+        document: updated,
+        announcement: updated === document ? "Nothing to remove." : "Selection removed.",
+      };
+    },
   });
 
   return registry;

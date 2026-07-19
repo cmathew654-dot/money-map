@@ -65,4 +65,26 @@ describe("draft persistence", () => {
     expect(storage.getItem(draftKey("annuity"))).toBeNull();
     expect(storage.getItem(draftKey("roth"))).toBe("roth");
   });
+
+  it.each([
+    "balance",
+    "amount",
+    "taxRate",
+    "capacity",
+    "fill",
+    "warning",
+    "computedTotal",
+    "debit",
+    "remainder",
+  ])("returns the exact fallback when nested payload data contains forbidden key %s", (key) => {
+    const storage = createStorage();
+    const fallback = createTestDocument();
+    const corrupted = {
+      ...createTestDocument(),
+      extra: { nested: { [key]: 1 } },
+    };
+    storage.setItem(draftKey("annuity"), JSON.stringify(corrupted));
+
+    expect(loadDraft(storage, "annuity", fallback)).toBe(fallback);
+  });
 });

@@ -17,7 +17,24 @@ describe("literal-safe money map document", () => {
     expect(document.modules[0].rows[0].value).toBe("$250,000");
     expect(document.modules[1].total?.value).toBe("$300,000");
     expect(document).toEqual(snapshot);
-    expect(Object.keys(document)).not.toContain("warning");
+    const collectKeys = (candidate: unknown): string[] => {
+      if (Array.isArray(candidate)) return candidate.flatMap(collectKeys);
+      if (typeof candidate !== "object" || candidate === null) return [];
+      return Object.entries(candidate).flatMap(([key, nested]) => [key, ...collectKeys(nested)]);
+    };
+    expect(collectKeys(document)).not.toEqual(
+      expect.arrayContaining([
+        "amount",
+        "balance",
+        "capacity",
+        "computedTotal",
+        "debit",
+        "fill",
+        "remainder",
+        "taxRate",
+        "warning",
+      ]),
+    );
   });
 
   it("updates one row without changing unrelated module or flow references", () => {
@@ -95,6 +112,22 @@ describe("literal-safe money map document", () => {
     const restored = undoHistory({ past: [document], present: removed, future: [] });
     expect(restored.present).toBe(document);
     expect(restored.present).toEqual(createHistory(document).present);
+  });
+
+  it("preserves untouched collection references during selection removal", () => {
+    const document = createTestDocument();
+    const flowOnly = removeSelection(document, { moduleIds: [], flowIds: ["income-flow"] });
+
+    expect(flowOnly.modules).toBe(document.modules);
+    expect(flowOnly.flows).not.toBe(document.flows);
+
+    const unchanged = removeSelection(document, {
+      moduleIds: ["missing-module"],
+      flowIds: ["missing-flow"],
+    });
+    expect(unchanged).toBe(document);
+    expect(unchanged.modules).toBe(document.modules);
+    expect(unchanged.flows).toBe(document.flows);
   });
 
   it("duplicates selected modules with exact offsets and only their internal flows", () => {
