@@ -4,9 +4,9 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 4 Retirement Income / Private Ledger
+**Checkpoint:** Task 4 Retirement + RMD integration
 
-**Phase:** Shared API frozen; Retirement final fixture complete; RMD, Annuity, and Roth isolated workers in progress
+**Phase:** Retirement and RMD integration green; independent starter reviews in flight; Annuity and Roth ready to integrate
 
 ## Current product
 
@@ -20,7 +20,8 @@
 - Retirement Income is now a complete Private Ledger composition with nine modules, seven relationships, a reserved lower routing lane, and exact Overview plus five authored focus states.
 - Retirement uses all six visual primitives; straight, orthogonal, and curved routes; flow, planned, and association semantics; plain, plate, and filled labels; and Monthly, Annual, Other, and exact custom cadence.
 - Exact authored literals include `~$11,800/mo`, `~$16,000/mo`, `$37,818 gross`, `After W/H: $25,471`, `$21,475/yr gross`, and `Up to $105,000`.
-- RMD, Annuity, and Roth are being implemented in isolated local worktrees from the frozen contract SHA. Their branches cannot modify shared canvas/model/editor files.
+- RMD now has eight modules, seven relationships, all route/relationship/label/cadence variants, and Overview plus five named distribution steps.
+- Annuity and Roth finished in isolated local worktrees from the frozen contract SHA and await sequential integration. Their commits do not modify shared canvas/model/editor files.
 
 ## Verification
 
@@ -28,13 +29,13 @@
 - Retirement focused GREEN: 2 files, 8 tests passed.
 - Fresh `npm run verify`: pass in the integration worktree.
 - Prettier, ESLint, TypeScript, financial source guard, and production build: pass.
-- Unit/component: 30 files, 191 tests passed.
+- Unit/component: 31 files, 197 tests passed.
 - Chromium: 17/17 journeys passed.
-- Production bundle: 135.55 kB gzip JavaScript and 7.08 kB gzip CSS.
+- Production bundle: 136.18 kB gzip JavaScript and 7.32 kB gzip CSS.
 
 ## Known limitations
 
-- Only Retirement is final on the integration branch. RMD, Annuity, and Roth remain intermediate here until their isolated commits pass review and are integrated sequentially.
+- Retirement and RMD are integrated and green; their independent review is in flight. Annuity and Roth await sequential integration.
 - Default author compositions still need cross-starter visual collision checks after all four branches land.
 - Presentation chrome, named-step navigation behavior, responsive presentation repair, and screenshot evidence remain Task 5.
 - Stale local v1 drafts can mask new defaults until Reset; visual verification must reset each starter first.
@@ -43,4 +44,4 @@
 
 ## Next action
 
-Checkpoint Retirement locally, review it independently, then integrate reviewed RMD, Annuity, and Roth commits one at a time with `PROJECT.md` and the full verification gate updated after each.
+Resolve the active Retirement/RMD review, then integrate Annuity and Roth one at a time with `PROJECT.md` and the full gate updated at every checkpoint.
