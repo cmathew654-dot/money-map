@@ -1,17 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { moveModule, resizeModule } from "../canvas/adapters";
+import {
+  selectionForCadence,
+  moveModule,
+  resizeModule,
+  type CadenceFilter as CadenceFilterValue,
+} from "../canvas/adapters";
 import { MoneyMapCanvas } from "../canvas/MoneyMapCanvas";
 import type { Point, StarterId } from "../model/types";
 import { AdvancedProperties, type PropertyField } from "./AdvancedProperties";
 import { CommandPalette } from "./CommandPalette";
+import { CadenceFilter } from "./CadenceFilter";
 import { matchCommandShortcut } from "./commandShortcuts";
 import {
   EditorInteractionContext,
   type EditorInteraction,
   type InlineEditTarget,
 } from "./EditorInteractionContext";
-import { editModuleField, nudgeSelection } from "./mutations";
+import {
+  createRelationship,
+  editFlowField,
+  editModuleField,
+  moveFlowWaypoint,
+  nudgeSelection,
+  reconnectFlow,
+  type FlowField,
+} from "./mutations";
+import { RelationshipProperties } from "./RelationshipProperties";
 import { positionEditorSurface, type EditorSurfacePosition } from "./surfacePosition";
 import { useMoneyMapEditor } from "./useMoneyMapEditor";
 
@@ -89,6 +104,10 @@ function isTextControl(target: EventTarget | null): boolean {
 export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps) {
   const editor = useMoneyMapEditor(starterId);
   const [activeInlineField, setActiveInlineField] = useState<InlineEditTarget | null>(null);
+  const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
+  const [relationshipOpen, setRelationshipOpen] = useState(false);
+  const [connectMode, setConnectMode] = useState(false);
+  const [cadenceFilter, setCadenceFilter] = useState<CadenceFilterValue>("all");
   const [paletteInvoker, setPaletteInvoker] = useState<HTMLElement | null>(null);
   const [propertiesTab, setPropertiesTab] = useState<
     "content" | "appearance" | "connections" | null
@@ -103,6 +122,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     editor.selection.moduleIds.length === 1 && editor.selection.flowIds.length === 0
       ? editor.selection.moduleIds[0]
       : null;
+  const selectedFlowId =
+    editor.selection.flowIds.length === 1 && editor.selection.moduleIds.length === 0
+      ? editor.selection.flowIds[0]
+      : null;
   const availableCommands = editor.registry.available(editor.commandContext);
   const appearanceCommands = availableCommands.filter(
     ({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."),
@@ -110,6 +133,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const primitiveCommands = appearanceCommands.filter(({ id }) =>
     id.startsWith("module.primitive."),
   );
+  const relationshipCommands = availableCommands.filter(({ id }) => id.startsWith("flow."));
 
   useEffect(() => {
     if (selectedModuleId) return;
@@ -122,6 +146,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       setActiveInlineField(null);
     }
   }, [activeInlineField, editor.selection.moduleIds]);
+  useEffect(() => {
+    if (selectedFlowId) return;
+    setActiveFlowId(null);
+    setRelationshipOpen(false);
+  }, [selectedFlowId]);
 
   const placeSurface = useCallback(() => {
     if (!selectedModuleId) return;
@@ -137,6 +166,17 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       }),
     );
   }, [selectedModuleId]);
+  const placeFlowSurface = useCallback(() => {
+    if (!selectedFlowId) return;
+    const label = document.querySelector<HTMLElement>(`[data-flow-label-id="${selectedFlowId}"]`);
+    if (!label) return;
+    setSurfacePosition(
+      positionEditorSurface(label.getBoundingClientRect(), {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }),
+    );
+  }, [selectedFlowId]);
 
   const beginSelectedTitle = useCallback(() => {
     if (!selectedModuleId) return;
@@ -156,20 +196,33 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       if (result?.kind !== "surface") return;
       if (result.surface === "inline") {
         beginSelectedTitle();
+        return;
+      }
+      if (result.surface === "flow-inline") {
+        if (selectedFlowId) setActiveFlowId(selectedFlowId);
+        return;
+      }
+      if (result.surface === "flow-properties") {
+        placeFlowSurface();
+        setPropertiesTab(null);
+        setStyleOpen(false);
+        setRelationshipOpen(true);
+        return;
+      }
+
+      setRelationshipOpen(false);
+      placeSurface();
+      if (result.surface === "style") {
+        setPropertiesTab(null);
+        setStyleOpen(true);
       } else {
-        placeSurface();
-        if (result.surface === "style") {
-          setPropertiesTab(null);
-          setStyleOpen(true);
-        } else {
-          setStyleOpen(false);
-          setPropertiesTab(result.surface === "connections" ? "connections" : "content");
-        }
+        setStyleOpen(false);
+        setConnectMode(result.surface === "connections");
+        setPropertiesTab(result.surface === "connections" ? "connections" : "content");
       }
     },
-    [beginSelectedTitle, editor, placeSurface],
+    [beginSelectedTitle, editor, placeFlowSurface, placeSurface, selectedFlowId],
   );
-
   const commitInlineEdit = useCallback(
     (literal: string) => {
       if (!activeInlineField) return;
@@ -216,6 +269,104 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor],
   );
 
+  const focusFlowLabel = useCallback((flowId: string) => {
+    const focus = (retry: boolean) => {
+      const button = document.querySelector<HTMLElement>(`[data-flow-label-id="${flowId}"] button`);
+      if (button) {
+        button.focus();
+      } else if (retry) {
+        window.setTimeout(() => focus(false), 60);
+      }
+    };
+    requestAnimationFrame(() => focus(true));
+  }, []);
+
+  const selectFlow = useCallback(
+    (flowId: string) => editor.setSelection({ moduleIds: [], flowIds: [flowId] }),
+    [editor],
+  );
+
+  const beginFlowEdit = useCallback(
+    (flowId: string) => {
+      selectFlow(flowId);
+      setRelationshipOpen(false);
+      setActiveFlowId(flowId);
+    },
+    [selectFlow],
+  );
+
+  const cancelFlowEdit = useCallback(() => {
+    const flowId = activeFlowId;
+    setActiveFlowId(null);
+    if (flowId) focusFlowLabel(flowId);
+  }, [activeFlowId, focusFlowLabel]);
+
+  const commitFlowEdit = useCallback(
+    (flowId: string, literal: string) => {
+      const next = editFlowField(editor.document, flowId, { field: "label" }, literal);
+      editor.applyDocument(next, "Relationship label updated.", "edit relationship label");
+      setActiveFlowId(null);
+      focusFlowLabel(flowId);
+    },
+    [editor, focusFlowLabel],
+  );
+
+  const commitFlowProperty = useCallback(
+    (field: FlowField, literal: string) => {
+      if (!selectedFlowId) return;
+      const next = editFlowField(editor.document, selectedFlowId, field, literal);
+      editor.applyDocument(next, "Relationship updated.", `edit relationship ${field.field}`);
+    },
+    [editor, selectedFlowId],
+  );
+
+  const commitFlowWaypoint = useCallback(
+    (flowId: string, point: Point) => {
+      const next = moveFlowWaypoint(editor.document, flowId, point);
+      editor.applyDocument(next, "Relationship route updated.", "move relationship label");
+      focusFlowLabel(flowId);
+    },
+    [editor, focusFlowLabel],
+  );
+
+  const reconnectRelationship = useCallback(
+    (flowId: string, connection: { source: string; target: string }) => {
+      const next = reconnectFlow(editor.document, flowId, connection);
+      editor.applyDocument(next, "Relationship reconnected.", "reconnect relationship");
+      focusFlowLabel(flowId);
+    },
+    [editor, focusFlowLabel],
+  );
+
+  const createConnection = useCallback(
+    (source: string, target: string) => {
+      const previousIds = new Set(editor.document.flows.map(({ id }) => id));
+      const next = createRelationship(
+        editor.document,
+        source,
+        target,
+        () => `flow-${crypto.randomUUID()}`,
+      );
+      const created = next.flows.find(({ id }) => !previousIds.has(id));
+      if (!created) return;
+      editor.applyDocument(next, "Relationship created.", "create relationship");
+      editor.setSelection({ moduleIds: [], flowIds: [created.id] });
+      setPropertiesTab(null);
+      setConnectMode(false);
+      setActiveFlowId(created.id);
+    },
+    [editor],
+  );
+
+  const changeCadenceFilter = useCallback(
+    (filter: CadenceFilterValue) => {
+      setCadenceFilter(filter);
+      const nextSelection = selectionForCadence(editor.document, editor.selection, filter);
+      if (nextSelection !== editor.selection) editor.setSelection(nextSelection);
+      editor.setAnnouncement(`Showing ${filter} cadence relationships.`);
+    },
+    [editor],
+  );
   const openPalette = useCallback((invoker: HTMLElement) => {
     setPaletteInvoker(invoker);
   }, []);
@@ -236,6 +387,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     });
   }, [selectedModuleId]);
 
+  const closeRelationshipProperties = useCallback(() => {
+    const flowId = selectedFlowId;
+    setRelationshipOpen(false);
+    if (flowId) focusFlowLabel(flowId);
+  }, [focusFlowLabel, selectedFlowId]);
   const closeProperties = useCallback(() => {
     setPropertiesTab(null);
     focusSelectedModule();
@@ -257,30 +413,47 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       selectedModuleIds: editor.selection.moduleIds,
       availableCommands,
       activeInlineField,
+      activeFlowId,
+      connectMode,
       beginInlineEdit: setActiveInlineField,
       commitInlineEdit,
       cancelInlineEdit: () => setActiveInlineField(null),
+      beginFlowEdit,
+      cancelFlowEdit,
+      commitFlowEdit,
+      selectFlow,
+      commitFlowWaypoint,
       executeCommand,
       openPalette,
       nudgeSelected,
       commitModuleWidth,
       commitModuleMove,
+      createConnection,
+      reconnectRelationship,
     }),
     [
+      activeFlowId,
       activeInlineField,
+      availableCommands,
+      beginFlowEdit,
+      cancelFlowEdit,
+      commitFlowEdit,
+      commitFlowWaypoint,
       commitInlineEdit,
       commitModuleMove,
       commitModuleWidth,
-      availableCommands,
+      connectMode,
+      createConnection,
       editor.announcement,
       editor.selection.flowIds.length,
       editor.selection.moduleIds,
       executeCommand,
       nudgeSelected,
       openPalette,
+      reconnectRelationship,
+      selectFlow,
     ],
   );
-
   const handleWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (isTextControl(event.target) || event.nativeEvent.isComposing) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
@@ -368,7 +541,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               onDocumentChange={(document) =>
                 editor.applyDocument(document, "Document changed.", "document mutation")
               }
+              cadenceFilter={cadenceFilter}
             />
+            <CadenceFilter value={cadenceFilter} onChange={changeCadenceFilter} />
           </section>
         ) : (
           <section className="authoring-cover" aria-labelledby="authoring-cover-title">
@@ -427,6 +602,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
             onClose={closeProperties}
             onCommitField={commitPropertyField}
             onExecute={executeCommand}
+            onCreateConnection={createConnection}
             style={
               surfacePosition
                 ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }
@@ -435,6 +611,23 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           />
         ) : null}
 
+        {relationshipOpen && selectedFlowId ? (
+          <RelationshipProperties
+            commands={relationshipCommands}
+            document={editor.document}
+            flowId={selectedFlowId}
+            key={selectedFlowId}
+            onClose={closeRelationshipProperties}
+            onCommitField={commitFlowProperty}
+            onExecute={executeCommand}
+            onReconnect={(connection) => reconnectRelationship(selectedFlowId, connection)}
+            style={
+              surfacePosition
+                ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }
+                : undefined
+            }
+          />
+        ) : null}
         {paletteInvoker ? (
           <CommandPalette
             context={editor.commandContext}

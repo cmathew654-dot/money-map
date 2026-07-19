@@ -1,7 +1,16 @@
 import { CommandRegistry } from "../commands/registry";
 import type { CommandDefinition, EditorMutation } from "../commands/types";
-import { duplicateSelection, removeSelection, updateModule } from "../model/document";
-import type { MoneyMapDocument, PrimitiveStyle, Selection } from "../model/types";
+import { duplicateSelection, removeSelection, updateFlow, updateModule } from "../model/document";
+import { resetFlowWaypoint } from "./mutations";
+import type {
+  CadenceKind,
+  LabelTreatment,
+  MoneyMapDocument,
+  PrimitiveStyle,
+  RelationshipKind,
+  RouteKind,
+  Selection,
+} from "../model/types";
 
 export interface WorkspaceCommandContext {
   document: MoneyMapDocument;
@@ -10,7 +19,8 @@ export interface WorkspaceCommandContext {
   canRedo: boolean;
 }
 
-export type WorkspaceSurface = "inline" | "style" | "properties" | "connections";
+export type WorkspaceSurface =
+  "inline" | "style" | "properties" | "connections" | "flow-inline" | "flow-properties";
 
 export type WorkspaceCommandResult =
   | { kind: "mutation"; mutation: EditorMutation; nextSelection?: Selection }
@@ -43,6 +53,22 @@ function hasSingleModule(context: WorkspaceCommandContext): boolean {
   return selectedModules(context).length === 1 && context.selection.flowIds.length === 0;
 }
 
+function selectedFlows(context: WorkspaceCommandContext) {
+  const ids = new Set(context.selection.flowIds);
+  return context.document.flows.filter((flow) => ids.has(flow.id));
+}
+
+function hasSingleFlow(context: WorkspaceCommandContext): boolean {
+  return context.selection.moduleIds.length === 0 && selectedFlows(context).length === 1;
+}
+
+function updateSelectedFlow(
+  context: WorkspaceCommandContext,
+  update: Parameters<typeof updateFlow>[2],
+): MoneyMapDocument {
+  const flow = selectedFlows(context)[0];
+  return flow ? updateFlow(context.document, flow.id, update) : context.document;
+}
 function hasActionableSelection(context: WorkspaceCommandContext): boolean {
   if (hasModules(context)) return true;
   const ids = new Set(context.selection.flowIds);
@@ -177,5 +203,112 @@ export function createWorkspaceCommands(
     });
   }
 
+  registry.register({
+    id: "flow.edit",
+    label: "Edit relationship label",
+    keywords: ["connection", "text"],
+    shortcut: "Enter",
+    isAvailable: hasSingleFlow,
+    execute: () => ({ kind: "surface", surface: "flow-inline" }),
+  });
+
+  registry.register({
+    id: "flow.properties",
+    label: "Relationship properties",
+    keywords: ["connection", "route", "cadence"],
+    isAvailable: hasSingleFlow,
+    execute: () => ({ kind: "surface", surface: "flow-properties" }),
+  });
+
+  for (const route of ["straight", "orthogonal", "curved"] as RouteKind[]) {
+    registry.register({
+      id: `flow.route.${route}`,
+      label: `${route[0].toLocaleUpperCase()}${route.slice(1)} route`,
+      keywords: ["relationship", "line", "path"],
+      isAvailable: hasSingleFlow,
+      execute: (context) =>
+        mutation(
+          updateSelectedFlow(context, (flow) => (flow.route === route ? flow : { ...flow, route })),
+          `${route} route applied.`,
+        ),
+    });
+  }
+
+  for (const relationship of ["flow", "association", "planned"] as RelationshipKind[]) {
+    registry.register({
+      id: `flow.relationship.${relationship}`,
+      label: `${relationship[0].toLocaleUpperCase()}${relationship.slice(1)} relationship`,
+      keywords: ["semantic", "connection"],
+      isAvailable: hasSingleFlow,
+      execute: (context) =>
+        mutation(
+          updateSelectedFlow(context, (flow) =>
+            flow.relationship === relationship ? flow : { ...flow, relationship },
+          ),
+          `${relationship} relationship applied.`,
+        ),
+    });
+  }
+
+  for (const treatment of ["plain", "plate", "filled"] as LabelTreatment[]) {
+    registry.register({
+      id: `flow.label-treatment.${treatment}`,
+      label: `${treatment[0].toLocaleUpperCase()}${treatment.slice(1)} label`,
+      keywords: ["relationship", "label", "appearance"],
+      isAvailable: hasSingleFlow,
+      execute: (context) =>
+        mutation(
+          updateSelectedFlow(context, (flow) =>
+            flow.labelTreatment === treatment ? flow : { ...flow, labelTreatment: treatment },
+          ),
+          `${treatment} label applied.`,
+        ),
+    });
+  }
+
+  const cadences: Array<{ kind: CadenceKind; label: string }> = [
+    { kind: "monthly", label: "Monthly" },
+    { kind: "annual", label: "Annual" },
+    { kind: "one-time", label: "One-time" },
+    { kind: "as-needed", label: "As needed" },
+    { kind: "custom", label: "Custom" },
+  ];
+  for (const cadence of cadences) {
+    registry.register({
+      id: `flow.cadence.${cadence.kind}`,
+      label: `${cadence.label} cadence`,
+      keywords: ["relationship", "timing", "frequency"],
+      isAvailable: hasSingleFlow,
+      execute: (context) =>
+        mutation(
+          updateSelectedFlow(context, (flow) =>
+            flow.cadence.kind === cadence.kind
+              ? flow
+              : {
+                  ...flow,
+                  cadence: {
+                    kind: cadence.kind,
+                    label: cadence.kind === "custom" ? flow.cadence.label : cadence.label,
+                  },
+                },
+          ),
+          `${cadence.label} cadence applied.`,
+        ),
+    });
+  }
+
+  registry.register({
+    id: "flow.waypoint.reset",
+    label: "Reset label position",
+    keywords: ["relationship", "route", "waypoint"],
+    isAvailable: hasSingleFlow,
+    execute: (context) => {
+      const flow = selectedFlows(context)[0];
+      return mutation(
+        flow ? resetFlowWaypoint(context.document, flow.id) : context.document,
+        "Label position reset.",
+      );
+    },
+  });
   return registry;
 }

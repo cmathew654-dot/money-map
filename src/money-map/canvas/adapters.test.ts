@@ -1,6 +1,12 @@
 import { documentGeometry } from "../model/document";
 import { createTestDocument } from "../model/test-fixtures";
-import { documentToEdges, documentToNodes, moduleAriaLabel, moveModule } from "./adapters";
+import {
+  documentToEdges,
+  documentToNodes,
+  moduleAriaLabel,
+  moveModule,
+  selectionForCadence,
+} from "./adapters";
 
 describe("canvas document adapters", () => {
   it("preserves literal strings and geometry independently", () => {
@@ -84,7 +90,7 @@ describe("canvas document adapters", () => {
     expect(moveModule(document, "missing", { x: 1, y: 2 })).toBe(document);
   });
 
-  it("maps authored route kinds to available built-in React Flow edge types", () => {
+  it("maps every relationship to the shared custom edge and preserves authored route data", () => {
     const document = createTestDocument();
     const curvedDocument = {
       ...document,
@@ -93,8 +99,10 @@ describe("canvas document adapters", () => {
 
     expect(
       documentToEdges(document, { moduleIds: [], flowIds: [] }).map((edge) => edge.type),
-    ).toEqual(["step", "straight"]);
-    expect(documentToEdges(curvedDocument, { moduleIds: [], flowIds: [] })[0].type).toBe("default");
+    ).toEqual(["moneyMapRelationship", "moneyMapRelationship"]);
+    expect(
+      documentToEdges(curvedDocument, { moduleIds: [], flowIds: [] })[0].data?.flow.route,
+    ).toBe("curved");
   });
 
   it("counts modules and relationships together for one mixed-selection halo anchor", () => {
@@ -117,5 +125,18 @@ describe("canvas document adapters", () => {
     });
     expect(multiple[0].data.selectionCount).toBe(2);
     expect(multiple.filter(({ data }) => data.haloAnchor)).toHaveLength(1);
+  });
+
+  it("atomically removes only relationships hidden by a transient cadence filter", () => {
+    const document = createTestDocument();
+    const selection = {
+      moduleIds: ["annuity-policy"],
+      flowIds: ["funding-flow", "income-flow"],
+    };
+    expect(selectionForCadence(document, selection, "monthly")).toEqual({
+      moduleIds: ["annuity-policy"],
+      flowIds: ["income-flow"],
+    });
+    expect(selectionForCadence(document, selection, "all")).toBe(selection);
   });
 });

@@ -1,0 +1,117 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { ReactFlowProvider, type EdgeProps } from "@xyflow/react";
+import type * as ReactFlowExports from "@xyflow/react";
+import { vi } from "vitest";
+import type { ReactNode } from "react";
+
+vi.mock("@xyflow/react", async (importOriginal) => {
+  const original = await importOriginal<typeof ReactFlowExports>();
+  return {
+    ...original,
+    EdgeLabelRenderer: ({ children }: { children: ReactNode }) => <>{children}</>,
+  };
+});
+
+import { createTestDocument } from "../model/test-fixtures";
+import { MoneyMapEdge } from "./MoneyMapEdge";
+import type { MoneyMapCanvasEdge } from "./adapters";
+
+function renderEdge(overrides: Partial<MoneyMapCanvasEdge["data"]> = {}) {
+  const flow = createTestDocument().flows[0];
+  const handlers = {
+    beginEdit: vi.fn(),
+    cancelEdit: vi.fn(),
+    commitEdit: vi.fn(),
+    moveWaypoint: vi.fn(),
+    nudgeWaypoint: vi.fn(),
+    select: vi.fn(),
+  };
+  const props = {
+    id: flow.id,
+    source: flow.source,
+    target: flow.target,
+    sourceX: 20,
+    sourceY: 40,
+    targetX: 420,
+    targetY: 180,
+    sourcePosition: "right",
+    targetPosition: "left",
+    data: { flow, handlers, editing: false, ...overrides },
+    selected: false,
+  } as unknown as EdgeProps<MoneyMapCanvasEdge>;
+  render(
+    <ReactFlowProvider>
+      <MoneyMapEdge {...props} />
+    </ReactFlowProvider>,
+  );
+  return { flow, handlers };
+}
+
+describe("MoneyMapEdge", () => {
+  it("renders exact label, secondary label, cadence, semantics, and treatment", () => {
+    const { flow } = renderEdge();
+    const label = screen.getByRole("button", {
+      name: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
+    });
+    expect(label.textContent).toContain(flow.label);
+    expect(label.textContent).toContain(flow.secondaryLabel ?? "");
+    expect(label.textContent).toContain(flow.cadence.label);
+    expect(label.closest("[data-treatment]")?.getAttribute("data-treatment")).toBe("plate");
+    expect(document.querySelector("path")?.getAttribute("class")).toContain(
+      "relationship--planned",
+    );
+  });
+
+  it("clicks to edit but a drag beyond six pixels moves a waypoint without editing", () => {
+    const { handlers } = renderEdge();
+    const label = screen.getByRole("button");
+    fireEvent.click(label);
+    expect(handlers.select).toHaveBeenCalledTimes(1);
+    expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
+
+    handlers.select.mockClear();
+    handlers.beginEdit.mockClear();
+    fireEvent.pointerDown(label, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(label, { clientX: 108, clientY: 100, pointerId: 1 });
+    fireEvent.pointerUp(label, { clientX: 108, clientY: 100, pointerId: 1 });
+    fireEvent.click(label);
+    expect(handlers.moveWaypoint).toHaveBeenCalledWith({ x: 108, y: 100 });
+    expect(handlers.beginEdit).not.toHaveBeenCalled();
+  });
+
+  it("keeps portal label events from reaching the canvas pane", () => {
+    renderEdge();
+    const canvasClick = vi.fn();
+    document.addEventListener("click", canvasClick);
+
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(canvasClick).not.toHaveBeenCalled();
+    document.removeEventListener("click", canvasClick);
+  });
+
+  it("supports Enter and keyboard waypoint movement", () => {
+    const { handlers } = renderEdge();
+    const label = screen.getByRole("button");
+    fireEvent.keyDown(label, { key: "Enter" });
+    expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(label, { key: "ArrowRight", shiftKey: true });
+    expect(handlers.nudgeWaypoint).toHaveBeenCalledWith({ x: 392, y: 176 });
+  });
+
+  it("commits or restores an exact inline label", () => {
+    const { handlers } = renderEdge({ editing: true });
+    const input = screen.getByRole("textbox", { name: "Edit relationship label" });
+    fireEvent.change(input, { target: { value: "$20,000–? — $_____" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(handlers.commitEdit).toHaveBeenCalledWith("$20,000–? — $_____");
+  });
+
+  it("selects from the generous invisible path target", () => {
+    const { handlers } = renderEdge();
+    const target = document.querySelector(".react-flow__edge-interaction");
+    if (!target) throw new Error("Expected interaction path");
+    fireEvent.click(target);
+    expect(handlers.select).toHaveBeenCalledTimes(1);
+  });
+});

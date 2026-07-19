@@ -42,9 +42,10 @@ describe("AdvancedProperties", () => {
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Appearance" }));
   });
 
-  it("commits exact field changes for the originating module and Connections never creates a relationship", () => {
+  it("commits exact fields and creates a keyboard-selected relationship target", () => {
     const commit = vi.fn();
     const execute = vi.fn();
+    const createConnection = vi.fn();
     render(
       <AdvancedProperties
         commands={appearanceCommands()}
@@ -54,6 +55,7 @@ describe("AdvancedProperties", () => {
         onClose={vi.fn()}
         onCommitField={commit}
         onExecute={execute}
+        onCreateConnection={createConnection}
       />,
     );
     const title = screen.getByRole("textbox", { name: "Title" });
@@ -62,9 +64,11 @@ describe("AdvancedProperties", () => {
     expect(commit).toHaveBeenCalledWith("annuity-policy", { field: "title" }, "$20,000\u2013?");
 
     fireEvent.click(screen.getByRole("tab", { name: "Connections" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Connection target" }), {
+      target: { value: "monthly-need" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add connection" }));
-    expect(screen.getByText(/connection editing arrives in the next step/i)).toBeTruthy();
-    expect(execute).not.toHaveBeenCalledWith(expect.stringMatching(/create/));
+    expect(createConnection).toHaveBeenCalledWith("annuity-policy", "monthly-need");
   });
 
   it("refreshes drafts for document history and never carries stale text to a new module", () => {

@@ -429,6 +429,15 @@ describe("MoneyMapCanvas command shortcuts", () => {
       selectedModuleIds: ["annuity-policy"],
       availableCommands: registry.available(context),
       activeInlineField: null,
+      activeFlowId: null,
+      connectMode: false,
+      beginFlowEdit: vi.fn(),
+      cancelFlowEdit: vi.fn(),
+      commitFlowEdit: vi.fn(),
+      selectFlow: vi.fn(),
+      commitFlowWaypoint: vi.fn(),
+      createConnection: vi.fn(),
+      reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
       cancelInlineEdit: vi.fn(),
@@ -515,5 +524,79 @@ describe("MoneyMapCanvas movement and camera", () => {
 
     expect(flowMock.zoomIn).toHaveBeenCalledWith({ duration: 0 });
     expect(flowMock.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }));
+  });
+});
+describe("MoneyMapCanvas relationship callbacks", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    flowMock.props = {};
+  });
+
+  it("routes one connect and one endpoint reconnect through the editor interaction", () => {
+    const mapDocument = createTestDocument();
+    const createConnection = vi.fn();
+    const reconnectRelationship = vi.fn();
+    const interaction: EditorInteraction = {
+      selectionCount: 0,
+      announcement: "",
+      selectedModuleIds: [],
+      availableCommands: [],
+      activeInlineField: null,
+      activeFlowId: null,
+      connectMode: true,
+      beginFlowEdit: vi.fn(),
+      cancelFlowEdit: vi.fn(),
+      commitFlowEdit: vi.fn(),
+      selectFlow: vi.fn(),
+      commitFlowWaypoint: vi.fn(),
+      createConnection,
+      reconnectRelationship,
+      beginInlineEdit: vi.fn(),
+      commitInlineEdit: vi.fn(),
+      cancelInlineEdit: vi.fn(),
+      executeCommand: vi.fn(),
+      openPalette: vi.fn(),
+      nudgeSelected: vi.fn(),
+      commitModuleWidth: vi.fn(),
+      commitModuleMove: vi.fn(),
+    };
+
+    render(
+      <EditorInteractionContext.Provider value={interaction}>
+        <MoneyMapCanvas
+          document={mapDocument}
+          selection={{ moduleIds: [], flowIds: [] }}
+          onSelectionChange={vi.fn()}
+          onDocumentChange={vi.fn()}
+        />
+      </EditorInteractionContext.Provider>,
+    );
+
+    act(() => {
+      (flowMock.props.onConnect as (connection: { source: string; target: string }) => void)({
+        source: "source-account",
+        target: "annuity-policy",
+      });
+    });
+    expect(createConnection).toHaveBeenCalledTimes(1);
+    expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
+
+    const funding = (
+      flowMock.props.edges as Array<{ id: string; source: string; target: string }>
+    ).find(({ id }) => id === "funding-flow");
+    if (!funding) throw new Error("Expected funding-flow edge");
+    act(() => {
+      (
+        flowMock.props.onReconnect as (
+          edge: typeof funding,
+          connection: { source: string; target: string },
+        ) => void
+      )(funding, { source: "annuity-policy", target: "monthly-need" });
+    });
+    expect(reconnectRelationship).toHaveBeenCalledTimes(1);
+    expect(reconnectRelationship).toHaveBeenCalledWith("funding-flow", {
+      source: "annuity-policy",
+      target: "monthly-need",
+    });
   });
 });

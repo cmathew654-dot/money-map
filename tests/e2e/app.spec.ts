@@ -222,15 +222,18 @@ test("uses palette duplicate, keyboard remove, undo, and compact advanced tabs",
 
   const restored = original.last();
   await restored.click();
-  const focusedNode = restored.locator("..");
   await page.getByRole("button", { name: "More properties" }).click();
   await expect(page.getByRole("tab", { name: "Content" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Appearance" }).click();
   await page.getByRole("tab", { name: "Connections" }).click();
+  await page.getByRole("combobox", { name: "Connection target" }).selectOption({ index: 1 });
   await page.getByRole("button", { name: "Add connection" }).click();
-  await expect(page.getByText(/connection editing arrives in the next step/i)).toBeVisible();
-  await page.getByRole("button", { name: "Close properties" }).click();
-  await expect(focusedNode).toBeFocused();
+  const relationshipLabel = page.getByRole("textbox", { name: "Edit relationship label" });
+  await relationshipLabel.fill("Advisor-authored relationship — exact");
+  await relationshipLabel.press("Enter");
+  await expect(
+    page.getByRole("button", { name: /Advisor-authored relationship — exact/ }),
+  ).toBeFocused();
 });
 
 test("persists committed edits only for one starter and Reset restores its scaffold", async ({
@@ -285,10 +288,9 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
   const module = page.locator(".money-map-module").nth(1);
-  await page.locator(".react-flow__edge-interaction").first().click({ force: true });
-  await page.keyboard.down("Shift");
-  await module.click();
-  await page.keyboard.up("Shift");
+  await page.getByRole("button", { name: /planned relationship from annuity-source/i }).click();
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
+  await module.click({ modifiers: ["Shift"] });
   await expect(page.getByRole("toolbar", { name: "2 selected items" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Edit module" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
@@ -386,11 +388,9 @@ test("invalid selections close editing surfaces and later singles do not reopen 
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
 
   await page.getByRole("button", { name: "More properties" }).click();
-  await page.locator(".react-flow__edge-interaction").first().click({ force: true });
+  await page.getByRole("button", { name: /flow relationship from annuity-policy/i }).click();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
-  await page.keyboard.down("Shift");
-  await annuity.click();
-  await page.keyboard.up("Shift");
+  await annuity.click({ modifiers: ["Shift"] });
   await expect(page.getByRole("toolbar", { name: "2 selected items" })).toBeVisible();
   await source.click();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
@@ -400,4 +400,122 @@ test("invalid selections close editing surfaces and later singles do not reopen 
   await expect(page.getByLabel("Choose module style")).toHaveCount(0);
   await source.click();
   await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+});
+test("edits exact relationship text and appearance with undo and redo", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const labelWrap = page.locator('[data-flow-label-id="annuity-funding-flow"]');
+  const originalPath = await page
+    .locator('.react-flow__edge[data-id="annuity-funding-flow"] .money-map-relationship-path')
+    .getAttribute("d");
+  await labelWrap.getByRole("button").click();
+  const labelInput = page.getByRole("textbox", { name: "Edit relationship label" });
+  const literal = "$20,000\u2013? \u2014 advisor-authored";
+  await labelInput.fill(literal);
+  await labelInput.press("Enter");
+  await expect(labelWrap).toContainText(literal);
+
+  const executeAction = async (query: string, option: string) => {
+    await page.keyboard.press("Control+k");
+    await page.getByRole("combobox", { name: "Search actions" }).fill(query);
+    await page.getByRole("option", { name: option, exact: true }).click();
+  };
+
+  await executeAction("curved route", "Curved route");
+  await executeAction("association relationship", "Association relationship");
+  await executeAction("filled label", "Filled label");
+
+  const path = page.locator(
+    '.react-flow__edge[data-id="annuity-funding-flow"] .money-map-relationship-path',
+  );
+  await expect(path).toHaveClass(/relationship--association/);
+  await expect(path).not.toHaveAttribute("d", originalPath ?? "");
+  await expect(labelWrap).toHaveAttribute("data-treatment", "filled");
+
+  await page.keyboard.press("Control+z");
+  await expect(labelWrap).toHaveAttribute("data-treatment", "plate");
+  await page.keyboard.press("Control+Shift+z");
+  await expect(labelWrap).toHaveAttribute("data-treatment", "filled");
+  await expect(page.locator(".money-map-module").filter({ hasText: "$250,000" })).toHaveCount(1);
+  await page.evaluate(() => localStorage.clear());
+});
+
+test("routes a relationship label by pointer and keyboard, then resets and undoes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  const label = labelWrap.getByRole("button");
+  const initialTransform = await labelWrap.getAttribute("style");
+  const bounds = await label.boundingBox();
+  if (!bounds) throw new Error("Expected relationship label bounds");
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 + 72, bounds.y + bounds.height / 2 + 40);
+  await page.mouse.up();
+
+  await expect(page.getByRole("textbox", { name: "Edit relationship label" })).toHaveCount(0);
+  const draggedTransform = await labelWrap.getAttribute("style");
+  expect(draggedTransform).not.toBe(initialTransform);
+
+  await label.focus();
+  await label.press("Shift+ArrowRight");
+  const nudgedTransform = await labelWrap.getAttribute("style");
+  expect(nudgedTransform).not.toBe(draggedTransform);
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("reset label position");
+  await page.getByRole("option", { name: "Reset label position", exact: true }).click();
+  await expect(labelWrap).toHaveAttribute("style", initialTransform ?? "");
+  await page.keyboard.press("Control+z");
+  await expect(labelWrap).toHaveAttribute("style", nudgedTransform ?? "");
+  await page.evaluate(() => localStorage.clear());
+});
+
+test("reconnects by keyboard and persists exact custom cadence across filters and reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  await labelWrap.getByRole("button").click();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
+  await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
+
+  const properties = page.getByLabel("Relationship properties");
+  await expect(properties).toBeVisible();
+  await properties.getByRole("combobox", { name: "Source module" }).selectOption("annuity-source");
+  await properties.getByRole("button", { name: "Custom cadence", exact: true }).click();
+  const cadence = "Beginning in 2027 \u2014 after the sale closes";
+  const customCadence = properties.getByRole("textbox", { name: "Custom cadence" });
+  await customCadence.fill(cadence);
+  await customCadence.press("Enter");
+  await expect(labelWrap).toContainText(cadence);
+
+  await page.getByRole("button", { name: "Monthly", exact: true }).click();
+  await expect(labelWrap).toHaveCount(0);
+  await expect(properties).toHaveCount(0);
+  await page.getByRole("button", { name: "Other", exact: true }).click();
+  await expect(labelWrap).toContainText(cadence);
+
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  const restored = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  await expect(restored).toContainText(cadence);
+  await expect(restored.getByRole("button")).toHaveAccessibleName(
+    /relationship from annuity-source to annuity-need/,
+  );
+  await page.evaluate(() => localStorage.clear());
 });

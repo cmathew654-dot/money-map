@@ -1,15 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
   ReactFlow,
   ReactFlowProvider,
-  type Edge,
+  type Connection,
   type EdgeChange,
   type NodeChange,
   type OnEdgesChange,
   type OnNodesChange,
   type OnNodeDrag,
+  type OnReconnect,
   type OnSelectionChangeFunc,
   useReactFlow,
 } from "@xyflow/react";
@@ -18,19 +27,26 @@ import { matchCommandShortcut } from "../editor/commandShortcuts";
 import { useEditorInteraction } from "../editor/EditorInteractionContext";
 import type { MoneyMapDocument, Selection } from "../model/types";
 import { CanvasControls, type CanvasController } from "./CanvasControls";
+import { MoneyMapEdge } from "./MoneyMapEdge";
 import { MoneyMapNode, type MoneyMapCanvasNode } from "./MoneyMapNode";
-import { documentToEdges, documentToNodes, moveModule, type MoneyMapEdgeData } from "./adapters";
+import {
+  documentToEdges,
+  documentToNodes,
+  moveModule,
+  type CadenceFilter,
+  type MoneyMapCanvasEdge,
+} from "./adapters";
 
 interface MoneyMapCanvasProps {
   document: MoneyMapDocument;
   selection: Selection;
   onSelectionChange(selection: Selection): void;
   onDocumentChange(document: MoneyMapDocument): void;
+  cadenceFilter?: CadenceFilter;
 }
 
-type MoneyMapCanvasEdge = Edge<MoneyMapEdgeData>;
-
 const nodeTypes = { moneyMapModule: MoneyMapNode };
+const edgeTypes = { moneyMapRelationship: MoneyMapEdge };
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -91,13 +107,46 @@ function MoneyMapCanvasInner({
   selection,
   onSelectionChange,
   onDocumentChange,
+  cadenceFilter = "all",
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const editor = useEditorInteraction();
+  const screenToFlowPosition = flow.screenToFlowPosition;
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
-  const adaptedNodes = useMemo(() => documentToNodes(document, selection), [document, selection]);
-  const adaptedEdges = useMemo(() => documentToEdges(document, selection), [document, selection]);
+  const adaptedNodes = useMemo(
+    () => documentToNodes(document, selection, editor?.connectMode ?? false),
+    [document, editor?.connectMode, selection],
+  );
+  const adaptedEdges = useMemo(
+    () =>
+      documentToEdges(document, selection, cadenceFilter).map((edge) => {
+        const relationship = edge.data?.flow;
+        if (!editor || !relationship) return edge;
+        return {
+          ...edge,
+          data: {
+            ...edge.data,
+            flow: relationship,
+            editing: editor.activeFlowId === relationship.id,
+            handlers: {
+              beginEdit: () => editor.beginFlowEdit(relationship.id),
+              cancelEdit: editor.cancelFlowEdit,
+              commitEdit: (literal: string) => editor.commitFlowEdit(relationship.id, literal),
+              moveWaypoint: (clientPoint: { x: number; y: number }) =>
+                editor.commitFlowWaypoint(
+                  relationship.id,
+                  screenToFlowPosition ? screenToFlowPosition(clientPoint) : clientPoint,
+                ),
+              nudgeWaypoint: (point: { x: number; y: number }) =>
+                editor.commitFlowWaypoint(relationship.id, point),
+              select: () => editor.selectFlow(relationship.id),
+            },
+          },
+        };
+      }),
+    [cadenceFilter, document, editor, screenToFlowPosition, selection],
+  );
   const [nodes, setNodes] = useState(adaptedNodes);
   const [edges, setEdges] = useState(adaptedEdges);
   const previousSelection = useRef(selection);
@@ -219,6 +268,18 @@ function MoneyMapCanvasInner({
     [applySelection, selection],
   );
 
+  const handleNodeClick = useCallback(
+    (event: MouseEvent, node: MoneyMapCanvasNode) => {
+      if (!event.shiftKey || selection.flowIds.length === 0) return;
+      const nextSelection = {
+        moduleIds: [...new Set([...selection.moduleIds, node.id])],
+        flowIds: selection.flowIds,
+      };
+      requestAnimationFrame(() => applySelection(nextSelection));
+    },
+    [applySelection, selection.flowIds, selection.moduleIds],
+  );
+
   const handleNodeDragStop = useCallback<OnNodeDrag<MoneyMapCanvasNode>>(
     (_event, node) => {
       if (editor) {
@@ -234,6 +295,26 @@ function MoneyMapCanvasInner({
     [document, editor, onDocumentChange],
   );
 
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (connection.source && connection.target) {
+        editor?.createConnection(connection.source, connection.target);
+      }
+    },
+    [editor],
+  );
+
+  const handleReconnect = useCallback<OnReconnect<MoneyMapCanvasEdge>>(
+    (edge, connection) => {
+      if (connection.source && connection.target) {
+        editor?.reconnectRelationship(edge.id, {
+          source: connection.source,
+          target: connection.target,
+        });
+      }
+    },
+    [editor],
+  );
   const clearSelection = useCallback(() => {
     setNodes((currentNodes) => {
       const changes: NodeChange<MoneyMapCanvasNode>[] = currentNodes
@@ -327,10 +408,14 @@ function MoneyMapCanvasInner({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onSelectionChange={handleFlowSelectionChange}
+        onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
+        onConnect={handleConnect}
+        onReconnect={handleReconnect}
         onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
         minZoom={0.3}
         maxZoom={2}
@@ -341,7 +426,9 @@ function MoneyMapCanvasInner({
         selectionKeyCode="Shift"
         multiSelectionKeyCode="Shift"
         selectionOnDrag={false}
-        nodesConnectable={false}
+        nodesConnectable={editor?.connectMode ?? false}
+        edgesReconnectable
+        reconnectRadius={26}
         deleteKeyCode={null}
         proOptions={{ hideAttribution: false }}
       />

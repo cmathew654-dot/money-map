@@ -1,45 +1,51 @@
 # Project state
 
 **Updated:** 2026-07-19
+
 **Branch:** `codex/reference-reset-2026-07-19`
-**Checkpoint:** Task 3B low-friction editing, one runtime command registry, exact persisted history, and independent-review hardening
-**Phase:** 3B complete - reviewed editing checkpoint committed locally
 
-## Completed
+**Checkpoint:** Task 3C custom relationship editing
 
-- Generalized the command registry with generic context/result types while preserving duplicate rejection, registration order, availability, search, `EditorCommand`, and `createDocumentCommands` behavior.
-- Added one canonical workspace registry for inline/style/properties/connections surfaces, duplicate/remove, undo/redo, reset, width presets, and all six primitive styles.
-- Made the halo, style surface, advanced Appearance controls, palette, and keyboard routing consume resolved runtime command definitions so labels, availability, IDs, canonical shortcuts, and aliases cannot drift.
-- Added one screen-space selection halo: single-module actions project runtime definitions in the exact Edit, Style, Connect, Duplicate, More order only for exactly one selected item, and one group toolbar anchors to selected modules for multi-module or mixed module/relationship selections.
-- Added the visible Actions control and Ctrl/Cmd+K modal palette with availability filtering, label/keyword search, stable order, arrow/Enter behavior, root-captured Escape, contained Tab/Shift+Tab, a close control, and exact invoker focus restoration.
-- Added exact inline title/row-value/total-value editing with double-click or Enter, select-on-open, Enter/blur commit, Escape restore, IME safety, and canvas shortcut suspension.
-- Added compact Content / Appearance / Connections properties with synchronized module/history drafts, synchronized command-selected tabs, collapsed supporting content, primitive/width commands, exact undoable field edits, relationship listing, and an honest Add connection explanation without writing Task 3C data.
-- Made Style and Properties mutually exclusive, moved focus into each opened surface, restored focus to the selected module on close, made Connect switch an already-open properties surface to Connections, and cleared both surfaces whenever selection becomes empty, mixed, or multi.
-- Added horizontal-only 220-480 resize handles with 24px hit areas and end-only document commits; module height remains content-driven and text size does not scale.
-- Routed drag, nudge (8/32 world px), duplicate, remove, edit, primitive, width, undo, and redo through one persisted history while selection, viewport, edit buffers, and open surfaces remain transient.
-- Made removal prune deleted module and relationship IDs from every presentation step in the same undoable document mutation, including flows removed incidentally with a module.
-- Added clamped/flipped compact surface placement, keyboard focus treatments, 24px minimum targets, coarse-pointer 44px targets, and preserved the provenance string "Synthetic demo · advisor-entered values".
-- Hardened simultaneous document/selection commits so React Flow cannot echo stale selected flags after Duplicate, while preserving the approved atomic selection paths.
-- Added focused and Chromium coverage for exact literals, reference preservation, registry metadata propagation, history/persistence, mixed-selection halo behavior, palette focus containment, properties freshness, panel focus, presentation integrity, resize, nudge, keyboard controls, reload isolation, and Reset.
+**Phase:** Task 3C complete locally; ready for Task 4 starter composition
+
+## Current product
+
+- Four synthetic advisor story starters open in a React Flow authoring canvas with exact display-only financial strings. Nothing parses, reconciles, taxes, debits, validates, or derives geometry/style from amounts.
+- One persisted document/history model now covers module and relationship edits, undo/redo, per-starter local drafts, and Reset. Selection, camera, open surfaces, pointer drafts, and cadence filters remain transient.
+- One runtime command registry drives the halo, command palette, keyboard shortcuts, module surfaces, and relationship properties.
+- Modules support direct literal editing, drag/nudge, horizontal resize, six visual primitives, duplicate/remove, compact advanced properties, and connection creation.
+- Relationships use one custom edge renderer with distinct straight/polyline, orthogonal/Manhattan, and curved routes; authored waypoints; solid flow, dotted association, and dashed planned semantics; and plain, paper-plate, or filled labels.
+- Relationship labels preserve primary text, secondary text, and cadence exactly. Click/Enter edits; pointer drag beyond 6 screen px routes without opening the editor; arrows move 8 world px and Shift+Arrow moves 32; Reset removes the authored label waypoint.
+- Either endpoint can reconnect through React Flow handles or keyboard-selectable source/target controls. Add connection creates one neutral default, selects it, and opens exact label editing.
+- Cadence is display-only. All, Monthly, Annual, and Other are transient author filters; hiding a selected relationship clears that selection atomically.
+- Canvas controls include wheel/keyboard zoom, subtle camera controls, fit map/selection, honest 1180 x 660 minimum cover, visible focus, 24px pointer targets, and 44px coarse-pointer targets.
+
+## Task 3C implementation notes
+
+- Geometry is owned by a deterministic path builder and depends only on endpoints, route, and waypoints.
+- Resting relationship color/weight are constant. Direction and class are redundant through marker, dash pattern, and literal label; accent indicates selection only.
+- Portal label events are isolated from the canvas pane. A controlled-selection bridge preserves an already selected relationship when Shift-click adds a module.
+- All relationship mutations are immutable, exact-string, command/history backed, and persistence-compatible. The existing schema and validator required no change.
+- No private or Pro React Flow implementation was copied; connection/reconnect use public callbacks and handles.
 
 ## Verification
 
-- Independent-review RED suite: 12 targeted regressions failed across the reviewed seams before the repair.
-- Focused review GREEN suite: 7 files, 40 tests passed.
-- Complete unit/component suite: 22 files, 142 tests passed.
-- Chromium suite: 12/12 journeys passed.
-- Production bundle: 129.88 kB gzip JavaScript and 5.93 kB gzip CSS.
-- Final fresh `npm run verify`: pass.
-- Formatting, ESLint, TypeScript, production build, financial source guard, and existing camera/selection/minimum-cover coverage are included in the full gate.
+- Test-first RED evidence covered absent geometry/mutations/commands, absent custom edge and surfaces, connection creation, filter selection cleanup, portal event bubbling, and controlled mixed selection.
+- Fresh `npm run verify`: pass.
+- Prettier, ESLint, TypeScript, production build, and financial source guard: pass.
+- Unit/component: 26 files, 160 tests passed.
+- Chromium: 15/15 journeys passed, including the three Task 3C contract journeys.
+- Production bundle: 133.17 kB gzip JavaScript and 6.54 kB gzip CSS.
+- `git diff --check`: pass before checkpoint.
 
 ## Known limitations
 
-- Connection creation/reconnect, custom route geometry, waypoints, label editing, and cadence filters remain Task 3C.
-- The four starters remain intermediate scaffolds; final starter art direction remains Task 4.
-- Presentation mode remains Task 5.
-- Draft persistence is local and synchronous by design; there is no backend, cloud sync, collaboration, or arbitrary import/export.
+- The four starters are still intermediate scaffolds; Task 4 must give every story a finished wealth-advisor composition and resolve final routing/label placement at target viewports.
+- Presentation mode, named story steps, final presentation chrome, and export remain Task 5.
+- Pointer reconnect is implemented with React Flow's public reconnect handles and covered at callback/mutation level; the lean browser contract exercises the keyboard endpoint path because pointer-handle automation is brittle. Task 4/5 visual audit should manually exercise both endpoints once.
+- Draft persistence is local and synchronous. There is no backend, cloud sync, collaboration, arbitrary import/export, or production security posture.
 - Nothing from this rebuild has been pushed or deployed.
 
 ## Next action
 
-Implement Task 3C custom connector editing, reconnect, route/label treatment, and cadence filters on top of the one-registry Task 3B history without adding financial computation.
+Implement Task 4: finish all four starter compositions to the same portfolio-quality visual and narrative standard, preserving the Task 3C interaction grammar and financial-string invariants. Then run the scoped visual/accessibility audit before Task 5 presentation mode.

@@ -66,6 +66,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-kind={module.kind}
         data-primitive={module.primitive}
         data-selected={selected ? "true" : "false"}
+        data-connect-mode={data.connectMode ? "true" : "false"}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
         {handlePositions.map((position) => (
@@ -75,7 +76,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             key={`target-${position}`}
             position={position}
             type="target"
-            isConnectable={false}
+            isConnectable={data.connectMode}
           />
         ))}
         {handlePositions.map((position) => (
@@ -85,7 +86,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             key={`source-${position}`}
             position={position}
             type="source"
-            isConnectable={false}
+            isConnectable={data.connectMode}
           />
         ))}
 

@@ -22,6 +22,7 @@ interface AdvancedPropertiesProps {
   initialTab: PropertiesTab;
   onCommitField(moduleId: string, field: PropertyField, value: string): void;
   onExecute(id: string): void;
+  onCreateConnection?(source: string, target: string): void;
   onClose(): void;
   style?: CSSProperties;
 }
@@ -81,19 +82,26 @@ export function AdvancedProperties({
   initialTab,
   onCommitField,
   onExecute,
+  onCreateConnection,
   onClose,
   style,
 }: AdvancedPropertiesProps) {
   const [tab, setTab] = useState<PropertiesTab>(initialTab);
-  const [connectionHelp, setConnectionHelp] = useState(false);
+  const [connectionTarget, setConnectionTarget] = useState("");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const module = document.modules.find(({ id }) => id === moduleId);
+  const availableTargets = document.modules.filter(({ id }) => id !== moduleId);
+
+  useEffect(() => {
+    if (!availableTargets.some(({ id }) => id === connectionTarget)) {
+      setConnectionTarget(availableTargets[0]?.id ?? "");
+    }
+  }, [availableTargets, connectionTarget]);
   const primitiveCommands = commands.filter(({ id }) => id.startsWith("module.primitive."));
   const widthCommands = commands.filter(({ id }) => id.startsWith("module.width."));
 
   useEffect(() => {
     setTab(initialTab);
-    setConnectionHelp(false);
     const index = tabs.findIndex(({ id }) => id === initialTab);
     tabRefs.current[index]?.focus();
   }, [initialTab, moduleId]);
@@ -242,14 +250,27 @@ export function AdvancedProperties({
               <li key={flow.id}>{flow.label}</li>
             ))}
           </ul>
-          <button type="button" onClick={() => setConnectionHelp(true)}>
+          <label>
+            <span>Connection target</span>
+            <select
+              aria-label="Connection target"
+              value={connectionTarget}
+              onChange={(event) => setConnectionTarget(event.currentTarget.value)}
+            >
+              {availableTargets.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            disabled={!connectionTarget || !onCreateConnection}
+            type="button"
+            onClick={() => onCreateConnection?.(moduleId, connectionTarget)}
+          >
             Add connection
           </button>
-          {connectionHelp ? (
-            <p role="status">
-              Connection editing arrives in the next step. No relationship has been saved.
-            </p>
-          ) : null}
         </div>
       ) : null}
     </aside>

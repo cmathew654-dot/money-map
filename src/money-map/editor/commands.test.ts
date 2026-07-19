@@ -108,4 +108,43 @@ describe("workspace command registry", () => {
     expect(available).not.toContain("module.connect");
     expect(available).not.toContain("module.properties");
   });
+
+  it("exposes canonical relationship commands only for one flow selection", () => {
+    const registry = createWorkspaceCommands(() => "unused");
+    const flowContext = {
+      ...context([]),
+      selection: { moduleIds: [], flowIds: ["funding-flow"] },
+    };
+    const ids = registry.available(flowContext).map(({ id }) => id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "flow.edit",
+        "flow.properties",
+        "flow.route.straight",
+        "flow.route.orthogonal",
+        "flow.route.curved",
+        "flow.relationship.flow",
+        "flow.relationship.association",
+        "flow.relationship.planned",
+        "flow.label-treatment.plain",
+        "flow.label-treatment.plate",
+        "flow.label-treatment.filled",
+        "flow.cadence.monthly",
+        "flow.cadence.annual",
+        "flow.cadence.one-time",
+        "flow.cadence.as-needed",
+        "flow.cadence.custom",
+        "flow.waypoint.reset",
+      ]),
+    );
+    expect(registry.get("flow.route.curved")).toBe(registry.search("curved", flowContext)[0]);
+    expect(
+      registry
+        .available({
+          ...flowContext,
+          selection: { moduleIds: ["source-account"], flowIds: ["funding-flow"] },
+        })
+        .some(({ id }) => id.startsWith("flow.")),
+    ).toBe(false);
+  });
 });
