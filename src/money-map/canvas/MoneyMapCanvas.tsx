@@ -1,22 +1,16 @@
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
-import {
+  applyEdgeChanges,
   applyNodeChanges,
   ReactFlow,
   ReactFlowProvider,
   type Edge,
   type EdgeChange,
   type NodeChange,
-  type NodeMouseHandler,
   type OnEdgesChange,
   type OnNodesChange,
   type OnNodeDrag,
+  type OnSelectionChangeFunc,
   useReactFlow,
 } from "@xyflow/react";
 
@@ -44,6 +38,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target.isContentEditable ||
     Boolean(target.closest("[contenteditable='true']"))
   );
+}
+
+function sameIds(first: string[], second: string[]): boolean {
+  if (first.length !== second.length) return false;
+  const secondIds = new Set(second);
+  return first.every((id) => secondIds.has(id));
 }
 
 function cameraDuration(duration: number): number {
@@ -88,8 +88,9 @@ function MoneyMapCanvasInner({
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
   const adaptedNodes = useMemo(() => documentToNodes(document, selection), [document, selection]);
+  const adaptedEdges = useMemo(() => documentToEdges(document, selection), [document, selection]);
   const [nodes, setNodes] = useState(adaptedNodes);
-  const edges = useMemo(() => documentToEdges(document, selection), [document, selection]);
+  const [edges, setEdges] = useState(adaptedEdges);
 
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -99,6 +100,10 @@ function MoneyMapCanvasInner({
       }),
     );
   }, [adaptedNodes]);
+
+  useEffect(() => {
+    setEdges(adaptedEdges);
+  }, [adaptedEdges]);
 
   const applySelection = useCallback(
     (nextSelection: Selection) => {
@@ -139,66 +144,43 @@ function MoneyMapCanvasInner({
   const handleNodesChange = useCallback<OnNodesChange<MoneyMapCanvasNode>>(
     (changes: NodeChange<MoneyMapCanvasNode>[]) => {
       const runtimeChanges = changes.filter(
-        (change) => change.type === "dimensions" || change.type === "select",
+        (change) =>
+          change.type === "dimensions" || change.type === "position" || change.type === "select",
       );
       if (runtimeChanges.length > 0) {
+        // Select changes stay in React Flow's controlled runtime state. Only
+        // the combined listener below may commit document selection.
         setNodes((currentNodes) => applyNodeChanges(runtimeChanges, currentNodes));
       }
-
-      const selectChanges = changes.filter(
-        (change): change is Extract<NodeChange, { type: "select" }> => change.type === "select",
-      );
-      if (selectChanges.length === 0) return;
-
-      const selectedIds = new Set(selection.moduleIds);
-      for (const change of selectChanges) {
-        if (change.selected) selectedIds.add(change.id);
-        else selectedIds.delete(change.id);
-      }
-      applySelection({ moduleIds: [...selectedIds], flowIds: selection.flowIds });
     },
-    [applySelection, selection],
+    [],
   );
 
   const handleEdgesChange = useCallback<OnEdgesChange<MoneyMapCanvasEdge>>(
     (changes: EdgeChange<MoneyMapCanvasEdge>[]) => {
-      const selectChanges = changes.filter(
-        (change): change is Extract<EdgeChange, { type: "select" }> => change.type === "select",
-      );
-      if (selectChanges.length === 0) return;
-
-      const selectedIds = new Set(selection.flowIds);
-      for (const change of selectChanges) {
-        if (change.selected) selectedIds.add(change.id);
-        else selectedIds.delete(change.id);
+      const runtimeChanges = changes.filter((change) => change.type === "select");
+      if (runtimeChanges.length > 0) {
+        setEdges((currentEdges) => applyEdgeChanges(runtimeChanges, currentEdges));
       }
-      applySelection({ moduleIds: selection.moduleIds, flowIds: [...selectedIds] });
     },
-    [applySelection, selection],
+    [],
   );
 
-  const handleNodeClick = useCallback<NodeMouseHandler<MoneyMapCanvasNode>>(
-    (event, node) => {
-      const moduleIds = event.shiftKey
-        ? Array.from(new Set([...selection.moduleIds, node.id]))
-        : [node.id];
-      applySelection({
-        moduleIds,
-        flowIds: event.shiftKey ? selection.flowIds : [],
-      });
-    },
-    [applySelection, selection],
-  );
-
-  const handleEdgeClick = useCallback(
-    (event: MouseEvent, edge: { id: string }) => {
-      const flowIds = event.shiftKey
-        ? Array.from(new Set([...selection.flowIds, edge.id]))
-        : [edge.id];
-      applySelection({
-        moduleIds: event.shiftKey ? selection.moduleIds : [],
-        flowIds,
-      });
+  const handleFlowSelectionChange = useCallback<
+    OnSelectionChangeFunc<MoneyMapCanvasNode, MoneyMapCanvasEdge>
+  >(
+    ({ nodes: selectedNodes, edges: selectedEdges }) => {
+      const nextSelection = {
+        moduleIds: selectedNodes.map((node) => node.id),
+        flowIds: selectedEdges.map((edge) => edge.id),
+      };
+      if (
+        sameIds(nextSelection.moduleIds, selection.moduleIds) &&
+        sameIds(nextSelection.flowIds, selection.flowIds)
+      ) {
+        return;
+      }
+      applySelection(nextSelection);
     },
     [applySelection, selection],
   );
@@ -264,10 +246,8 @@ function MoneyMapCanvasInner({
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
-        onNodeClick={handleNodeClick}
-        onEdgeClick={handleEdgeClick}
+        onSelectionChange={handleFlowSelectionChange}
         onNodeDragStop={handleNodeDragStop}
-        onPaneClick={clearSelection}
         onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
         minZoom={0.3}
         maxZoom={2}

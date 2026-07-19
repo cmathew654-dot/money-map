@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import type * as ReactFlowExports from "@xyflow/react";
 import { vi } from "vitest";
 
@@ -34,9 +34,47 @@ vi.mock("@xyflow/react", async (importOriginal) => {
         selected?: boolean;
         data: { module: { title: string } };
       }[];
-      const edges = props.edges as { id: string; label?: string }[];
+      const edges = props.edges as { id: string; label?: string; selected?: boolean }[];
+      useEffect(() => {
+        const onSelectionChange = props.onSelectionChange as
+          ((selection: { nodes: typeof nodes; edges: typeof edges }) => void) | undefined;
+        onSelectionChange?.({
+          nodes: nodes.filter((node) => node.selected),
+          edges: edges.filter((edge) => edge.selected),
+        });
+      }, [edges, nodes, props.onSelectionChange]);
+
+      const emitControlledSelection = (
+        selectedNodes: typeof nodes,
+        selectedEdges: typeof edges,
+      ) => {
+        const selectedNodeIds = new Set(selectedNodes.map((node) => node.id));
+        const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
+        (
+          props.onNodesChange as (
+            changes: { id: string; type: "select"; selected: boolean }[],
+          ) => void
+        )(
+          nodes.map((node) => ({
+            id: node.id,
+            type: "select",
+            selected: selectedNodeIds.has(node.id),
+          })),
+        );
+        (
+          props.onEdgesChange as
+            ((changes: { id: string; type: "select"; selected: boolean }[]) => void) | undefined
+        )?.(
+          edges.map((edge) => ({
+            id: edge.id,
+            type: "select",
+            selected: selectedEdgeIds.has(edge.id),
+          })),
+        );
+      };
+
       return (
-        <div data-testid="react-flow-pane" onClick={() => (props.onPaneClick as () => void)()}>
+        <div data-testid="react-flow-pane" onClick={() => emitControlledSelection([], [])}>
           {nodes.map((node) => (
             <button
               data-selected={node.selected ? "true" : "false"}
@@ -44,12 +82,13 @@ vi.mock("@xyflow/react", async (importOriginal) => {
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                (
-                  props.onNodeClick as (
-                    event: React.MouseEvent,
-                    node: { id: string; data: { module: { title: string } } },
-                  ) => void
-                )(event, node);
+                const selectedNodes = event.shiftKey
+                  ? nodes.filter((candidate) => candidate.selected || candidate.id === node.id)
+                  : [node];
+                const selectedEdges = event.shiftKey
+                  ? edges.filter((candidate) => candidate.selected)
+                  : [];
+                emitControlledSelection(selectedNodes, selectedEdges);
               }}
             >
               {node.data.module.title}
@@ -57,14 +96,18 @@ vi.mock("@xyflow/react", async (importOriginal) => {
           ))}
           {edges.map((edge) => (
             <button
+              data-selected={edge.selected ? "true" : "false"}
               key={edge.id}
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                (props.onEdgeClick as (event: React.MouseEvent, edge: { id: string }) => void)(
-                  event,
-                  edge,
-                );
+                const selectedNodes = event.shiftKey
+                  ? nodes.filter((candidate) => candidate.selected)
+                  : [];
+                const selectedEdges = event.shiftKey
+                  ? edges.filter((candidate) => candidate.selected || candidate.id === edge.id)
+                  : [edge];
+                emitControlledSelection(selectedNodes, selectedEdges);
               }}
             >
               {edge.label}
@@ -107,6 +150,23 @@ function renderCanvas(
   };
 }
 
+function emitFlowSelection(moduleIds: string[], flowIds: string[]) {
+  const nodes = flowMock.props.nodes as Array<{ id: string; selected?: boolean }>;
+  const edges = flowMock.props.edges as Array<{ id: string; selected?: boolean }>;
+  // React Flow emits these controlled callbacks synchronously; the mocked
+  // listener observes their single batched render as one combined payload.
+  (
+    flowMock.props.onNodesChange as (
+      changes: { id: string; type: "select"; selected: boolean }[],
+    ) => void
+  )(nodes.map((node) => ({ id: node.id, type: "select", selected: moduleIds.includes(node.id) })));
+  (
+    flowMock.props.onEdgesChange as (
+      changes: { id: string; type: "select"; selected: boolean }[],
+    ) => void
+  )(edges.map((edge) => ({ id: edge.id, type: "select", selected: flowIds.includes(edge.id) })));
+}
+
 describe("MoneyMapCanvas selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -141,48 +201,63 @@ describe("MoneyMapCanvas selection", () => {
     expect(onDocumentChange).not.toHaveBeenCalled();
   });
 
-  it("synchronizes node and edge selection changes and announces their results", async () => {
+  it.each([
+    {
+      name: "edge to node",
+      initial: { moduleIds: [], flowIds: ["funding-flow"] },
+      moduleIds: ["source-account"],
+      flowIds: [],
+      announcement: "Investment account selected.",
+    },
+    {
+      name: "node to edge",
+      initial: { moduleIds: ["source-account"], flowIds: [] },
+      moduleIds: [],
+      flowIds: ["funding-flow"],
+      announcement: "$300,000 premium relationship selected.",
+    },
+    {
+      name: "additive node and edge",
+      initial: { moduleIds: [], flowIds: [] },
+      moduleIds: ["source-account"],
+      flowIds: ["funding-flow"],
+      announcement: "1 module and 1 relationship selected.",
+    },
+  ])(
+    "commits $name selection once from one combined payload without a rerender",
+    ({ initial, moduleIds, flowIds, announcement }) => {
+      const onSelectionChange = vi.fn();
+      renderCanvas(initial, onSelectionChange);
+
+      act(() => emitFlowSelection(moduleIds, flowIds));
+
+      expect(onSelectionChange).toHaveBeenCalledTimes(1);
+      expect(onSelectionChange).toHaveBeenCalledWith({ moduleIds, flowIds });
+      expect(screen.getByRole("status").textContent).toBe(announcement);
+    },
+  );
+
+  it("synchronizes selected node and edge flags after an atomic selection update", async () => {
     const onSelectionChange = vi.fn();
     const view = renderCanvas(undefined, onSelectionChange);
-
-    act(() => {
-      (
-        flowMock.props.onNodesChange as (
-          changes: { id: string; type: "select"; selected: boolean }[],
-        ) => void
-      )([{ id: "source-account", type: "select", selected: true }]);
-    });
-    const nodeSelection = { moduleIds: ["source-account"], flowIds: [] };
-    expect(onSelectionChange).toHaveBeenLastCalledWith(nodeSelection);
-    expect(screen.getByRole("status").textContent).toBe("Investment account selected.");
-
-    view.rerenderWith(nodeSelection);
-    await waitFor(() => {
-      const selectedNode = (flowMock.props.nodes as { id: string; selected?: boolean }[]).find(
-        (node) => node.id === "source-account",
-      );
-      expect(selectedNode?.selected).toBe(true);
-    });
-
-    act(() => {
-      (
-        flowMock.props.onEdgesChange as (
-          changes: { id: string; type: "select"; selected: boolean }[],
-        ) => void
-      )([{ id: "funding-flow", type: "select", selected: true }]);
-    });
     const combinedSelection = {
       moduleIds: ["source-account"],
       flowIds: ["funding-flow"],
     };
-    expect(onSelectionChange).toHaveBeenLastCalledWith(combinedSelection);
+
+    act(() => emitFlowSelection(combinedSelection.moduleIds, combinedSelection.flowIds));
+    expect(onSelectionChange).toHaveBeenCalledWith(combinedSelection);
     expect(screen.getByRole("status").textContent).toBe("1 module and 1 relationship selected.");
 
     view.rerenderWith(combinedSelection);
     await waitFor(() => {
+      const selectedNode = (flowMock.props.nodes as { id: string; selected?: boolean }[]).find(
+        (node) => node.id === "source-account",
+      );
       const selectedEdge = (flowMock.props.edges as { id: string; selected?: boolean }[]).find(
         (edge) => edge.id === "funding-flow",
       );
+      expect(selectedNode?.selected).toBe(true);
       expect(selectedEdge?.selected).toBe(true);
     });
   });
@@ -191,26 +266,11 @@ describe("MoneyMapCanvas selection", () => {
     const onSelectionChange = vi.fn();
     const view = renderCanvas(undefined, onSelectionChange);
 
-    act(() => {
-      (
-        flowMock.props.onEdgesChange as (
-          changes: { id: string; type: "select"; selected: boolean }[],
-        ) => void
-      )([{ id: "income-flow", type: "select", selected: true }]);
-    });
+    act(() => emitFlowSelection([], ["income-flow"]));
     expect(screen.getByRole("status").textContent).toBe("~$11,800/mo relationship selected.");
 
     view.rerenderWith({ moduleIds: ["source-account"], flowIds: [] });
-    act(() => {
-      (
-        flowMock.props.onNodesChange as (
-          changes: { id: string; type: "select"; selected: boolean }[],
-        ) => void
-      )([
-        { id: "annuity-policy", type: "select", selected: true },
-        { id: "monthly-need", type: "select", selected: true },
-      ]);
-    });
+    act(() => emitFlowSelection(["source-account", "annuity-policy", "monthly-need"], []));
     expect(onSelectionChange).toHaveBeenLastCalledWith({
       moduleIds: ["source-account", "annuity-policy", "monthly-need"],
       flowIds: [],
@@ -218,8 +278,9 @@ describe("MoneyMapCanvas selection", () => {
     expect(screen.getByRole("status").textContent).toBe("3 modules selected.");
   });
 
-  it("retains content-driven React Flow measurements through selection changes", () => {
-    renderCanvas();
+  it("retains content-driven measurements through an atomic selection update", () => {
+    const onSelectionChange = vi.fn();
+    const view = renderCanvas(undefined, onSelectionChange);
 
     act(() => {
       (flowMock.props.onNodesChange as (changes: Array<Record<string, unknown>>) => void)([
@@ -236,19 +297,18 @@ describe("MoneyMapCanvas selection", () => {
       )?.measured,
     ).toEqual({ width: 304, height: 247 });
 
-    act(() => {
-      (
-        flowMock.props.onNodesChange as (
-          changes: { id: string; type: "select"; selected: boolean }[],
-        ) => void
-      )([{ id: "annuity-policy", type: "select", selected: true }]);
-    });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    act(() => emitFlowSelection(["annuity-policy"], []));
+    expect(onSelectionChange).toHaveBeenCalledTimes(1);
+    view.rerenderWith({ moduleIds: ["annuity-policy"], flowIds: [] });
     expect(
       (flowMock.props.nodes as Array<Record<string, unknown>>).find(
         (node) => node.id === "annuity-policy",
       )?.measured,
     ).toEqual({ width: 304, height: 247 });
   });
+
   it("does not intercept Escape from editable controls", () => {
     const onSelectionChange = vi.fn();
     const { container } = renderCanvas(
