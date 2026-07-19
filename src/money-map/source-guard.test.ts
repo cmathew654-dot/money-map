@@ -14,9 +14,13 @@ describe("financial firewall source guard", () => {
     ["integer parsing", "parseInt(balance, 10)"],
     ["number coercion", "Number(amount)"],
     ["unary numeric coercion", "const result = +accountBalance"],
+    ["parenthesized unary coercion", "const result = +(row.value)"],
+    ["optional-chain unary coercion", "const result = +module?.value"],
+    ["direct unary coercion", "+balance"],
     ["financial right operand", "const result = 1 - balance"],
     ["compact financial arithmetic", "const result = balance+amount"],
     ["compound financial arithmetic", "value += amount"],
+    ["template interpolation arithmetic", "const label = `Total: ${balance + amount}`"],
   ])("detects %s", (_description, source) => {
     expect(findFinancialSourceViolations(source)).not.toEqual([]);
   });
@@ -24,6 +28,7 @@ describe("financial firewall source guard", () => {
   it.each([
     ["geometry addition", "const nextX = point.x + 32"],
     ["geometry subtraction", "const left = 1 - point.x"],
+    ["template geometry", "const label = `Left: ${point.x + 32}`"],
     ["type-only financial name", "type Amount = string"],
     ["interface-only financial name", "interface Balance { label: string }"],
     ["double-quoted literal", 'const label = "balance+amount"'],

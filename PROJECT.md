@@ -2,7 +2,7 @@
 
 **Updated:** 2026-07-19
 **Branch:** `codex/reference-reset-2026-07-19`
-**Checkpoint:** Task 2 review hardening — `fix: harden money map foundation guards`
+**Checkpoint:** Task 2 second review — `fix: close remaining money map guard gaps`
 **Phase:** 2 complete — literal-safe domain foundation
 
 ## Completed
@@ -13,14 +13,14 @@
 - Added versioned, starter-scoped draft persistence with runtime corruption checks and exact JSON string round-tripping.
 - Added the shared command registry and canonical `selection.duplicate` and `selection.remove` commands for later editor surfaces.
 - Added synthetic fixtures and financial-firewall coverage for exact literals, mutation isolation, geometry independence, source-level numeric-coercion guards, commands, history, and persistence.
-- Hardened draft loading against recursive forbidden financial keys, command availability against stale selections, and removal reference preservation for untouched collections.
-- Replaced the shallow source regex with a self-tested scanner covering production `.ts` and `.tsx`, parsing/coercion calls, compact and compound financial arithmetic, and unary coercion while ignoring strings, comments, type-only names, and geometry arithmetic.
+- Hardened draft loading with closed-schema validation at every document object level plus recursive forbidden financial keys; also hardened commands against stale selections and preserved untouched removal references.
+- Replaced the shallow source regex with a self-tested scanner covering production `.ts` and `.tsx`, parsing/coercion calls, compact and compound financial arithmetic, parenthesized/optional-chain unary coercion, and template-interpolation expressions while ignoring strings, comments, type-only names, and geometry arithmetic.
 
 ## Verification
 
-- `npm test -- src/money-map/model/persistence.test.ts src/money-map/source-guard.test.ts src/money-map/commands/registry.test.ts src/money-map/model/document.test.ts` — 49 passed across 4 files in 1.01 seconds.
-- `npm run verify` — pass in 10.2 seconds.
-- Unit: 54 passed across 6 files.
+- `npm test -- src/money-map/source-guard.test.ts src/money-map/model/persistence.test.ts src/money-map/model/document.test.ts` — 55 passed across 3 files in 0.87 seconds.
+- `npm run verify` — pass in 10.1 seconds.
+- Unit: 67 passed across 6 files.
 - Chromium: 1 passed.
 - Production bundle: 61.01 kB gzip JavaScript.
 

@@ -36,6 +36,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function hasOnlyKeys(candidate: Record<string, unknown>, allowed: readonly string[]): boolean {
+  return Object.keys(candidate).every((key) => allowed.includes(key));
+}
+
 function containsForbiddenDocumentKey(candidate: unknown): boolean {
   if (Array.isArray(candidate)) return candidate.some(containsForbiddenDocumentKey);
   if (!isRecord(candidate)) return false;
@@ -49,6 +53,7 @@ function containsForbiddenDocumentKey(candidate: unknown): boolean {
 function isPoint(value: unknown): value is Point {
   return (
     isRecord(value) &&
+    hasOnlyKeys(value, ["x", "y"]) &&
     typeof value.x === "number" &&
     typeof value.y === "number" &&
     Number.isFinite(value.x) &&
@@ -68,25 +73,45 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function isModuleRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["id", "label", "value"]) &&
+    typeof value.id === "string" &&
+    typeof value.label === "string" &&
+    typeof value.value === "string"
+  );
+}
+
+function isModuleTotal(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["label", "value"]) &&
+    typeof value.label === "string" &&
+    typeof value.value === "string"
+  );
+}
+
 function isModule(value: unknown): value is MoneyMapModule {
   if (!isRecord(value)) return false;
 
-  const rowsAreValid =
-    Array.isArray(value.rows) &&
-    value.rows.every(
-      (row) =>
-        isRecord(row) &&
-        typeof row.id === "string" &&
-        typeof row.label === "string" &&
-        typeof row.value === "string",
-    );
-  const totalIsValid =
-    value.total === undefined ||
-    (isRecord(value.total) &&
-      typeof value.total.label === "string" &&
-      typeof value.total.value === "string");
+  const rowsAreValid = Array.isArray(value.rows) && value.rows.every(isModuleRow);
+  const totalIsValid = value.total === undefined || isModuleTotal(value.total);
 
   return (
+    hasOnlyKeys(value, [
+      "id",
+      "kind",
+      "primitive",
+      "position",
+      "width",
+      "eyebrow",
+      "title",
+      "subtitle",
+      "rows",
+      "total",
+      "note",
+    ]) &&
     typeof value.id === "string" &&
     isOneOf(value.kind, [
       "income",
@@ -113,6 +138,18 @@ function isModule(value: unknown): value is MoneyMapModule {
 function isFlow(value: unknown): value is MoneyMapFlow {
   return (
     isRecord(value) &&
+    hasOnlyKeys(value, [
+      "id",
+      "source",
+      "target",
+      "relationship",
+      "route",
+      "labelTreatment",
+      "label",
+      "secondaryLabel",
+      "cadence",
+      "waypoints",
+    ]) &&
     typeof value.id === "string" &&
     typeof value.source === "string" &&
     typeof value.target === "string" &&
@@ -122,6 +159,7 @@ function isFlow(value: unknown): value is MoneyMapFlow {
     typeof value.label === "string" &&
     isOptionalString(value.secondaryLabel) &&
     isRecord(value.cadence) &&
+    hasOnlyKeys(value.cadence, ["kind", "label"]) &&
     isOneOf(value.cadence.kind, ["monthly", "annual", "one-time", "as-needed", "custom"]) &&
     typeof value.cadence.label === "string" &&
     Array.isArray(value.waypoints) &&
@@ -132,6 +170,7 @@ function isFlow(value: unknown): value is MoneyMapFlow {
 function isPresentationStep(value: unknown): value is PresentationStep {
   return (
     isRecord(value) &&
+    hasOnlyKeys(value, ["id", "title", "moduleIds", "flowIds"]) &&
     typeof value.id === "string" &&
     typeof value.title === "string" &&
     isStringArray(value.moduleIds) &&
@@ -142,6 +181,16 @@ function isPresentationStep(value: unknown): value is PresentationStep {
 function isDocument(value: unknown, starterId: StarterId): value is MoneyMapDocument {
   return (
     isRecord(value) &&
+    hasOnlyKeys(value, [
+      "schemaVersion",
+      "id",
+      "title",
+      "asOf",
+      "style",
+      "modules",
+      "flows",
+      "presentation",
+    ]) &&
     !containsForbiddenDocumentKey(value) &&
     value.schemaVersion === 1 &&
     value.id === starterId &&

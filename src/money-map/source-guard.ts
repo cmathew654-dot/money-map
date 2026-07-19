@@ -22,6 +22,8 @@ const FINANCIAL_NAME_PARTS = [
 function stripStringsAndComments(input: string): string {
   let output = "";
   let cursor = 0;
+  let templateExpressionDepth = 0;
+  const templateParents: number[] = [];
   let mode: "code" | "line-comment" | "block-comment" | "single" | "double" | "template" = "code";
 
   while (cursor < input.length) {
@@ -29,6 +31,19 @@ function stripStringsAndComments(input: string): string {
     const nextCharacter = input[cursor + 1];
 
     if (mode === "code") {
+      if (templateExpressionDepth > 0 && character === "{") {
+        output += character;
+        templateExpressionDepth += 1;
+        cursor += 1;
+        continue;
+      }
+      if (templateExpressionDepth > 0 && character === "}") {
+        templateExpressionDepth -= 1;
+        output += " ";
+        cursor += 1;
+        if (templateExpressionDepth === 0) mode = "template";
+        continue;
+      }
       if (character === "/" && nextCharacter === "/") {
         output += "  ";
         cursor += 2;
@@ -41,19 +56,43 @@ function stripStringsAndComments(input: string): string {
         mode = "block-comment";
         continue;
       }
-      if (character === SINGLE_QUOTE || character === DOUBLE_QUOTE || character === TEMPLATE_TICK) {
+      if (character === TEMPLATE_TICK) {
         output += " ";
-        mode =
-          character === SINGLE_QUOTE
-            ? "single"
-            : character === DOUBLE_QUOTE
-              ? "double"
-              : "template";
+        templateParents.push(templateExpressionDepth);
+        templateExpressionDepth = 0;
+        mode = "template";
+        cursor += 1;
+        continue;
+      }
+      if (character === SINGLE_QUOTE || character === DOUBLE_QUOTE) {
+        output += " ";
+        mode = character === SINGLE_QUOTE ? "single" : "double";
         cursor += 1;
         continue;
       }
       output += character;
       cursor += 1;
+      continue;
+    }
+
+    if (mode === "template") {
+      if (character === BACKSLASH) {
+        output += "  ";
+        cursor += 2;
+      } else if (character === TEMPLATE_TICK) {
+        output += " ";
+        cursor += 1;
+        templateExpressionDepth = templateParents.pop() ?? 0;
+        mode = "code";
+      } else if (character === "$" && nextCharacter === "{") {
+        output += "  ";
+        cursor += 2;
+        templateExpressionDepth = 1;
+        mode = "code";
+      } else {
+        output += character === "\n" ? "\n" : " ";
+        cursor += 1;
+      }
       continue;
     }
 
@@ -76,8 +115,7 @@ function stripStringsAndComments(input: string): string {
       continue;
     }
 
-    const delimiter =
-      mode === "single" ? SINGLE_QUOTE : mode === "double" ? DOUBLE_QUOTE : TEMPLATE_TICK;
+    const delimiter = mode === "single" ? SINGLE_QUOTE : DOUBLE_QUOTE;
     if (character === BACKSLASH) {
       output += "  ";
       cursor += 2;
@@ -110,7 +148,7 @@ export function findFinancialSourceViolations(input: string): string[] {
   for (const match of code.matchAll(parsingPattern)) violations.push(match[0]);
 
   const identifier = "[A-Za-z_$][\\w$]*";
-  const propertyOperand = `${identifier}(?:\\.${identifier})*`;
+  const propertyOperand = `${identifier}(?:(?:\\?\\.|\\.)${identifier})*`;
   const operand = `(?:${propertyOperand}|\\d+(?:\\.\\d+)?)`;
   const binaryPattern = new RegExp(
     `(${operand})\\s*(\\+=|-=|\\*=|\\/=|%=|\\+|-|\\*|/|%)\\s*(${operand})`,
@@ -121,7 +159,7 @@ export function findFinancialSourceViolations(input: string): string[] {
   }
 
   const unaryPattern = new RegExp(
-    `(?:^|\\breturn\\s+|[=(:,;{\\[])\\s*\\+\\s*(${propertyOperand})`,
+    `(?:^|\\breturn\\s+|[=(:,;{\\[])\\s*\\+\\s*(?:\\(\\s*)*(${propertyOperand})`,
     "gm",
   );
   for (const match of code.matchAll(unaryPattern)) {

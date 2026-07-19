@@ -18,6 +18,27 @@ function createStorage(): StorageLike & { values: Map<string, string> } {
   };
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(candidate: unknown): UnknownRecord {
+  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+    throw new Error("Expected record fixture");
+  }
+  return candidate as UnknownRecord;
+}
+
+function recordAt(parent: UnknownRecord, key: string, index: number): UnknownRecord {
+  const candidates = parent[key];
+  if (!Array.isArray(candidates) || candidates.length <= index) {
+    throw new Error(`Expected ${key} fixture at index ${index}`);
+  }
+  return asRecord(candidates[index]);
+}
+
+function firstRecord(parent: UnknownRecord, key: string): UnknownRecord {
+  return recordAt(parent, key, 0);
+}
+
 describe("draft persistence", () => {
   it("round-trips exact literal strings through JSON and storage", () => {
     const storage = createStorage();
@@ -83,6 +104,44 @@ describe("draft persistence", () => {
       ...createTestDocument(),
       extra: { nested: { [key]: 1 } },
     };
+    storage.setItem(draftKey("annuity"), JSON.stringify(corrupted));
+
+    expect(loadDraft(storage, "annuity", fallback)).toBe(fallback);
+  });
+
+  it.each([
+    ["document", (document: UnknownRecord) => (document.accountBalance = 1)],
+    ["module", (document: UnknownRecord) => (firstRecord(document, "modules").annualAmount = 1)],
+    [
+      "row",
+      (document: UnknownRecord) =>
+        (firstRecord(firstRecord(document, "modules"), "rows").premiumAmount = 1),
+    ],
+    ["flow", (document: UnknownRecord) => (firstRecord(document, "flows").warningMessage = 1)],
+    [
+      "total",
+      (document: UnknownRecord) =>
+        (asRecord(recordAt(document, "modules", 1).total).computedValue = 1),
+    ],
+    [
+      "cadence",
+      (document: UnknownRecord) =>
+        (asRecord(firstRecord(document, "flows").cadence).taxPercent = 1),
+    ],
+    [
+      "waypoint",
+      (document: UnknownRecord) =>
+        (firstRecord(firstRecord(document, "flows"), "waypoints").magnitude = 1),
+    ],
+    [
+      "presentation step",
+      (document: UnknownRecord) => (firstRecord(document, "presentation").calculatedOrder = 1),
+    ],
+  ])("returns the exact fallback for an unknown %s key", (_level, corrupt) => {
+    const storage = createStorage();
+    const fallback = createTestDocument();
+    const corrupted = structuredClone(createTestDocument()) as unknown as UnknownRecord;
+    corrupt(corrupted);
     storage.setItem(draftKey("annuity"), JSON.stringify(corrupted));
 
     expect(loadDraft(storage, "annuity", fallback)).toBe(fallback);

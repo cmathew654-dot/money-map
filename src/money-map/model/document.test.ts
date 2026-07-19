@@ -22,19 +22,20 @@ describe("literal-safe money map document", () => {
       if (typeof candidate !== "object" || candidate === null) return [];
       return Object.entries(candidate).flatMap(([key, nested]) => [key, ...collectKeys(nested)]);
     };
-    expect(collectKeys(document)).not.toEqual(
-      expect.arrayContaining([
-        "amount",
-        "balance",
-        "capacity",
-        "computedTotal",
-        "debit",
-        "fill",
-        "remainder",
-        "taxRate",
-        "warning",
-      ]),
-    );
+    const keys = collectKeys(document);
+    for (const forbiddenKey of [
+      "amount",
+      "balance",
+      "capacity",
+      "computedTotal",
+      "debit",
+      "fill",
+      "remainder",
+      "taxRate",
+      "warning",
+    ]) {
+      expect(keys).not.toContain(forbiddenKey);
+    }
   });
 
   it("updates one row without changing unrelated module or flow references", () => {
