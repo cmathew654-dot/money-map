@@ -147,6 +147,16 @@ function renderCanvas(
         />,
       );
     },
+    rerenderWithDocument(nextDocument: typeof document, nextSelection: typeof selection) {
+      view.rerender(
+        <MoneyMapCanvas
+          document={nextDocument}
+          selection={nextSelection}
+          onSelectionChange={onSelectionChange}
+          onDocumentChange={onDocumentChange}
+        />,
+      );
+    },
   };
 }
 
@@ -350,6 +360,35 @@ describe("MoneyMapCanvas selection", () => {
     ).toEqual({ width: 304, height: 247 });
   });
 
+  it("does not echo stale controlled selection when document and selection change together", async () => {
+    const onSelectionChange = vi.fn();
+    const view = renderCanvas({ moduleIds: ["source-account"], flowIds: [] }, onSelectionChange);
+    onSelectionChange.mockClear();
+    const copiedModule = {
+      ...view.document.modules[0],
+      id: "source-account-copy",
+      position: { x: 72, y: 112 },
+    };
+    const nextDocument = {
+      ...view.document,
+      modules: [...view.document.modules, copiedModule],
+    };
+
+    view.rerenderWithDocument(nextDocument, {
+      moduleIds: ["source-account-copy"],
+      flowIds: [],
+    });
+
+    await waitFor(() => {
+      expect(
+        (flowMock.props.nodes as Array<{ id: string; selected?: boolean }>).find(
+          ({ id }) => id === "source-account-copy",
+        )?.selected,
+      ).toBe(true);
+    });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
   it("does not intercept Escape from editable controls", () => {
     const onSelectionChange = vi.fn();
     const { container } = renderCanvas(
@@ -361,6 +400,10 @@ describe("MoneyMapCanvas selection", () => {
 
     fireEvent.keyDown(input, { key: "Escape" });
     expect(onSelectionChange).not.toHaveBeenCalled();
+
+    const button = document.createElement("button");
+    container.firstElementChild?.append(button);
+    expect(fireEvent.keyDown(button, { key: "Enter" })).toBe(true);
   });
 });
 

@@ -1,25 +1,25 @@
 import { duplicateSelection, removeSelection } from "../model/document";
-import type { CommandContext, EditorCommand } from "./types";
+import type { CommandContext, CommandDefinition, EditorMutation } from "./types";
 
-export class CommandRegistry {
-  private readonly commands = new Map<string, EditorCommand>();
+export class CommandRegistry<Context = CommandContext, Result = EditorMutation> {
+  private readonly commands = new Map<string, CommandDefinition<Context, Result>>();
 
-  register(command: EditorCommand): void {
+  register(command: CommandDefinition<Context, Result>): void {
     if (this.commands.has(command.id)) {
       throw new Error(`Duplicate command ID: ${command.id}`);
     }
     this.commands.set(command.id, command);
   }
 
-  get(id: string): EditorCommand | undefined {
+  get(id: string): CommandDefinition<Context, Result> | undefined {
     return this.commands.get(id);
   }
 
-  available(context: CommandContext): EditorCommand[] {
+  available(context: Context): CommandDefinition<Context, Result>[] {
     return [...this.commands.values()].filter((command) => command.isAvailable(context));
   }
 
-  search(query: string, context: CommandContext): EditorCommand[] {
+  search(query: string, context: Context): CommandDefinition<Context, Result>[] {
     const available = this.available(context);
     const normalizedQuery = query.trim().toLocaleLowerCase();
     if (normalizedQuery === "") return available;
@@ -43,8 +43,10 @@ function hasActionableSelection({ document, selection }: CommandContext): boolea
   return document.flows.some((flow) => selectedIds.has(flow.id));
 }
 
-export function createDocumentCommands(createId: (kind: string) => string): CommandRegistry {
-  const registry = new CommandRegistry();
+export function createDocumentCommands(
+  createId: (kind: string) => string,
+): CommandRegistry<CommandContext, EditorMutation> {
+  const registry = new CommandRegistry<CommandContext, EditorMutation>();
 
   registry.register({
     id: "selection.duplicate",

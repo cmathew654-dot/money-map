@@ -1,0 +1,95 @@
+import { createTestDocument } from "../model/test-fixtures";
+import type { PrimitiveStyle } from "../model/types";
+import { createWorkspaceCommands, type WorkspaceCommandContext } from "./commands";
+
+function context(moduleIds = ["annuity-policy"]): WorkspaceCommandContext {
+  return {
+    document: createTestDocument(),
+    selection: { moduleIds, flowIds: [] },
+    canUndo: true,
+    canRedo: false,
+  };
+}
+
+describe("workspace command registry", () => {
+  it("returns the same canonical command object for every invocation surface", () => {
+    const registry = createWorkspaceCommands(() => "copy-id");
+    const fromHalo = registry.get("selection.duplicate");
+    const fromPalette = registry.search("clone", context())[0];
+    expect(fromHalo).toBe(fromPalette);
+    expect(fromHalo?.execute(context())).toMatchObject({ kind: "mutation" });
+  });
+
+  it("registers canonical commands in stable order and hides unavailable commands", () => {
+    const registry = createWorkspaceCommands(() => "copy-id");
+    const empty = { ...context([]), canUndo: false };
+    expect(registry.available(empty).map(({ id }) => id)).toEqual(["document.reset"]);
+    expect(registry.available(context()).map(({ id }) => id)).toEqual([
+      "module.edit",
+      "module.style",
+      "module.connect",
+      "module.properties",
+      "selection.duplicate",
+      "selection.remove",
+      "history.undo",
+      "document.reset",
+      "module.width.small",
+      "module.width.standard",
+      "module.width.wide",
+      "module.primitive.ledger",
+      "module.primitive.plate",
+      "module.primitive.tray",
+      "module.primitive.band",
+      "module.primitive.roundel",
+      "module.primitive.frame",
+    ]);
+  });
+
+  it.each([
+    ["module.width.small", 240],
+    ["module.width.standard", 320],
+    ["module.width.wide", 400],
+  ])("changes width only through %s", (id, width) => {
+    const commandContext = context();
+    const document = commandContext.document;
+    const result = createWorkspaceCommands(() => "unused")
+      .get(id)
+      ?.execute(commandContext);
+    if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
+    const module = result.mutation.document.modules[1];
+    expect(module.width).toBe(width);
+    expect(module.title).toBe(document.modules[1].title);
+    expect(module.rows).toBe(document.modules[1].rows);
+  });
+
+  it.each<PrimitiveStyle>(["ledger", "plate", "tray", "band", "roundel", "frame"])(
+    "changes primitive only to %s",
+    (primitive) => {
+      const commandContext = context();
+      const document = commandContext.document;
+      const result = createWorkspaceCommands(() => "unused")
+        .get(`module.primitive.${primitive}`)
+        ?.execute(commandContext);
+      if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
+      const module = result.mutation.document.modules[1];
+      expect(module.primitive).toBe(primitive);
+      expect(module.width).toBe(document.modules[1].width);
+      expect(module.rows).toBe(document.modules[1].rows);
+    },
+  );
+
+  it("duplicates with injected IDs and returns the new selection; remove clears selection", () => {
+    const ids = ["module-copy", "row-1", "row-2", "row-3", "flow-copy"];
+    const registry = createWorkspaceCommands(() => ids.shift() ?? "next-id");
+    const duplicated = registry.get("selection.duplicate")?.execute(context());
+    const removed = registry.get("selection.remove")?.execute(context());
+    expect(duplicated).toMatchObject({
+      kind: "mutation",
+      nextSelection: { moduleIds: ["module-copy"], flowIds: [] },
+    });
+    expect(removed).toMatchObject({
+      kind: "mutation",
+      nextSelection: { moduleIds: [], flowIds: [] },
+    });
+  });
+});

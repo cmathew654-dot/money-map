@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -14,6 +14,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 
+import { useEditorInteraction } from "../editor/EditorInteractionContext";
 import type { MoneyMapDocument, Selection } from "../model/types";
 import { CanvasControls, type CanvasController } from "./CanvasControls";
 import { MoneyMapNode, type MoneyMapCanvasNode } from "./MoneyMapNode";
@@ -36,6 +37,13 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target.matches("input, textarea, select") ||
     target.isContentEditable ||
     Boolean(target.closest("[contenteditable='true']"))
+  );
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    Boolean(target.closest("button, a, [role='tab'], [role='option'], [role='combobox']"))
   );
 }
 
@@ -84,12 +92,36 @@ function MoneyMapCanvasInner({
   onDocumentChange,
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
+  const editor = useEditorInteraction();
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
   const adaptedNodes = useMemo(() => documentToNodes(document, selection), [document, selection]);
   const adaptedEdges = useMemo(() => documentToEdges(document, selection), [document, selection]);
   const [nodes, setNodes] = useState(adaptedNodes);
   const [edges, setEdges] = useState(adaptedEdges);
+  const previousSelection = useRef(selection);
+  const selectionSyncPending = useRef(false);
+
+  if (
+    !sameIds(previousSelection.current.moduleIds, selection.moduleIds) ||
+    !sameIds(previousSelection.current.flowIds, selection.flowIds)
+  ) {
+    previousSelection.current = selection;
+    selectionSyncPending.current = true;
+  }
+
+  const localSelectionIsCurrent =
+    sameIds(
+      nodes.filter((node) => node.selected).map(({ id }) => id),
+      selection.moduleIds,
+    ) &&
+    sameIds(
+      edges.filter((edge) => edge.selected).map(({ id }) => id),
+      selection.flowIds,
+    );
+  if (selectionSyncPending.current && localSelectionIsCurrent) {
+    selectionSyncPending.current = false;
+  }
 
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -169,6 +201,8 @@ function MoneyMapCanvasInner({
     OnSelectionChangeFunc<MoneyMapCanvasNode, MoneyMapCanvasEdge>
   >(
     ({ nodes: selectedNodes, edges: selectedEdges }) => {
+      if (selectionSyncPending.current) return;
+
       const nextSelection = {
         moduleIds: selectedNodes.map((node) => node.id),
         flowIds: selectedEdges.map((edge) => edge.id),
@@ -186,12 +220,17 @@ function MoneyMapCanvasInner({
 
   const handleNodeDragStop = useCallback<OnNodeDrag<MoneyMapCanvasNode>>(
     (_event, node) => {
+      if (editor) {
+        editor.commitModuleMove(node.id, node.position);
+        setAnnouncement(`${node.data.module.title} moved.`);
+        return;
+      }
       const nextDocument = moveModule(document, node.id, node.position);
       if (nextDocument === document) return;
       onDocumentChange(nextDocument);
       setAnnouncement(`${node.data.module.title} moved.`);
     },
-    [document, onDocumentChange],
+    [document, editor, onDocumentChange],
   );
 
   const clearSelection = useCallback(() => {
@@ -211,7 +250,35 @@ function MoneyMapCanvasInner({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event.target) || event.nativeEvent.isComposing) return;
+
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key.toLocaleLowerCase() === "k") {
+          event.preventDefault();
+          editor?.openPalette(event.currentTarget);
+          return;
+        }
+        if (event.key.toLocaleLowerCase() === "d") {
+          event.preventDefault();
+          editor?.executeCommand("selection.duplicate");
+          return;
+        }
+        if (event.key.toLocaleLowerCase() === "z") {
+          event.preventDefault();
+          editor?.executeCommand(event.shiftKey ? "history.redo" : "history.undo");
+          return;
+        }
+        if (event.key === "+" || event.key === "=") {
+          event.preventDefault();
+          controller.zoomIn();
+          return;
+        }
+        if (event.key === "-") {
+          event.preventDefault();
+          controller.zoomOut();
+          return;
+        }
+      }
 
       if (event.key === "Escape") {
         event.preventDefault();
@@ -231,16 +298,35 @@ function MoneyMapCanvasInner({
         return;
       }
 
-      if (!(event.ctrlKey || event.metaKey)) return;
-      if (event.key === "+" || event.key === "=") {
+      if (isInteractiveTarget(event.target)) return;
+
+      if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        controller.zoomIn();
-      } else if (event.key === "-") {
+        editor?.executeCommand("selection.remove");
+        return;
+      }
+
+      if (event.key === "Enter") {
         event.preventDefault();
-        controller.zoomOut();
+        editor?.executeCommand("module.edit");
+        return;
+      }
+
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        const distance = event.shiftKey ? 32 : 8;
+        const delta =
+          event.key === "ArrowLeft"
+            ? { x: -distance, y: 0 }
+            : event.key === "ArrowRight"
+              ? { x: distance, y: 0 }
+              : event.key === "ArrowUp"
+                ? { x: 0, y: -distance }
+                : { x: 0, y: distance };
+        editor?.nudgeSelected(delta);
       }
     },
-    [clearSelection, controller, fitMap, fitSelection],
+    [clearSelection, controller, editor, fitMap, fitSelection],
   );
 
   return (
@@ -274,7 +360,7 @@ function MoneyMapCanvasInner({
       />
       <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {announcement}
+        {editor?.announcement || announcement}
       </p>
     </div>
   );

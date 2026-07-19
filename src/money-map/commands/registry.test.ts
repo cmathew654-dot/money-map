@@ -8,6 +8,28 @@ const emptyContext: CommandContext = {
 };
 
 describe("command registry", () => {
+  it("supports generic contexts and results without losing registration order", () => {
+    const registry = new CommandRegistry<{ enabled: boolean }, string>();
+    registry.register({
+      id: "first",
+      label: "First command",
+      keywords: ["alpha"],
+      isAvailable: ({ enabled }) => enabled,
+      execute: () => "first-result",
+    });
+    registry.register({
+      id: "second",
+      label: "Second command",
+      keywords: ["beta"],
+      isAvailable: () => true,
+      execute: () => "second-result",
+    });
+
+    expect(registry.available({ enabled: true }).map(({ id }) => id)).toEqual(["first", "second"]);
+    expect(registry.available({ enabled: false }).map(({ id }) => id)).toEqual(["second"]);
+    expect(registry.get("first")?.execute({ enabled: true })).toBe("first-result");
+  });
+
   it("rejects duplicate command IDs", () => {
     const registry = new CommandRegistry();
     const command = {

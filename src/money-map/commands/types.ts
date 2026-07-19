@@ -1,5 +1,14 @@
 import type { MoneyMapDocument, Selection } from "../model/types";
 
+export interface CommandDefinition<Context, Result> {
+  id: string;
+  label: string;
+  keywords: string[];
+  shortcut?: string;
+  isAvailable(context: Context): boolean;
+  execute(context: Context): Result;
+}
+
 export interface CommandContext {
   document: MoneyMapDocument;
   selection: Selection;
@@ -10,11 +19,4 @@ export interface EditorMutation {
   announcement: string;
 }
 
-export interface EditorCommand {
-  id: string;
-  label: string;
-  keywords: string[];
-  shortcut?: string;
-  isAvailable(context: CommandContext): boolean;
-  execute(context: CommandContext): EditorMutation;
-}
+export type EditorCommand = CommandDefinition<CommandContext, EditorMutation>;

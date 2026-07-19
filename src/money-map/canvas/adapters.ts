@@ -12,6 +12,9 @@ import type {
 export interface MoneyMapNodeData extends Record<string, unknown> {
   module: MoneyMapModule;
   outgoingCount: number;
+  selectionCount: number;
+  selectionModuleIds: string[];
+  haloAnchor: boolean;
 }
 
 export interface MoneyMapEdgeData extends Record<string, unknown> {
@@ -38,6 +41,9 @@ export function documentToNodes(
   selection: Selection,
 ): Node<MoneyMapNodeData>[] {
   const selected = new Set(selection.moduleIds);
+  const haloAnchorId = selection.moduleIds.find((id) =>
+    document.modules.some((module) => module.id === id),
+  );
 
   return document.modules.map((module) => {
     const outgoingCount = document.flows.filter((flow) => flow.source === module.id).length;
@@ -45,7 +51,13 @@ export function documentToNodes(
       id: module.id,
       type: "moneyMapModule",
       position: module.position,
-      data: { module, outgoingCount },
+      data: {
+        module,
+        outgoingCount,
+        selectionCount: selection.moduleIds.length,
+        selectionModuleIds: selection.moduleIds,
+        haloAnchor: module.id === haloAnchorId,
+      },
       style: { width: module.width },
       selected: selected.has(module.id),
       focusable: true,
@@ -84,4 +96,21 @@ export function moveModule(
     ...module,
     position: { x: position.x, y: position.y },
   }));
+}
+export const MIN_MODULE_WIDTH = 220;
+export const MAX_MODULE_WIDTH = 480;
+
+export function clampModuleWidth(width: number): number {
+  return Math.min(MAX_MODULE_WIDTH, Math.max(MIN_MODULE_WIDTH, width));
+}
+
+export function resizeModule(
+  document: MoneyMapDocument,
+  moduleId: string,
+  width: number,
+): MoneyMapDocument {
+  const nextWidth = clampModuleWidth(width);
+  return updateModule(document, moduleId, (module) =>
+    module.width === nextWidth ? module : { ...module, width: nextWidth },
+  );
 }
