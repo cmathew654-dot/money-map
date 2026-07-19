@@ -58,6 +58,13 @@ function setSelection(editor: ReturnType<typeof useMoneyMapEditor>, selection: S
   editor.selection = selection;
   editor.commandContext = { ...editor.commandContext, selection };
 }
+function setDocument(
+  editor: ReturnType<typeof useMoneyMapEditor>,
+  document: ReturnType<typeof createTestDocument>,
+): void {
+  editor.document = document;
+  editor.commandContext = { ...editor.commandContext, document };
+}
 
 function openCommand(label: string): void {
   fireEvent.click(screen.getByRole("button", { name: /Actions/ }));
@@ -98,6 +105,73 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     openCommand("connect module");
     fireEvent.click(screen.getByRole("button", { name: /Actions/ }));
     expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+  });
+
+  it("clears a selected relationship and its panel when a cadence edit hides it", () => {
+    const editor = hookMock.editor;
+    setSelection(editor, { moduleIds: [], flowIds: ["income-flow"] });
+    const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Monthly$/ }));
+    vi.mocked(editor.setSelection).mockClear();
+    openCommand("relationship properties");
+    expect(screen.getByLabelText("Relationship properties")).toBeTruthy();
+
+    const customDocument = {
+      ...editor.document,
+      flows: editor.document.flows.map((flow) =>
+        flow.id === "income-flow"
+          ? { ...flow, cadence: { kind: "custom" as const, label: "After closing" } }
+          : flow,
+      ),
+    };
+    setDocument(editor, customDocument);
+    view.rerender(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    expect(editor.setSelection).toHaveBeenCalledTimes(1);
+    expect(editor.setSelection).toHaveBeenCalledWith({ moduleIds: [], flowIds: [] });
+
+    setSelection(editor, { moduleIds: [], flowIds: [] });
+    view.rerender(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    expect(screen.queryByLabelText("Relationship properties")).toBeNull();
+    expect(editor.setSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-evaluates document cadence changes without disturbing visible selection", () => {
+    const editor = hookMock.editor;
+    const exactSelection = { moduleIds: ["source-account"], flowIds: ["income-flow"] };
+    setSelection(editor, exactSelection);
+    const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Monthly$/ }));
+    vi.mocked(editor.setSelection).mockClear();
+    const unrelatedChange = {
+      ...editor.document,
+      flows: editor.document.flows.map((flow) =>
+        flow.id === "funding-flow"
+          ? { ...flow, cadence: { kind: "custom" as const, label: "At closing" } }
+          : flow,
+      ),
+    };
+    setDocument(editor, unrelatedChange);
+    view.rerender(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    expect(editor.setSelection).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^All$/ }));
+    const selectedFlowChange = {
+      ...unrelatedChange,
+      flows: unrelatedChange.flows.map((flow) =>
+        flow.id === "income-flow"
+          ? { ...flow, cadence: { kind: "annual" as const, label: "Annual" } }
+          : flow,
+      ),
+    };
+    setDocument(editor, selectedFlowChange);
+    view.rerender(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    expect(editor.selection).toBe(exactSelection);
+    expect(editor.setSelection).not.toHaveBeenCalled();
   });
 
   it.each([

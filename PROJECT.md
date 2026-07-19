@@ -17,7 +17,7 @@
 - Relationships use one custom edge renderer with distinct straight/polyline, orthogonal/Manhattan, and curved routes; authored waypoints; solid flow, dotted association, and dashed planned semantics; and plain, paper-plate, or filled labels.
 - Relationship labels preserve primary text, secondary text, and cadence exactly. Click/Enter edits; pointer drag beyond 6 screen px routes without opening the editor; arrows move 8 world px and Shift+Arrow moves 32; Reset removes the authored label waypoint.
 - Either endpoint can reconnect through React Flow handles or keyboard-selectable source/target controls. Add connection creates one neutral default, selects it, and opens exact label editing.
-- Cadence is display-only. All, Monthly, Annual, and Other are transient author filters; hiding a selected relationship clears that selection atomically.
+- Cadence is display-only. All, Monthly, Annual, and Other are transient author filters; one central visibility invariant clears a hidden relationship and its surface after filter, command, undo, or redo changes without disturbing visible selection.
 - Canvas controls include wheel/keyboard zoom, subtle camera controls, fit map/selection, honest 1180 x 660 minimum cover, visible focus, 24px pointer targets, and 44px coarse-pointer targets.
 
 ## Task 3C implementation notes
@@ -33,9 +33,9 @@
 - Test-first RED evidence covered absent geometry/mutations/commands, absent custom edge and surfaces, connection creation, filter selection cleanup, portal event bubbling, and controlled mixed selection.
 - Fresh `npm run verify`: pass.
 - Prettier, ESLint, TypeScript, production build, and financial source guard: pass.
-- Unit/component: 27 files, 177 tests passed.
-- Chromium: 16/16 journeys passed, including rapid mixed-selection/filter cleanup and physical source-plus-target pointer reconnect.
-- Production bundle: 134.04 kB gzip JavaScript and 6.57 kB gzip CSS.
+- Unit/component: 27 files, 179 tests passed.
+- Chromium: 17/17 journeys passed, including cadence command/undo/redo cleanup, rapid mixed-selection/filter cleanup, and physical source-plus-target pointer reconnect.
+- Production bundle: 134.06 kB gzip JavaScript and 6.57 kB gzip CSS.
 - `git diff --check`: pass before checkpoint.
 
 ## Known limitations

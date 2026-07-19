@@ -552,6 +552,42 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
   await page.evaluate(() => localStorage.clear());
 });
 
+test("clears a cadence-hidden relationship after command and redo", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const labelWrap = page.locator('[data-flow-label-id="annuity-income-flow"]');
+  let labelButton = labelWrap.getByRole("button");
+  await labelButton.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await expect(labelButton).toBeFocused();
+  await page.getByRole("button", { name: "Monthly", exact: true }).click();
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
+  await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
+  const properties = page.getByLabel("Relationship properties");
+  await properties.getByRole("button", { name: "Annual cadence", exact: true }).click();
+
+  await expect(labelWrap).toHaveCount(0);
+  await expect(properties).toHaveCount(0);
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(0);
+
+  await page.keyboard.press("Control+z");
+  await expect(labelWrap).toBeVisible();
+  labelButton = labelWrap.getByRole("button");
+  await labelButton.click();
+  await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
+  await expect(labelButton).toBeFocused();
+  await page.keyboard.press("Control+Shift+z");
+
+  await expect(labelWrap).toHaveCount(0);
+  await expect(page.locator(".react-flow__edge.selected")).toHaveCount(0);
+  await page.evaluate(() => localStorage.clear());
+});
+
 test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

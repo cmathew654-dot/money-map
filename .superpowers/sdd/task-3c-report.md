@@ -16,7 +16,7 @@
 - Inline click/Enter label editing; 6px pointer drag threshold; screen-to-world waypoint conversion; 8/32 world-pixel keyboard routing; waypoint reset.
 - Public React Flow connect/reconnect callbacks and handles plus keyboard source/target controls.
 - Neutral Add connection behavior that creates one relationship, selects it, and opens label editing.
-- Transient All/Monthly/Annual/Other cadence filtering with atomic hidden-selection cleanup.
+- Transient All/Monthly/Annual/Other cadence filtering with one central hidden-selection invariant across filter, document-command, undo, and redo changes.
 - Canonical registry entries for label edit/properties, all route/semantic/treatment/cadence choices, and waypoint reset.
 - Focus/target/reduced-motion styling, portal event isolation, and controlled mixed-selection preservation.
 
@@ -37,13 +37,14 @@
 - Fine/coarse connector targets are 28/44 px; visible create/reconnect handles are 24/44 px.
 - A browser-discovered render race in drag click suppression received a RED rerender regression and a ref-backed fix with pointer-cancel/lost-capture cleanup.
 
+- Cadence visibility cleanup now derives from `selectionForCadence` in one stable Workspace effect; same-reference visible/All selections are no-ops, while hidden flows and their relationship surface clear together without stale replay.
 ## Fresh verification
 
 - `npm run verify`: exit 0.
 - Format, lint, TypeScript, source guard, and production build: pass.
-- Unit/component: 27 files, 177 tests.
-- Playwright Chromium: 16/16 journeys.
-- Production bundle: 429.69 kB JavaScript / 134.04 kB gzip; 33.21 kB CSS / 6.57 kB gzip.
+- Unit/component: 27 files, 179 tests.
+- Playwright Chromium: 17/17 journeys.
+- Production bundle: 429.79 kB JavaScript / 134.06 kB gzip; 33.21 kB CSS / 6.57 kB gzip.
 - `git diff --check`: pass before commit.
 
 ## Design and safety decisions

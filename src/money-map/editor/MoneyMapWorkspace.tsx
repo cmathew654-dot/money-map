@@ -151,6 +151,13 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setActiveFlowId(null);
     setRelationshipOpen(false);
   }, [selectedFlowId]);
+  useEffect(() => {
+    const nextSelection = selectionForCadence(editor.document, editor.selection, cadenceFilter);
+    if (nextSelection === editor.selection) return;
+    setActiveFlowId(null);
+    setRelationshipOpen(false);
+    editor.setSelection(nextSelection);
+  }, [cadenceFilter, editor.document, editor.selection, editor.setSelection]);
 
   const placeSurface = useCallback(() => {
     if (!selectedModuleId) return;
@@ -365,11 +372,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const changeCadenceFilter = useCallback(
     (filter: CadenceFilterValue) => {
       setCadenceFilter(filter);
-      const nextSelection = selectionForCadence(editor.document, editor.selection, filter);
-      if (nextSelection !== editor.selection) editor.setSelection(nextSelection);
       editor.setAnnouncement(`Showing ${filter} cadence relationships.`);
     },
-    [editor],
+    [editor.setAnnouncement],
   );
   const openPalette = useCallback((invoker: HTMLElement) => {
     setPropertiesTab(null);
