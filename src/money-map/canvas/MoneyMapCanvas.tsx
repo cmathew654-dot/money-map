@@ -29,7 +29,6 @@ interface MoneyMapCanvasProps {
 type MoneyMapCanvasEdge = Edge<MoneyMapEdgeData>;
 
 const nodeTypes = { moneyMapModule: MoneyMapNode };
-const emptySelection: Selection = { moduleIds: [], flowIds: [] };
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -196,8 +195,19 @@ function MoneyMapCanvasInner({
   );
 
   const clearSelection = useCallback(() => {
-    applySelection(emptySelection);
-  }, [applySelection]);
+    setNodes((currentNodes) => {
+      const changes: NodeChange<MoneyMapCanvasNode>[] = currentNodes
+        .filter((node) => node.selected)
+        .map((node) => ({ id: node.id, type: "select", selected: false }));
+      return changes.length > 0 ? applyNodeChanges(changes, currentNodes) : currentNodes;
+    });
+    setEdges((currentEdges) => {
+      const changes: EdgeChange<MoneyMapCanvasEdge>[] = currentEdges
+        .filter((edge) => edge.selected)
+        .map((edge) => ({ id: edge.id, type: "select", selected: false }));
+      return changes.length > 0 ? applyEdgeChanges(changes, currentEdges) : currentEdges;
+    });
+  }, []);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {

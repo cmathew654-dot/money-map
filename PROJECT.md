@@ -2,7 +2,7 @@
 
 **Updated:** 2026-07-19
 **Branch:** `codex/reference-reset-2026-07-19`
-**Checkpoint:** Task 3A atomic selection hardening — one combined node/edge selection commit per React Flow transition
+**Checkpoint:** Task 3A atomic selection hardening — combined transitions and Escape clear local/external selection exactly once
 **Phase:** 3A complete — shared authoring canvas foundation, review-hardened and atomic-selection verified
 
 ## Completed
@@ -15,16 +15,17 @@
 - Added intermediate literal-only scaffold documents for Retirement Income, RMD & Withholding, Annuity Income Floor, and Roth Conversion so every starter exercises the same shared canvas.
 - Hardened the review checkpoint so accessible labels join authored fragments byte-for-byte, module height is measured from DOM content, all selection paths announce, and camera animations honor reduced motion.
 - Made React Flow's combined node/edge selection payload the only document-selection commit path, with local controlled selection state for React Flow, deduplicated initial/echo payloads, and no click-specific selection reconstruction.
+- Made Escape clear mixed local node/edge selection in one React batch so the guarded combined listener emits exactly one external empty selection and announcement without restoring stale flags.
 - Strengthened adapter/component/Chromium evidence for punctuation/placeholders/ranges, atomic edge-to-node, node-to-edge, additive node-and-edge, mouse, marquee, clear, and Escape selection, final world movement, numeric zoom changes, Fit commands, keyboard Fit parity, and drag displacement relative to a stationary node.
 
 ## Verification
 
-- Focused Task 3A tests: 7 files, 43 tests passed.
-- `npm run verify`: pass in 14.5 seconds.
+- Focused Task 3A tests: 7 files, 44 tests passed.
+- `npm run verify`: pass in 14.7 seconds.
 - Formatting, ESLint, and TypeScript: pass.
-- Unit/component: 88 passed across 11 files.
+- Unit/component: 89 passed across 11 files.
 - Chromium: 4 passed.
-- Production bundle: 121.85 kB gzip JavaScript and 4.98 kB gzip CSS.
+- Production bundle: 121.91 kB gzip JavaScript and 4.98 kB gzip CSS.
 
 ## Known limitations
 

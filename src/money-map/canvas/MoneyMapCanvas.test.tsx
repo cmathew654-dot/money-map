@@ -201,6 +201,47 @@ describe("MoneyMapCanvas selection", () => {
     expect(onDocumentChange).not.toHaveBeenCalled();
   });
 
+  it("atomically clears mixed local selection with Escape and does not echo it back", async () => {
+    const onSelectionChange = vi.fn();
+    const mixedSelection = {
+      moduleIds: ["source-account", "annuity-policy"],
+      flowIds: ["funding-flow", "income-flow"],
+    };
+    const view = renderCanvas(mixedSelection, onSelectionChange);
+    const control = screen.getByRole("button", { name: "Zoom in" });
+
+    expect(
+      (flowMock.props.nodes as { selected?: boolean }[]).filter((node) => node.selected),
+    ).toHaveLength(2);
+    expect(
+      (flowMock.props.edges as { selected?: boolean }[]).filter((edge) => edge.selected),
+    ).toHaveLength(2);
+
+    control.focus();
+    fireEvent.keyDown(control, { key: "Escape" });
+
+    expect((flowMock.props.nodes as { selected?: boolean }[]).every((node) => !node.selected)).toBe(
+      true,
+    );
+    expect((flowMock.props.edges as { selected?: boolean }[]).every((edge) => !edge.selected)).toBe(
+      true,
+    );
+    expect(onSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onSelectionChange).toHaveBeenCalledWith({ moduleIds: [], flowIds: [] });
+    expect(screen.getByRole("status").textContent).toBe("Selection cleared.");
+
+    view.rerenderWith({ moduleIds: [], flowIds: [] });
+    await waitFor(() => {
+      expect(
+        (flowMock.props.nodes as { selected?: boolean }[]).every((node) => !node.selected),
+      ).toBe(true);
+      expect(
+        (flowMock.props.edges as { selected?: boolean }[]).every((edge) => !edge.selected),
+      ).toBe(true);
+      expect(onSelectionChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it.each([
     {
       name: "edge to node",
