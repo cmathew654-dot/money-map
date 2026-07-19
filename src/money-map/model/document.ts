@@ -50,10 +50,29 @@ export function removeSelection(
   const modules =
     filteredModules.length === document.modules.length ? document.modules : filteredModules;
   const flows = filteredFlows.length === document.flows.length ? document.flows : filteredFlows;
+  const retainedModuleIds = new Set(modules.map(({ id }) => id));
+  const retainedFlowIds = new Set(flows.map(({ id }) => id));
+  let presentationChanged = false;
+  const filteredPresentation = document.presentation.map((step) => {
+    const moduleIds = step.moduleIds.filter((id) => retainedModuleIds.has(id));
+    const flowIds = step.flowIds.filter((id) => retainedFlowIds.has(id));
+    if (moduleIds.length === step.moduleIds.length && flowIds.length === step.flowIds.length) {
+      return step;
+    }
+    presentationChanged = true;
+    return { ...step, moduleIds, flowIds };
+  });
+  const presentation = presentationChanged ? filteredPresentation : document.presentation;
 
-  if (modules === document.modules && flows === document.flows) return document;
+  if (
+    modules === document.modules &&
+    flows === document.flows &&
+    presentation === document.presentation
+  ) {
+    return document;
+  }
 
-  return { ...document, modules, flows };
+  return { ...document, modules, flows, presentation };
 }
 
 function offsetPoint(point: Point): Point {

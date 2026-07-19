@@ -1,35 +1,22 @@
+import type { CommandDefinition } from "../commands/types";
+import type { WorkspaceCommandContext, WorkspaceCommandResult } from "./commands";
+
 interface SelectionHaloProps {
   selectionCount: number;
+  commands: CommandDefinition<WorkspaceCommandContext, WorkspaceCommandResult>[];
   onExecute(id: string): void;
 }
 
-const singleCommands = [
-  ["Edit", "module.edit"],
-  ["Style", "module.style"],
-  ["Connect", "module.connect"],
-  ["Duplicate", "selection.duplicate"],
-  ["More", "module.properties"],
-] as const;
-
-const multiCommands = [
-  ["Duplicate", "selection.duplicate"],
-  ["Remove", "selection.remove"],
-  ["Small width", "module.width.small"],
-  ["Standard width", "module.width.standard"],
-  ["Wide width", "module.width.wide"],
-] as const;
-
-export function SelectionHalo({ selectionCount, onExecute }: SelectionHaloProps) {
-  if (selectionCount < 1) return null;
-  const commands = selectionCount === 1 ? singleCommands : multiCommands;
+export function SelectionHalo({ selectionCount, commands, onExecute }: SelectionHaloProps) {
+  if (selectionCount < 1 || commands.length === 0) return null;
   const label =
-    selectionCount === 1 ? "Selected module actions" : `${selectionCount} selected modules`;
+    selectionCount === 1 ? "Selected module actions" : `${selectionCount} selected items`;
 
   return (
     <div className="selection-halo" role="toolbar" aria-label={label}>
-      {commands.map(([commandLabel, id]) => (
-        <button key={id} type="button" onClick={() => onExecute(id)}>
-          {commandLabel}
+      {commands.map((command) => (
+        <button key={command.id} type="button" onClick={() => onExecute(command.id)}>
+          {command.label}
         </button>
       ))}
     </div>

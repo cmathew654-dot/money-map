@@ -39,4 +39,72 @@ describe("CommandPalette", () => {
     expect(document.activeElement).toBe(invoker);
     invoker.remove();
   });
+
+  it("captures Escape from an option and restores the exact invoker", () => {
+    const close = vi.fn();
+    const invoker = document.createElement("button");
+    document.body.append(invoker);
+    render(
+      <CommandPalette
+        context={context}
+        invoker={invoker}
+        onClose={close}
+        onExecute={vi.fn()}
+        registry={createWorkspaceCommands(() => "copy")}
+      />,
+    );
+
+    const option = screen.getAllByRole("option")[0];
+    option.focus();
+    fireEvent.keyDown(option, { key: "Escape" });
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(invoker);
+    invoker.remove();
+  });
+
+  it("contains forward and reverse Tab navigation", () => {
+    const invoker = document.createElement("button");
+    document.body.append(invoker);
+    render(
+      <CommandPalette
+        context={context}
+        invoker={invoker}
+        onClose={vi.fn()}
+        onExecute={vi.fn()}
+        registry={createWorkspaceCommands(() => "copy")}
+      />,
+    );
+
+    const closeButton = screen.getByRole("button", { name: "Close actions" });
+    const lastOption = screen.getAllByRole("option").at(-1);
+    if (!lastOption) throw new Error("Expected palette options");
+    lastOption.focus();
+    fireEvent.keyDown(lastOption, { key: "Tab" });
+    expect(document.activeElement).toBe(closeButton);
+    closeButton.focus();
+    fireEvent.keyDown(closeButton, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(lastOption);
+    invoker.remove();
+  });
+
+  it("closes and restores focus after executing an option", () => {
+    const execute = vi.fn();
+    const close = vi.fn();
+    const invoker = document.createElement("button");
+    document.body.append(invoker);
+    render(
+      <CommandPalette
+        context={context}
+        invoker={invoker}
+        onClose={close}
+        onExecute={execute}
+        registry={createWorkspaceCommands(() => "copy")}
+      />,
+    );
+    fireEvent.click(screen.getAllByRole("option")[0]);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(invoker);
+    invoker.remove();
+  });
 });

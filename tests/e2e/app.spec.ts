@@ -139,7 +139,7 @@ test("edits a title through one halo and preserves exact undo and redo", async (
   const module = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
   await module.click();
   await expect(page.getByRole("toolbar", { name: "Selected module actions" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Edit module", exact: true }).click();
   const title = page.getByRole("textbox", { name: "Edit module title" });
   await title.fill("Income floor \u2014 exact");
   await title.press("Enter");
@@ -176,8 +176,8 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
   const fontSize = await module
     .locator("h2")
     .evaluate((element) => getComputedStyle(element).fontSize);
-  await page.getByRole("button", { name: "Style" }).click();
-  await page.getByRole("button", { name: "frame" }).click();
+  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Frame style" }).click();
   await expect(module).toHaveAttribute("data-primitive", "frame");
 
   await page.keyboard.press("Control+k");
@@ -223,7 +223,7 @@ test("uses palette duplicate, keyboard remove, undo, and compact advanced tabs",
   const restored = original.last();
   await restored.click();
   const focusedNode = restored.locator("..");
-  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "More properties" }).click();
   await expect(page.getByRole("tab", { name: "Content" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Appearance" }).click();
   await page.getByRole("tab", { name: "Connections" }).click();
@@ -260,4 +260,81 @@ test("persists committed edits only for one starter and Reset restores its scaff
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
   await expect(page.getByRole("heading", { name: "Illustrative annuity" })).toBeVisible();
   await page.evaluate(() => localStorage.clear());
+});
+
+test("shows one actionable group halo for multi-module and mixed selections", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const modules = page.locator(".money-map-module");
+  const originalCount = await modules.count();
+  await modules.nth(0).click();
+  await modules.nth(1).click({ modifiers: ["Shift"] });
+
+  const groupHalo = page.getByRole("toolbar", { name: "2 selected items" });
+  await expect(groupHalo).toHaveCount(1);
+  await expect(groupHalo.getByRole("button", { name: "Edit module" })).toHaveCount(0);
+  await expect(groupHalo.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
+  await expect(groupHalo.getByRole("button", { name: "Remove selection" })).toBeVisible();
+  await groupHalo.getByRole("button", { name: "Duplicate selection" }).click();
+  await expect(modules).toHaveCount(originalCount + 2);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  const module = page.locator(".money-map-module").nth(1);
+  await page.locator(".react-flow__edge-interaction").first().click({ force: true });
+  await page.keyboard.down("Shift");
+  await module.click();
+  await page.keyboard.up("Shift");
+  await expect(page.getByRole("toolbar", { name: "2 selected items" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Edit module" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove selection" })).toBeVisible();
+});
+
+test("keeps properties fresh, switches Connect, and makes style and properties exclusive", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const annuity = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
+  const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
+  await annuity.click();
+  await page.getByRole("button", { name: "More properties" }).click();
+  await expect(page.getByRole("tab", { name: "Content" })).toBeFocused();
+
+  const title = page.getByRole("textbox", { name: "Title" });
+  await title.fill("History title");
+  await title.press("Enter");
+  await page.getByRole("tab", { name: "Content" }).focus();
+  await page.keyboard.press("Control+z");
+  await expect(title).toHaveValue("Illustrative annuity");
+
+  await title.fill("stale old module text");
+  await source.click();
+  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Investment account");
+  await expect(source.getByRole("heading", { name: "Investment account" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Connect module" }).click();
+  await expect(page.getByRole("tab", { name: "Connections" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
+  await page.getByRole("button", { name: "Style module" }).click();
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+  await expect(page.getByLabel("Choose module style")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close", exact: true })).toBeFocused();
+
+  await page.getByRole("button", { name: "More properties" }).click();
+  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+  await expect(page.getByLabel("Advanced properties")).toBeVisible();
+  await page.getByRole("button", { name: "Close properties" }).click();
+  await expect(source.locator("..")).toBeFocused();
 });

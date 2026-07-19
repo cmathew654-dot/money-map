@@ -54,7 +54,7 @@ export function documentToNodes(
       data: {
         module,
         outgoingCount,
-        selectionCount: selection.moduleIds.length,
+        selectionCount: selection.moduleIds.length + selection.flowIds.length,
         selectionModuleIds: selection.moduleIds,
         haloAnchor: module.id === haloAnchorId,
       },

@@ -5,6 +5,7 @@ import { MoneyMapCanvas } from "../canvas/MoneyMapCanvas";
 import type { Point, StarterId } from "../model/types";
 import { AdvancedProperties, type PropertyField } from "./AdvancedProperties";
 import { CommandPalette } from "./CommandPalette";
+import { matchCommandShortcut } from "./commandShortcuts";
 import {
   EditorInteractionContext,
   type EditorInteraction,
@@ -95,10 +96,18 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const [styleOpen, setStyleOpen] = useState(false);
   const [surfacePosition, setSurfacePosition] = useState<EditorSurfacePosition | null>(null);
   const actionsRef = useRef<HTMLButtonElement>(null);
+  const styleRef = useRef<HTMLElement>(null);
   const { ref, dimensions } = useWorkspaceDimensions();
   const supported = isAuthoringViewportSupported(dimensions.width, dimensions.height);
   const selectedModuleId =
     editor.selection.moduleIds.length === 1 ? editor.selection.moduleIds[0] : null;
+  const availableCommands = editor.registry.available(editor.commandContext);
+  const appearanceCommands = availableCommands.filter(
+    ({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."),
+  );
+  const primitiveCommands = appearanceCommands.filter(({ id }) =>
+    id.startsWith("module.primitive."),
+  );
 
   useEffect(() => {
     if (activeInlineField && !editor.selection.moduleIds.includes(activeInlineField.moduleId)) {
@@ -141,9 +150,13 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
         beginSelectedTitle();
       } else {
         placeSurface();
-        if (result.surface === "style") setStyleOpen(true);
-        else if (result.surface === "connections") setPropertiesTab("connections");
-        else setPropertiesTab("content");
+        if (result.surface === "style") {
+          setPropertiesTab(null);
+          setStyleOpen(true);
+        } else {
+          setStyleOpen(false);
+          setPropertiesTab(result.surface === "connections" ? "connections" : "content");
+        }
       }
     },
     [beginSelectedTitle, editor, placeSurface],
@@ -164,12 +177,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   );
 
   const commitPropertyField = useCallback(
-    (field: PropertyField, literal: string) => {
-      if (!selectedModuleId) return;
-      const next = editModuleField(editor.document, selectedModuleId, field, literal);
+    (moduleId: string, field: PropertyField, literal: string) => {
+      const next = editModuleField(editor.document, moduleId, field, literal);
       editor.applyDocument(next, "Property updated.", `edit ${field.field}`);
     },
-    [editor, selectedModuleId],
+    [editor],
   );
 
   const commitModuleWidth = useCallback(
@@ -206,23 +218,36 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     requestAnimationFrame(() => invoker?.focus());
   }, [paletteInvoker]);
 
+  const focusSelectedModule = useCallback(() => {
+    if (!selectedModuleId) return;
+    requestAnimationFrame(() => {
+      const node = document.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${selectedModuleId}"]`,
+      );
+      node?.focus();
+    });
+  }, [selectedModuleId]);
+
   const closeProperties = useCallback(() => {
     setPropertiesTab(null);
-    if (selectedModuleId) {
-      requestAnimationFrame(() => {
-        const node = document.querySelector<HTMLElement>(
-          `.react-flow__node[data-id="${selectedModuleId}"]`,
-        );
-        node?.focus();
-      });
-    }
-  }, [selectedModuleId]);
+    focusSelectedModule();
+  }, [focusSelectedModule]);
+
+  const closeStyle = useCallback(() => {
+    setStyleOpen(false);
+    focusSelectedModule();
+  }, [focusSelectedModule]);
+
+  useEffect(() => {
+    if (styleOpen) styleRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [styleOpen]);
 
   const interaction = useMemo<EditorInteraction>(
     () => ({
-      selectionCount: editor.selection.moduleIds.length,
+      selectionCount: editor.selection.moduleIds.length + editor.selection.flowIds.length,
       announcement: editor.announcement,
       selectedModuleIds: editor.selection.moduleIds,
+      availableCommands,
       activeInlineField,
       beginInlineEdit: setActiveInlineField,
       commitInlineEdit,
@@ -238,7 +263,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       commitInlineEdit,
       commitModuleMove,
       commitModuleWidth,
+      availableCommands,
       editor.announcement,
+      editor.selection.flowIds.length,
       editor.selection.moduleIds,
       executeCommand,
       nudgeSelected,
@@ -262,21 +289,18 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       if (commandKey && key === "k") {
         event.preventDefault();
         if (actionsRef.current) openPalette(actionsRef.current);
-      } else if (commandKey && key === "d") {
-        event.preventDefault();
-        executeCommand("selection.duplicate");
-      } else if (commandKey && key === "z") {
-        event.preventDefault();
-        executeCommand(event.shiftKey ? "history.redo" : "history.undo");
-      } else if (isInteractiveControl(event.target)) {
         return;
-      } else if (event.key === "Delete" || event.key === "Backspace") {
+      }
+      if (isInteractiveControl(event.target) && !commandKey) return;
+
+      const command = matchCommandShortcut(event, availableCommands);
+      if (command) {
         event.preventDefault();
-        executeCommand("selection.remove");
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        executeCommand("module.edit");
-      } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        executeCommand(command.id);
+        return;
+      }
+
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
         event.preventDefault();
         const distance = event.shiftKey ? 32 : 8;
         const delta =
@@ -292,7 +316,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     };
     window.addEventListener("keydown", handleGlobalShortcut);
     return () => window.removeEventListener("keydown", handleGlobalShortcut);
-  }, [executeCommand, nudgeSelected, openPalette]);
+  }, [availableCommands, executeCommand, nudgeSelected, openPalette]);
 
   return (
     <EditorInteractionContext.Provider value={interaction}>
@@ -355,6 +379,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           <aside
             aria-label="Choose module style"
             className="primitive-menu"
+            ref={styleRef}
             style={
               surfacePosition
                 ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }
@@ -363,21 +388,21 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           >
             <header>
               <strong>Module style</strong>
-              <button type="button" onClick={() => setStyleOpen(false)}>
+              <button type="button" onClick={closeStyle}>
                 Close
               </button>
             </header>
             <div>
-              {["ledger", "plate", "tray", "band", "roundel", "frame"].map((primitive) => (
+              {primitiveCommands.map((command) => (
                 <button
-                  key={primitive}
+                  key={command.id}
                   type="button"
                   onClick={() => {
-                    executeCommand(`module.primitive.${primitive}`);
-                    setStyleOpen(false);
+                    executeCommand(command.id);
+                    closeStyle();
                   }}
                 >
-                  {primitive}
+                  {command.label}
                 </button>
               ))}
             </div>
@@ -386,7 +411,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
 
         {propertiesTab && selectedModuleId ? (
           <AdvancedProperties
+            commands={appearanceCommands}
             document={editor.document}
+            key={selectedModuleId}
             initialTab={propertiesTab}
             moduleId={selectedModuleId}
             onClose={closeProperties}
@@ -405,10 +432,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
             context={editor.commandContext}
             invoker={paletteInvoker}
             onClose={closePalette}
-            onExecute={(id) => {
-              executeCommand(id);
-              closePalette();
-            }}
+            onExecute={executeCommand}
             registry={editor.registry}
           />
         ) : null}

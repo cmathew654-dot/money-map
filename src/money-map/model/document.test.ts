@@ -109,9 +109,17 @@ describe("literal-safe money map document", () => {
 
     expect(removed.modules.map(({ id }) => id)).toEqual(["source-account", "monthly-need"]);
     expect(removed.flows).toEqual([]);
+    expect(removed.presentation).toEqual(
+      document.presentation.map((step) => ({
+        ...step,
+        moduleIds: step.moduleIds.filter((id) => id !== "annuity-policy"),
+        flowIds: [],
+      })),
+    );
 
     const restored = undoHistory({ past: [document], present: removed, future: [] });
     expect(restored.present).toBe(document);
+    expect(restored.present.presentation).toBe(document.presentation);
     expect(restored.present).toEqual(createHistory(document).present);
   });
 
@@ -121,6 +129,8 @@ describe("literal-safe money map document", () => {
 
     expect(flowOnly.modules).toBe(document.modules);
     expect(flowOnly.flows).not.toBe(document.flows);
+    expect(flowOnly.presentation).not.toBe(document.presentation);
+    expect(flowOnly.presentation.flatMap(({ flowIds }) => flowIds)).not.toContain("income-flow");
 
     const unchanged = removeSelection(document, {
       moduleIds: ["missing-module"],

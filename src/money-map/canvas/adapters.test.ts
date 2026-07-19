@@ -96,4 +96,26 @@ describe("canvas document adapters", () => {
     ).toEqual(["step", "straight"]);
     expect(documentToEdges(curvedDocument, { moduleIds: [], flowIds: [] })[0].type).toBe("default");
   });
+
+  it("counts modules and relationships together for one mixed-selection halo anchor", () => {
+    const document = createTestDocument();
+    const mixed = documentToNodes(document, {
+      moduleIds: ["annuity-policy"],
+      flowIds: ["income-flow"],
+    });
+
+    expect(mixed.find(({ id }) => id === "annuity-policy")?.data).toMatchObject({
+      selectionCount: 2,
+      selectionModuleIds: ["annuity-policy"],
+      haloAnchor: true,
+    });
+    expect(mixed.filter(({ data }) => data.haloAnchor)).toHaveLength(1);
+
+    const multiple = documentToNodes(document, {
+      moduleIds: ["source-account", "annuity-policy"],
+      flowIds: [],
+    });
+    expect(multiple[0].data.selectionCount).toBe(2);
+    expect(multiple.filter(({ data }) => data.haloAnchor)).toHaveLength(1);
+  });
 });

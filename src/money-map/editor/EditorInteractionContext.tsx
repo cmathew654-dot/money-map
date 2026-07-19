@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 
 import type { Point } from "../model/types";
+import type { WorkspaceCommandDefinition } from "./commands";
 
 export type InlineEditTarget =
   | { moduleId: string; field: "title"; original: string }
@@ -11,6 +12,7 @@ export interface EditorInteraction {
   selectionCount: number;
   announcement: string;
   selectedModuleIds: string[];
+  availableCommands: WorkspaceCommandDefinition[];
   activeInlineField: InlineEditTarget | null;
   beginInlineEdit(target: InlineEditTarget): void;
   commitInlineEdit(exact: string): void;

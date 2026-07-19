@@ -11,6 +11,9 @@ interface CommandPaletteProps {
   onClose(): void;
 }
 
+const focusableSelector =
+  'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
 export function CommandPalette({
   registry,
   context,
@@ -20,6 +23,7 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const dialogRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const commands = useMemo(() => registry.search(query, context), [context, query, registry]);
@@ -37,16 +41,43 @@ export function CommandPalette({
     invoker?.focus();
   };
 
-  const executeActive = () => {
-    const command = commands[activeIndex];
-    if (command) onExecute(command.id);
+  const execute = (id: string) => {
+    onExecute(id);
+    close();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const executeActive = () => {
+    const command = commands[activeIndex];
+    if (command) execute(command.id);
+  };
+
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       close();
-    } else if (event.key === "ArrowDown") {
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const controls = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [],
+    );
+    if (controls.length === 0) return;
+    const currentIndex = controls.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = event.shiftKey
+      ? currentIndex <= 0
+        ? controls.length - 1
+        : currentIndex - 1
+      : currentIndex === -1 || currentIndex === controls.length - 1
+        ? 0
+        : currentIndex + 1;
+    event.preventDefault();
+    controls[nextIndex]?.focus();
+  };
+
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveIndex((index) => (commands.length === 0 ? 0 : (index + 1) % commands.length));
     } else if (event.key === "ArrowUp") {
@@ -66,9 +97,14 @@ export function CommandPalette({
         aria-label="Actions"
         aria-modal="true"
         className="command-palette"
+        ref={dialogRef}
         role="dialog"
+        onKeyDownCapture={handleDialogKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
       >
+        <button aria-label="Close actions" type="button" onClick={close}>
+          Close
+        </button>
         <label htmlFor={`${listId}-search`}>Search actions</label>
         <input
           aria-activedescendant={commands[activeIndex] ? `${listId}-${activeIndex}` : undefined}
@@ -77,7 +113,7 @@ export function CommandPalette({
           autoComplete="off"
           id={`${listId}-search`}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleSearchKeyDown}
           ref={inputRef}
           role="combobox"
           value={query}
@@ -88,7 +124,7 @@ export function CommandPalette({
               aria-selected={index === activeIndex}
               id={`${listId}-${index}`}
               key={command.id}
-              onClick={() => onExecute(command.id)}
+              onClick={() => execute(command.id)}
               onMouseEnter={() => setActiveIndex(index)}
               role="option"
               type="button"

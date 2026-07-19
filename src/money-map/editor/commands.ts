@@ -1,5 +1,5 @@
 import { CommandRegistry } from "../commands/registry";
-import type { EditorMutation } from "../commands/types";
+import type { CommandDefinition, EditorMutation } from "../commands/types";
 import { duplicateSelection, removeSelection, updateModule } from "../model/document";
 import type { MoneyMapDocument, PrimitiveStyle, Selection } from "../model/types";
 
@@ -17,6 +17,11 @@ export type WorkspaceCommandResult =
   | { kind: "surface"; surface: WorkspaceSurface }
   | { kind: "history"; action: "undo" | "redo" }
   | { kind: "reset" };
+
+export type WorkspaceCommandDefinition = CommandDefinition<
+  WorkspaceCommandContext,
+  WorkspaceCommandResult
+>;
 
 const primitives: PrimitiveStyle[] = ["ledger", "plate", "tray", "band", "roundel", "frame"];
 const widths = [
@@ -73,6 +78,7 @@ export function createWorkspaceCommands(
       id,
       label,
       keywords: surface === "properties" ? ["details", "advanced"] : [surface],
+      shortcut: surface === "inline" ? "Enter" : undefined,
       isAvailable: hasSingleModule,
       execute: () => ({ kind: "surface", surface }),
     });

@@ -1,14 +1,31 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
+import { updateModule } from "../model/document";
 import { createTestDocument } from "../model/test-fixtures";
+import { createWorkspaceCommands, type WorkspaceCommandContext } from "./commands";
 import { AdvancedProperties } from "./AdvancedProperties";
+
+const baseDocument = createTestDocument();
+const context: WorkspaceCommandContext = {
+  document: baseDocument,
+  selection: { moduleIds: ["annuity-policy"], flowIds: [] },
+  canUndo: false,
+  canRedo: false,
+};
+
+function appearanceCommands() {
+  return createWorkspaceCommands(() => "copy")
+    .available(context)
+    .filter(({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."));
+}
 
 describe("AdvancedProperties", () => {
   it("offers keyboard-reachable tabs and starts Content concise with details collapsed", () => {
     render(
       <AdvancedProperties
-        document={createTestDocument()}
+        commands={appearanceCommands()}
+        document={baseDocument}
         moduleId="annuity-policy"
         initialTab="content"
         onClose={vi.fn()}
@@ -20,16 +37,18 @@ describe("AdvancedProperties", () => {
     expect(screen.getByText("Supporting fields and narrative").closest("details")?.open).toBe(
       false,
     );
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Content" }));
     fireEvent.keyDown(screen.getByRole("tab", { name: "Content" }), { key: "ArrowRight" });
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Appearance" }));
   });
 
-  it("commits exact field changes and Connections never creates a relationship", () => {
+  it("commits exact field changes for the originating module and Connections never creates a relationship", () => {
     const commit = vi.fn();
     const execute = vi.fn();
     render(
       <AdvancedProperties
-        document={createTestDocument()}
+        commands={appearanceCommands()}
+        document={baseDocument}
         moduleId="annuity-policy"
         initialTab="content"
         onClose={vi.fn()}
@@ -40,11 +59,105 @@ describe("AdvancedProperties", () => {
     const title = screen.getByRole("textbox", { name: "Title" });
     fireEvent.change(title, { target: { value: "$20,000\u2013?" } });
     fireEvent.blur(title);
-    expect(commit).toHaveBeenCalledWith({ field: "title" }, "$20,000\u2013?");
+    expect(commit).toHaveBeenCalledWith("annuity-policy", { field: "title" }, "$20,000\u2013?");
 
     fireEvent.click(screen.getByRole("tab", { name: "Connections" }));
     fireEvent.click(screen.getByRole("button", { name: "Add connection" }));
     expect(screen.getByText(/connection editing arrives in the next step/i)).toBeTruthy();
     expect(execute).not.toHaveBeenCalledWith(expect.stringMatching(/create/));
+  });
+
+  it("refreshes drafts for document history and never carries stale text to a new module", () => {
+    const commit = vi.fn();
+    const { rerender } = render(
+      <AdvancedProperties
+        commands={appearanceCommands()}
+        document={baseDocument}
+        moduleId="annuity-policy"
+        initialTab="content"
+        onClose={vi.fn()}
+        onCommitField={commit}
+        onExecute={vi.fn()}
+      />,
+    );
+    const title = screen.getByRole("textbox", { name: "Title" });
+    fireEvent.change(title, { target: { value: "stale annuity draft" } });
+
+    const undone = updateModule(baseDocument, "annuity-policy", (module) => ({
+      ...module,
+      title: "History-restored annuity",
+    }));
+    rerender(
+      <AdvancedProperties
+        commands={appearanceCommands()}
+        document={undone}
+        moduleId="annuity-policy"
+        initialTab="content"
+        onClose={vi.fn()}
+        onCommitField={commit}
+        onExecute={vi.fn()}
+      />,
+    );
+    expect((screen.getByRole("textbox", { name: "Title" }) as HTMLInputElement).value).toBe(
+      "History-restored annuity",
+    );
+
+    rerender(
+      <AdvancedProperties
+        commands={appearanceCommands()}
+        document={baseDocument}
+        moduleId="source-account"
+        initialTab="content"
+        onClose={vi.fn()}
+        onCommitField={commit}
+        onExecute={vi.fn()}
+      />,
+    );
+    const sourceTitle = screen.getByRole("textbox", { name: "Title" });
+    expect((sourceTitle as HTMLInputElement).value).toBe("Investment account");
+    fireEvent.blur(sourceTitle);
+    expect(commit).toHaveBeenLastCalledWith(
+      "source-account",
+      { field: "title" },
+      "Investment account",
+    );
+  });
+
+  it("follows an updated initial tab and renders appearance labels from command definitions", () => {
+    const execute = vi.fn();
+    const commands = appearanceCommands();
+    const ledger = commands.find(({ id }) => id === "module.primitive.ledger");
+    if (!ledger) throw new Error("Expected ledger command");
+    ledger.label = "Book-style module";
+    const filtered = commands.filter(({ id }) => id !== "module.width.wide");
+    const { rerender } = render(
+      <AdvancedProperties
+        commands={filtered}
+        document={baseDocument}
+        moduleId="annuity-policy"
+        initialTab="content"
+        onClose={vi.fn()}
+        onCommitField={vi.fn()}
+        onExecute={execute}
+      />,
+    );
+    rerender(
+      <AdvancedProperties
+        commands={filtered}
+        document={baseDocument}
+        moduleId="annuity-policy"
+        initialTab="appearance"
+        onClose={vi.fn()}
+        onCommitField={vi.fn()}
+        onExecute={execute}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Book-style module" }));
+    expect(execute).toHaveBeenCalledWith("module.primitive.ledger");
+    expect(screen.queryByRole("button", { name: /wide width/i })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Appearance" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
   });
 });

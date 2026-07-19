@@ -92,4 +92,20 @@ describe("workspace command registry", () => {
       nextSelection: { moduleIds: [], flowIds: [] },
     });
   });
+
+  it("treats one module plus one relationship as a group context", () => {
+    const registry = createWorkspaceCommands(() => "copy-id");
+    const mixed = {
+      ...context(),
+      selection: { moduleIds: ["annuity-policy"], flowIds: ["income-flow"] },
+    };
+    const available = registry.available(mixed).map(({ id }) => id);
+
+    expect(available).toContain("selection.duplicate");
+    expect(available).toContain("selection.remove");
+    expect(available).not.toContain("module.edit");
+    expect(available).not.toContain("module.style");
+    expect(available).not.toContain("module.connect");
+    expect(available).not.toContain("module.properties");
+  });
 });

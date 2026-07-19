@@ -1,6 +1,8 @@
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 
+import type { CommandDefinition } from "../commands/types";
 import type { MoneyMapDocument } from "../model/types";
+import type { WorkspaceCommandContext, WorkspaceCommandResult } from "./commands";
 
 export type PropertyField =
   | { field: "title" | "eyebrow" | "subtitle" | "note" }
@@ -8,12 +10,17 @@ export type PropertyField =
   | { field: "total-label" | "total-value" };
 
 type PropertiesTab = "content" | "appearance" | "connections";
+type WorkspaceCommandDefinition = CommandDefinition<
+  WorkspaceCommandContext,
+  WorkspaceCommandResult
+>;
 
 interface AdvancedPropertiesProps {
+  commands: WorkspaceCommandDefinition[];
   document: MoneyMapDocument;
   moduleId: string;
   initialTab: PropertiesTab;
-  onCommitField(field: PropertyField, value: string): void;
+  onCommitField(moduleId: string, field: PropertyField, value: string): void;
   onExecute(id: string): void;
   onClose(): void;
   style?: CSSProperties;
@@ -37,6 +44,11 @@ function PropertyInput({
   onCommit(value: string): void;
 }) {
   const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
   const control = {
     "aria-label": label,
     value: draft,
@@ -63,6 +75,7 @@ function PropertyInput({
 }
 
 export function AdvancedProperties({
+  commands,
   document,
   moduleId,
   initialTab,
@@ -75,7 +88,19 @@ export function AdvancedProperties({
   const [connectionHelp, setConnectionHelp] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const module = document.modules.find(({ id }) => id === moduleId);
+  const primitiveCommands = commands.filter(({ id }) => id.startsWith("module.primitive."));
+  const widthCommands = commands.filter(({ id }) => id.startsWith("module.width."));
+
+  useEffect(() => {
+    setTab(initialTab);
+    setConnectionHelp(false);
+    const index = tabs.findIndex(({ id }) => id === initialTab);
+    tabRefs.current[index]?.focus();
+  }, [initialTab, moduleId]);
+
   if (!module) return null;
+
+  const commit = (field: PropertyField, value: string) => onCommitField(moduleId, field, value);
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -126,7 +151,7 @@ export function AdvancedProperties({
           <PropertyInput
             label="Title"
             value={module.title}
-            onCommit={(value) => onCommitField({ field: "title" }, value)}
+            onCommit={(value) => commit({ field: "title" }, value)}
           />
           <details>
             <summary>Supporting fields and narrative</summary>
@@ -134,28 +159,24 @@ export function AdvancedProperties({
               <PropertyInput
                 label="Eyebrow"
                 value={module.eyebrow}
-                onCommit={(value) => onCommitField({ field: "eyebrow" }, value)}
+                onCommit={(value) => commit({ field: "eyebrow" }, value)}
               />
               <PropertyInput
                 label="Subtitle"
                 value={module.subtitle ?? ""}
-                onCommit={(value) => onCommitField({ field: "subtitle" }, value)}
+                onCommit={(value) => commit({ field: "subtitle" }, value)}
               />
               {module.rows.map((row) => (
                 <div className="property-row" key={row.id}>
                   <PropertyInput
                     label={`${row.label} label`}
                     value={row.label}
-                    onCommit={(value) =>
-                      onCommitField({ field: "row-label", rowId: row.id }, value)
-                    }
+                    onCommit={(value) => commit({ field: "row-label", rowId: row.id }, value)}
                   />
                   <PropertyInput
                     label={`${row.label} value`}
                     value={row.value}
-                    onCommit={(value) =>
-                      onCommitField({ field: "row-value", rowId: row.id }, value)
-                    }
+                    onCommit={(value) => commit({ field: "row-value", rowId: row.id }, value)}
                   />
                 </div>
               ))}
@@ -164,12 +185,12 @@ export function AdvancedProperties({
                   <PropertyInput
                     label="Total label"
                     value={module.total.label}
-                    onCommit={(value) => onCommitField({ field: "total-label" }, value)}
+                    onCommit={(value) => commit({ field: "total-label" }, value)}
                   />
                   <PropertyInput
                     label="Total value"
                     value={module.total.value}
-                    onCommit={(value) => onCommitField({ field: "total-value" }, value)}
+                    onCommit={(value) => commit({ field: "total-value" }, value)}
                   />
                 </div>
               ) : null}
@@ -177,7 +198,7 @@ export function AdvancedProperties({
                 label="Narrative"
                 multiline
                 value={module.note ?? ""}
-                onCommit={(value) => onCommitField({ field: "note" }, value)}
+                onCommit={(value) => commit({ field: "note" }, value)}
               />
             </div>
           </details>
@@ -188,26 +209,22 @@ export function AdvancedProperties({
         <div aria-labelledby="properties-tab-appearance" id="properties-appearance" role="tabpanel">
           <fieldset>
             <legend>Primitive</legend>
-            {["ledger", "plate", "tray", "band", "roundel", "frame"].map((primitive) => (
+            {primitiveCommands.map((command) => (
               <button
-                aria-pressed={module.primitive === primitive}
-                key={primitive}
-                onClick={() => onExecute(`module.primitive.${primitive}`)}
+                aria-pressed={command.id === `module.primitive.${module.primitive}`}
+                key={command.id}
+                onClick={() => onExecute(command.id)}
                 type="button"
               >
-                {primitive}
+                {command.label}
               </button>
             ))}
           </fieldset>
           <fieldset>
             <legend>Width</legend>
-            {[
-              ["Small 240", "module.width.small"],
-              ["Standard 320", "module.width.standard"],
-              ["Wide 400", "module.width.wide"],
-            ].map(([label, id]) => (
-              <button key={id} onClick={() => onExecute(id)} type="button">
-                {label}
+            {widthCommands.map((command) => (
+              <button key={command.id} onClick={() => onExecute(command.id)} type="button">
+                {command.label}
               </button>
             ))}
           </fieldset>

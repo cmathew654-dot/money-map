@@ -14,6 +14,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 
+import { matchCommandShortcut } from "../editor/commandShortcuts";
 import { useEditorInteraction } from "../editor/EditorInteractionContext";
 import type { MoneyMapDocument, Selection } from "../model/types";
 import { CanvasControls, type CanvasController } from "./CanvasControls";
@@ -258,16 +259,7 @@ function MoneyMapCanvasInner({
           editor?.openPalette(event.currentTarget);
           return;
         }
-        if (event.key.toLocaleLowerCase() === "d") {
-          event.preventDefault();
-          editor?.executeCommand("selection.duplicate");
-          return;
-        }
-        if (event.key.toLocaleLowerCase() === "z") {
-          event.preventDefault();
-          editor?.executeCommand(event.shiftKey ? "history.redo" : "history.undo");
-          return;
-        }
+
         if (event.key === "+" || event.key === "=") {
           event.preventDefault();
           controller.zoomIn();
@@ -300,15 +292,10 @@ function MoneyMapCanvasInner({
 
       if (isInteractiveTarget(event.target)) return;
 
-      if (event.key === "Delete" || event.key === "Backspace") {
+      const command = matchCommandShortcut(event, editor?.availableCommands ?? []);
+      if (command) {
         event.preventDefault();
-        editor?.executeCommand("selection.remove");
-        return;
-      }
-
-      if (event.key === "Enter") {
-        event.preventDefault();
-        editor?.executeCommand("module.edit");
+        editor?.executeCommand(command.id);
         return;
       }
 
