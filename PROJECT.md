@@ -1,32 +1,34 @@
 # Project state
 
-**Updated:** 2026-07-19  
-**Branch:** `codex/reference-reset-2026-07-19`  
-**Last checkpoint:** `322afdb`  
-**Phase:** 1 complete — standalone scaffold
+**Updated:** 2026-07-19
+**Branch:** `codex/reference-reset-2026-07-19`
+**Checkpoint:** Task 2 — `feat: add literal-safe money map foundation`
+**Phase:** 2 complete — literal-safe domain foundation
 
 ## Completed
 
-- Replaced the calculation-era runtime with a Vite 8, React 19, TypeScript 6, and Vitest 4 foundation.
-- Added the Cairn starter chooser with four equal entry points and synthetic-data labeling.
-- Replaced the 1,500+ legacy checks with a focused unit and Chromium smoke surface.
-- Added strict typecheck, ESLint, Prettier, production build, and one-command verification.
-- Added SHA-pinned GitHub Actions verification and removed obsolete public screenshot media.
+- Defined the shared Money Map document schema for all starters, with every financial display value represented only as a literal string.
+- Added immutable module and flow updates, compound selection removal, deterministic duplication, and text-independent geometry projection.
+- Added reference-preserving generic undo/redo history with no-op and future-clearing semantics.
+- Added versioned, starter-scoped draft persistence with runtime corruption checks and exact JSON string round-tripping.
+- Added the shared command registry and canonical `selection.duplicate` and `selection.remove` commands for later editor surfaces.
+- Added synthetic fixtures and financial-firewall coverage for exact literals, mutation isolation, geometry independence, source-level numeric-coercion guards, commands, history, and persistence.
 
 ## Verification
 
-- `npm run verify` — pass in 11 seconds.
-- Unit: 1 passed.
+- `npm test -- src/money-map/model/document.test.ts src/money-map/model/history.test.ts src/money-map/model/persistence.test.ts src/money-map/commands/registry.test.ts src/money-map/source-guard.test.ts` — 26 passed across 5 files in 0.98 seconds.
+- `npm run verify` — pass in 9.9 seconds.
+- Unit: 27 passed across 6 files.
 - Chromium: 1 passed.
 - Production bundle: 61.01 kB gzip JavaScript.
-- `npm audit` — 0 vulnerabilities after install.
 
 ## Known limitations
 
-- Selecting a starter currently opens a scaffold canvas rather than the real editor.
-- The typed financial document model, commands, history, persistence, nodes, edges, and presentation system are not yet implemented.
+- Selecting a starter still opens the scaffold canvas; the React Flow canvas and editor interactions are not implemented yet.
+- The domain layer contains representative synthetic fixtures only; the four fully authored starter documents arrive after the shared editor API is frozen.
+- Draft persistence is local and synchronous by design; there is no backend, cloud sync, collaboration, or arbitrary import/export.
 - Nothing from this rebuild has been pushed or deployed.
 
 ## Next action
 
-Implement the literal-safe document model, immutable command/history layer, and versioned local draft persistence with test-first financial firewall coverage.
+Implement Task 3: the shared React Flow canvas, node and edge editing, command surfaces, selection, camera controls, and accessible keyboard/pointer interaction on top of this domain foundation.
