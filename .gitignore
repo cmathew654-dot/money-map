@@ -1,11 +1,17 @@
 # Node
 node_modules/
 npm-debug.log*
+*.log
+dist/
+coverage/
 
 # Audit harness output (investigation only, not test artifacts)
 tests/audit/screenshots/
 tests/e2e/verification-screenshots/
 audit-screenshots/
+
+# Agent workflow state
+.superpowers/
 
 # Editor / OS
 .vscode/
