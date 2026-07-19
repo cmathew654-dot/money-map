@@ -8,6 +8,7 @@ import {
 } from "../canvas/adapters";
 import { MoneyMapCanvas } from "../canvas/MoneyMapCanvas";
 import type { Point, StarterId } from "../model/types";
+import { getCanvasTheme } from "../themes/registry";
 import { AdvancedProperties, type PropertyField } from "./AdvancedProperties";
 import { CommandPalette } from "./CommandPalette";
 import { CadenceFilter } from "./CadenceFilter";
@@ -103,6 +104,7 @@ function isTextControl(target: EventTarget | null): boolean {
 
 export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps) {
   const editor = useMoneyMapEditor(starterId);
+  const theme = getCanvasTheme(editor.document.style);
   const [activeInlineField, setActiveInlineField] = useState<InlineEditTarget | null>(null);
   const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
   const [relationshipOpen, setRelationshipOpen] = useState(false);
@@ -515,7 +517,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   return (
     <EditorInteractionContext.Provider value={interaction}>
       <main
-        className="money-map-workspace"
+        className={`money-map-workspace ${theme.className}`}
+        data-canvas-style={theme.id}
         data-connect-mode={connectMode ? "true" : "false"}
         onKeyDown={handleWorkspaceKeyDown}
         ref={ref}

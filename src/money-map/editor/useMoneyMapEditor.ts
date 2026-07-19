@@ -9,7 +9,7 @@ import {
 } from "../model/history";
 import { clearDraft, loadDraft, saveDraft, type StorageLike } from "../model/persistence";
 import type { MoneyMapDocument, Selection, StarterId } from "../model/types";
-import { getScaffoldDocument } from "../starters/scaffolds";
+import { createStarterDocument } from "../starters/registry";
 import {
   createWorkspaceCommands,
   type WorkspaceCommandContext,
@@ -44,7 +44,7 @@ function validSelection(document: MoneyMapDocument, selection: Selection): Selec
 export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions = {}) {
   const storage = options.storage ?? window.localStorage;
   const createId = options.createId ?? defaultCreateId;
-  const scaffold = getScaffoldDocument(starterId);
+  const scaffold = createStarterDocument(starterId);
   const [activeStarter, setActiveStarter] = useState(starterId);
   const [history, setHistory] = useState<HistoryState<MoneyMapDocument>>(() =>
     createHistory(loadDraft(storage, starterId, scaffold)),
@@ -60,7 +60,7 @@ export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions =
     if (activeStarter === starterId) return;
     setActiveStarter(starterId);
     const nextHistory = createHistory(
-      loadDraft(storage, starterId, getScaffoldDocument(starterId)),
+      loadDraft(storage, starterId, createStarterDocument(starterId)),
     );
     historyRef.current = nextHistory;
     setHistory(nextHistory);
@@ -112,7 +112,7 @@ export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions =
 
   const reset = useCallback(() => {
     clearDraft(storage, starterId);
-    const nextHistory = createHistory(getScaffoldDocument(starterId));
+    const nextHistory = createHistory(createStarterDocument(starterId));
     historyRef.current = nextHistory;
     setHistory(nextHistory);
     setSelection(emptySelection);

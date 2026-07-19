@@ -2,41 +2,17 @@ import { useState } from "react";
 
 import { MoneyMapWorkspace } from "../money-map/editor/MoneyMapWorkspace";
 import type { StarterId } from "../money-map/model/types";
+import { getStarterDefinition } from "../money-map/starters/registry";
+import { STARTER_IDS } from "../money-map/starters/types";
 
-const starters = [
-  {
-    id: "retirement",
-    eyebrow: "Private Ledger",
-    title: "Retirement Income",
-    description:
-      "Trace recurring income, reserves, required distributions, and the household need.",
-    accent: "ochre",
-  },
-  {
-    id: "rmd",
-    eyebrow: "Distribution Registry",
-    title: "RMD & Withholding",
-    description:
-      "Explain the annual distribution sequence without pretending to calculate its outcome.",
-    accent: "pine",
-  },
-  {
-    id: "annuity",
-    eyebrow: "Foundation",
-    title: "Annuity Income Floor",
-    description: "Show how a premium, contract value, rider, and income floor relate over time.",
-    accent: "mineral",
-  },
-  {
-    id: "roth",
-    eyebrow: "Conversion Path",
-    title: "Roth Conversion",
-    description:
-      "Stage a multi-year conversion story across source, reserve, and destination accounts.",
-    accent: "aubergine",
-  },
-] as const satisfies ReadonlyArray<{ id: StarterId } & Record<string, string>>;
-
+const starters = STARTER_IDS.map((id) => {
+  const definition = getStarterDefinition(id);
+  return {
+    id,
+    title: definition.document.title,
+    ...definition.chooser,
+  };
+});
 export function App() {
   const [selected, setSelected] = useState<StarterId | null>(null);
 

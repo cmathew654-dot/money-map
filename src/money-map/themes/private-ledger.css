@@ -1,0 +1,12 @@
+.theme-private-ledger {
+  --map-canvas: #f6f1e7;
+  --map-surface: #fbf8f0;
+  --map-surface-alt: #eee8da;
+  --map-ink: #292923;
+  --map-muted: #6a655b;
+  --map-line: #6a655a;
+  --map-border: #7d7567;
+  --map-grid: rgba(118, 105, 82, 0.24);
+  --map-accent: #a45b19;
+  --map-focus: #3d6170;
+}

@@ -1,0 +1,12 @@
+.theme-distribution-registry {
+  --map-canvas: #f2f2ec;
+  --map-surface: #fafaf5;
+  --map-surface-alt: #e5e9e2;
+  --map-ink: #252c29;
+  --map-muted: #56605b;
+  --map-line: #46514c;
+  --map-border: #68736d;
+  --map-grid: rgba(61, 79, 70, 0.2);
+  --map-accent: #9a4e2e;
+  --map-focus: #285745;
+}

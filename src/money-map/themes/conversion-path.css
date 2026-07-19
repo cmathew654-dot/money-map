@@ -1,0 +1,12 @@
+.theme-conversion-path {
+  --map-canvas: #faf8f5;
+  --map-surface: #fffdf9;
+  --map-surface-alt: #f0e8ed;
+  --map-ink: #30272d;
+  --map-muted: #665a62;
+  --map-line: #62545d;
+  --map-border: #7b6a75;
+  --map-grid: rgba(101, 61, 88, 0.17);
+  --map-accent: #a44c37;
+  --map-focus: #653d58;
+}

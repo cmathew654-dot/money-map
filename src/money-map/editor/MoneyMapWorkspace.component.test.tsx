@@ -88,6 +88,13 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     expect(hookMock.editor.executeCommand).toHaveBeenCalledWith("selection.remove");
   });
 
+  it("projects the document art direction as one declarative workspace theme", () => {
+    const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const workspace = view.container.querySelector(".money-map-workspace");
+
+    expect(workspace?.getAttribute("data-canvas-style")).toBe("foundation");
+    expect(workspace?.classList.contains("theme-foundation")).toBe(true);
+  });
   it("limits create-connection mode to the live Connections surface", () => {
     const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
     const workspace = view.container.querySelector(".money-map-workspace");

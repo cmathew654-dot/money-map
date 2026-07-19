@@ -1,0 +1,12 @@
+.theme-foundation {
+  --map-canvas: #f1efe9;
+  --map-surface: #faf8f1;
+  --map-surface-alt: #e4e8e8;
+  --map-ink: #2f3336;
+  --map-muted: #5d6467;
+  --map-line: #545d61;
+  --map-border: #70787a;
+  --map-grid: rgba(71, 108, 123, 0.2);
+  --map-accent: #9a6a28;
+  --map-focus: #476c7b;
+}

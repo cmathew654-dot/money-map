@@ -91,7 +91,7 @@ describe("useMoneyMapEditor", () => {
       ),
     );
     act(() => result.current.reset());
-    expect(result.current.document).toBe(getScaffoldDocument("annuity"));
+    expect(result.current.document).toEqual(getScaffoldDocument("annuity"));
     expect(result.current.canUndo).toBe(false);
     expect(storage.values.size).toBe(0);
   });

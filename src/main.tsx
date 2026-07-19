@@ -5,6 +5,7 @@ import "@xyflow/react/dist/style.css";
 import { App } from "./app/App";
 import "./styles.css";
 import "./money-map/styles/canvas.css";
+import "./money-map/themes/themes.css";
 
 const root = document.getElementById("root");
 
