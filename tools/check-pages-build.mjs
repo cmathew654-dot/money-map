@@ -27,3 +27,5 @@ await Promise.all(
     return access(resolve(dirname(indexPath), assetPath));
   }),
 );
+
+console.log(`Verified ${references.length} relative production asset references.`);
