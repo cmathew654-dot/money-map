@@ -24,18 +24,13 @@ const routeTypes = {
   curved: "default",
 } as const;
 
-function sentence(value: string): string {
-  return value.endsWith(".") ? value : `${value}.`;
-}
-
 export function moduleAriaLabel(module: MoneyMapModule, outgoingCount: number): string {
-  const kind = module.kind.charAt(0).toLocaleUpperCase() + module.kind.slice(1);
-  const parts = [sentence(kind), sentence(module.title)];
-  if (module.subtitle) parts.push(sentence(module.subtitle));
-  if (module.total) parts.push(sentence(`${module.total.label}: ${module.total.value}`));
-  const noun = outgoingCount === 1 ? "relationship" : "relationships";
-  parts.push(`${outgoingCount} outgoing ${noun}.`);
-  return parts.join(" ");
+  const parts = [`Kind: ${module.kind}`, `Title: ${module.title}`];
+  if (module.subtitle) parts.push(`Subtitle: ${module.subtitle}`);
+  if (module.total) parts.push(`Total: ${module.total.label} ${module.total.value}`);
+  const relationshipPhrase =
+    outgoingCount === 1 ? "1 outgoing relationship" : `${outgoingCount} outgoing relationships`;
+  return [...parts, relationshipPhrase].join(" | ");
 }
 
 export function documentToNodes(
@@ -52,9 +47,6 @@ export function documentToNodes(
       position: module.position,
       data: { module, outgoingCount },
       style: { width: module.width },
-      initialWidth: module.width,
-      initialHeight: 152,
-      measured: { width: module.width, height: 152 },
       selected: selected.has(module.id),
       focusable: true,
       ariaLabel: moduleAriaLabel(module, outgoingCount),

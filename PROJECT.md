@@ -2,8 +2,8 @@
 
 **Updated:** 2026-07-19
 **Branch:** `codex/reference-reset-2026-07-19`
-**Checkpoint:** Task 3A — shared React Flow canvas, camera, and selection
-**Phase:** 3A complete — shared authoring canvas foundation
+**Checkpoint:** Task 3A review hardening — literal-safe labels, content-driven nodes, and verified interaction evidence
+**Phase:** 3A complete — shared authoring canvas foundation, review-hardened
 
 ## Completed
 
@@ -13,16 +13,17 @@
 - Added bottom-left screen-space zoom, 100%, Fit map, and Fit selection controls; Fit selection falls back to the complete map when nothing is selected.
 - Added a responsive workspace shell with Cairn identity, story metadata, synthetic-data provenance, polite move/selection announcements, and an honest 1180 by 660 authoring minimum cover that does not mount React Flow.
 - Added intermediate literal-only scaffold documents for Retirement Income, RMD & Withholding, Annuity Income Floor, and Roth Conversion so every starter exercises the same shared canvas.
-- Added focused adapter, node, control, workspace, canvas orchestration, source-guard, and Chromium journeys for all four workspaces, selection, camera controls, responsive cover, and literal-preserving drag.
+- Hardened the review checkpoint so accessible labels join authored fragments byte-for-byte, module height is measured from DOM content, all selection paths announce, and camera animations honor reduced motion.
+- Strengthened adapter/component/Chromium evidence for punctuation/placeholders/ranges, node and edge callback synchronization, additive/marquee selection, final world movement, numeric zoom changes, Fit commands, keyboard Fit parity, and drag displacement relative to a stationary node.
 
 ## Verification
 
-- Focused Task 3A tests: 7 files, 34 tests passed.
-- `npm run verify`: pass in 12.4 seconds.
+- Focused Task 3A tests: 7 files, 40 tests passed.
+- `npm run verify`: pass in 13.9 seconds.
 - Formatting, ESLint, and TypeScript: pass.
-- Unit/component: 79 passed across 11 files.
+- Unit/component: 85 passed across 11 files.
 - Chromium: 4 passed.
-- Production bundle: 121.67 kB gzip JavaScript and 4.98 kB gzip CSS.
+- Production bundle: 121.92 kB gzip JavaScript and 4.98 kB gzip CSS.
 
 ## Known limitations
 

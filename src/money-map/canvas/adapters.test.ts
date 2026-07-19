@@ -28,20 +28,44 @@ describe("canvas document adapters", () => {
       changedNodes.map(({ position, style }) => ({ position, style })),
     );
     expect(nodes[0].position).toEqual({ x: 40, y: 80 });
-    expect(nodes[0].style).toMatchObject({ width: 280 });
-    expect(nodes[0]).toMatchObject({
-      initialWidth: 280,
-      initialHeight: 152,
-      measured: { width: 280, height: 152 },
-    });
+    expect(nodes[0].style).toEqual({ width: 280 });
+    expect(nodes[0]).not.toHaveProperty("height");
+    expect(nodes[0]).not.toHaveProperty("initialHeight");
+    expect(nodes[0]).not.toHaveProperty("measured");
   });
 
-  it("builds a useful accessible label without changing authored text", () => {
-    const module = createTestDocument().modules[1];
+  it("joins exact authored fragments without inspecting or punctuating them", () => {
+    const module = {
+      ...createTestDocument().modules[1],
+      title: "What now?",
+      subtitle: "Approx. $20,000–?",
+      total: { label: "Target.", value: "$_____" },
+    };
 
-    expect(moduleAriaLabel(module, 2)).toBe(
-      "Income. Illustrative annuity. Illustrative premium: $300,000. 2 outgoing relationships.",
+    const label = moduleAriaLabel(module, 2);
+
+    expect(label).toBe(
+      "Kind: income | Title: What now? | Subtitle: Approx. $20,000–? | Total: Target. $_____ | 2 outgoing relationships",
     );
+    expect(label).toContain("What now?");
+    expect(label).toContain("Approx. $20,000–?");
+    expect(label).toContain("Target.");
+    expect(label).toContain("$_____");
+    expect(label).not.toContain("What now?.");
+    expect(label).not.toContain("$_____.");
+  });
+
+  it("keeps authored totals ending in punctuation byte-for-byte", () => {
+    const module = {
+      ...createTestDocument().modules[1],
+      total: { label: "Range", value: "~$11,800/mo?" },
+    };
+
+    const label = moduleAriaLabel(module, 1);
+
+    expect(label).toContain("Total: Range ~$11,800/mo?");
+    expect(label).not.toContain("~$11,800/mo?.");
+    expect(label).toContain("1 outgoing relationship");
   });
 
   it("moves only the target module and preserves literal text and references", () => {
@@ -59,6 +83,7 @@ describe("canvas document adapters", () => {
     expect(beforeGeometry.modules[0]).toEqual(documentGeometry(moved).modules[0]);
     expect(moveModule(document, "missing", { x: 1, y: 2 })).toBe(document);
   });
+
   it("maps authored route kinds to available built-in React Flow edge types", () => {
     const document = createTestDocument();
     const curvedDocument = {

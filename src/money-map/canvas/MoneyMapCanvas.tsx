@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
+import {
+  applyNodeChanges,
   ReactFlow,
   ReactFlowProvider,
   type Edge,
@@ -38,6 +46,38 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
+function cameraDuration(duration: number): number {
+  const reduceMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return reduceMotion ? 0 : duration;
+}
+
+function selectionAnnouncement(document: MoneyMapDocument, selection: Selection): string {
+  const moduleCount = selection.moduleIds.length;
+  const relationshipCount = selection.flowIds.length;
+
+  if (moduleCount === 0 && relationshipCount === 0) return "Selection cleared.";
+
+  if (moduleCount === 1 && relationshipCount === 0) {
+    const module = document.modules.find((candidate) => candidate.id === selection.moduleIds[0]);
+    if (module) return `${module.title} selected.`;
+  }
+
+  if (moduleCount === 0 && relationshipCount === 1) {
+    const flow = document.flows.find((candidate) => candidate.id === selection.flowIds[0]);
+    if (flow) return `${flow.label} relationship selected.`;
+  }
+
+  const modulePhrase = `${moduleCount} ${moduleCount === 1 ? "module" : "modules"}`;
+  const relationshipPhrase = `${relationshipCount} ${
+    relationshipCount === 1 ? "relationship" : "relationships"
+  }`;
+  if (moduleCount === 0) return `${relationshipPhrase} selected.`;
+  if (relationshipCount === 0) return `${modulePhrase} selected.`;
+  return `${modulePhrase} and ${relationshipPhrase} selected.`;
+}
+
 function MoneyMapCanvasInner({
   document,
   selection,
@@ -47,11 +87,29 @@ function MoneyMapCanvasInner({
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
-  const nodes = useMemo(() => documentToNodes(document, selection), [document, selection]);
+  const adaptedNodes = useMemo(() => documentToNodes(document, selection), [document, selection]);
+  const [nodes, setNodes] = useState(adaptedNodes);
   const edges = useMemo(() => documentToEdges(document, selection), [document, selection]);
 
+  useEffect(() => {
+    setNodes((currentNodes) =>
+      adaptedNodes.map((nextNode) => {
+        const currentNode = currentNodes.find((candidate) => candidate.id === nextNode.id);
+        return currentNode?.measured ? { ...nextNode, measured: currentNode.measured } : nextNode;
+      }),
+    );
+  }, [adaptedNodes]);
+
+  const applySelection = useCallback(
+    (nextSelection: Selection) => {
+      onSelectionChange(nextSelection);
+      setAnnouncement(selectionAnnouncement(document, nextSelection));
+    },
+    [document, onSelectionChange],
+  );
+
   const fitMap = useCallback(() => {
-    void flow.fitView({ padding: 0.16, duration: 180 });
+    void flow.fitView({ padding: 0.16, duration: cameraDuration(180) });
   }, [flow]);
 
   const fitSelection = useCallback(() => {
@@ -63,15 +121,15 @@ function MoneyMapCanvasInner({
     void flow.fitView({
       nodes: selection.moduleIds.map((id) => ({ id })),
       padding: 0.22,
-      duration: 180,
+      duration: cameraDuration(180),
     });
   }, [fitMap, flow, selection.moduleIds]);
 
   const controller = useMemo<CanvasController>(
     () => ({
-      zoomOut: () => void flow.zoomOut({ duration: 140 }),
-      resetZoom: () => void flow.zoomTo(1, { duration: 140 }),
-      zoomIn: () => void flow.zoomIn({ duration: 140 }),
+      zoomOut: () => void flow.zoomOut({ duration: cameraDuration(140) }),
+      resetZoom: () => void flow.zoomTo(1, { duration: cameraDuration(140) }),
+      zoomIn: () => void flow.zoomIn({ duration: cameraDuration(140) }),
       fitMap,
       fitSelection,
     }),
@@ -80,6 +138,13 @@ function MoneyMapCanvasInner({
 
   const handleNodesChange = useCallback<OnNodesChange<MoneyMapCanvasNode>>(
     (changes: NodeChange<MoneyMapCanvasNode>[]) => {
+      const runtimeChanges = changes.filter(
+        (change) => change.type === "dimensions" || change.type === "select",
+      );
+      if (runtimeChanges.length > 0) {
+        setNodes((currentNodes) => applyNodeChanges(runtimeChanges, currentNodes));
+      }
+
       const selectChanges = changes.filter(
         (change): change is Extract<NodeChange, { type: "select" }> => change.type === "select",
       );
@@ -90,9 +155,9 @@ function MoneyMapCanvasInner({
         if (change.selected) selectedIds.add(change.id);
         else selectedIds.delete(change.id);
       }
-      onSelectionChange({ moduleIds: [...selectedIds], flowIds: selection.flowIds });
+      applySelection({ moduleIds: [...selectedIds], flowIds: selection.flowIds });
     },
-    [onSelectionChange, selection],
+    [applySelection, selection],
   );
 
   const handleEdgesChange = useCallback<OnEdgesChange<MoneyMapCanvasEdge>>(
@@ -107,9 +172,9 @@ function MoneyMapCanvasInner({
         if (change.selected) selectedIds.add(change.id);
         else selectedIds.delete(change.id);
       }
-      onSelectionChange({ moduleIds: selection.moduleIds, flowIds: [...selectedIds] });
+      applySelection({ moduleIds: selection.moduleIds, flowIds: [...selectedIds] });
     },
-    [onSelectionChange, selection],
+    [applySelection, selection],
   );
 
   const handleNodeClick = useCallback<NodeMouseHandler<MoneyMapCanvasNode>>(
@@ -117,12 +182,12 @@ function MoneyMapCanvasInner({
       const moduleIds = event.shiftKey
         ? Array.from(new Set([...selection.moduleIds, node.id]))
         : [node.id];
-      onSelectionChange({
+      applySelection({
         moduleIds,
         flowIds: event.shiftKey ? selection.flowIds : [],
       });
     },
-    [onSelectionChange, selection],
+    [applySelection, selection],
   );
 
   const handleEdgeClick = useCallback(
@@ -130,12 +195,12 @@ function MoneyMapCanvasInner({
       const flowIds = event.shiftKey
         ? Array.from(new Set([...selection.flowIds, edge.id]))
         : [edge.id];
-      onSelectionChange({
+      applySelection({
         moduleIds: event.shiftKey ? selection.moduleIds : [],
         flowIds,
       });
     },
-    [onSelectionChange, selection],
+    [applySelection, selection],
   );
 
   const handleNodeDragStop = useCallback<OnNodeDrag<MoneyMapCanvasNode>>(
@@ -148,24 +213,27 @@ function MoneyMapCanvasInner({
     [document, onDocumentChange],
   );
 
+  const clearSelection = useCallback(() => {
+    applySelection(emptySelection);
+  }, [applySelection]);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (isEditableTarget(event.target)) return;
 
       if (event.key === "Escape") {
         event.preventDefault();
-        onSelectionChange(emptySelection);
-        setAnnouncement("Selection cleared.");
+        clearSelection();
         return;
       }
 
-      if (event.shiftKey && event.key === "1") {
+      if (event.shiftKey && (event.key === "1" || event.code === "Digit1")) {
         event.preventDefault();
         fitMap();
         return;
       }
 
-      if (event.shiftKey && event.key === "2") {
+      if (event.shiftKey && (event.key === "2" || event.code === "Digit2")) {
         event.preventDefault();
         fitSelection();
         return;
@@ -180,7 +248,7 @@ function MoneyMapCanvasInner({
         controller.zoomOut();
       }
     },
-    [controller, fitMap, fitSelection, onSelectionChange],
+    [clearSelection, controller, fitMap, fitSelection],
   );
 
   return (
@@ -199,7 +267,7 @@ function MoneyMapCanvasInner({
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onNodeDragStop={handleNodeDragStop}
-        onPaneClick={() => onSelectionChange(emptySelection)}
+        onPaneClick={clearSelection}
         onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
         minZoom={0.3}
         maxZoom={2}
@@ -215,7 +283,7 @@ function MoneyMapCanvasInner({
         proOptions={{ hideAttribution: false }}
       />
       <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />
-      <p className="sr-only" aria-live="polite" aria-atomic="true">
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {announcement}
       </p>
     </div>
