@@ -2,28 +2,31 @@
 
 **Updated:** 2026-07-19  
 **Branch:** `codex/reference-reset-2026-07-19`  
-**Last verified commit:** `b52a6f1`  
-**Phase:** 0 — execution contract
+**Last checkpoint:** `322afdb`  
+**Phase:** 1 complete — standalone scaffold
 
 ## Completed
 
-- Confirmed this directory is an isolated Git worktree for `cmathew654-dot/money-map`.
-- Preserved the legacy calculation prototype behind the existing archive branch and tag.
-- Locked the product, design, repository, financial-safety, checkpoint, and release contracts.
+- Replaced the calculation-era runtime with a Vite 8, React 19, TypeScript 6, and Vitest 4 foundation.
+- Added the Cairn starter chooser with four equal entry points and synthetic-data labeling.
+- Replaced the 1,500+ legacy checks with a focused unit and Chromium smoke surface.
+- Added strict typecheck, ESLint, Prettier, production build, and one-command verification.
+- Added SHA-pinned GitHub Actions verification and removed obsolete public screenshot media.
 
 ## Verification
 
-- `git status --short --branch` — clean before contract files were created.
-- Git worktree isolation verified through distinct Git and common directories.
-- Legacy full Playwright suite intentionally not rerun; it is the oversized calculation-era suite being replaced.
+- `npm run verify` — pass in 11 seconds.
+- Unit: 1 passed.
+- Chromium: 1 passed.
+- Production bundle: 61.01 kB gzip JavaScript.
+- `npm audit` — 0 vulnerabilities after install.
 
 ## Known limitations
 
-- The checked-out application is still the legacy calculation-heavy prototype.
-- The new standalone React application has not yet been scaffolded.
+- Selecting a starter currently opens a scaffold canvas rather than the real editor.
+- The typed financial document model, commands, history, persistence, nodes, edges, and presentation system are not yet implemented.
 - Nothing from this rebuild has been pushed or deployed.
 
 ## Next action
 
-Commit the execution contract, then replace the legacy scaffold with the standalone React/TypeScript foundation and a lean verification gate.
-
+Implement the literal-safe document model, immutable command/history layer, and versioned local draft persistence with test-first financial firewall coverage.

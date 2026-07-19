@@ -104,4 +104,3 @@
 - [ ] Present the local result to the user before any push.
 - [ ] After approval, push a review branch and open a PR.
 - [ ] After second approval, merge, deploy Pages, and tag `v0.1.0`.
-

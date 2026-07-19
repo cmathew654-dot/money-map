@@ -25,4 +25,3 @@ Work only from this repository root. Do not run project commands from the user h
 - Typecheck: `npm run typecheck`
 - Full local gate: `npm run verify`
 - Visual baselines may only be updated after inspecting the rendered output.
-

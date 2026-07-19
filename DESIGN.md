@@ -57,4 +57,3 @@ Monthly, Annual, One-time, As needed, and exact custom cadence are display-only.
 ## Accessibility and motion
 
 Target WCAG 2.2 AA, keyboard parity, focus restoration, live announcements, reduced motion, non-drag alternatives, at least 24×24px targets, and 44×44px primary targets for coarse pointers.
-

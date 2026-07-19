@@ -38,4 +38,3 @@ No starter is the hero or control fixture. Each receives a complete authored com
 ## Non-goals for v0.1
 
 No backend, authentication, cloud sync, collaboration, financial computation, arbitrary file import/export, auto-layout, freehand drawing, rich text, rotation, mobile authoring, or production-advisory claims.
-
