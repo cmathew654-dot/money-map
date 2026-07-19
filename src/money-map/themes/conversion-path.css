@@ -1,12 +1,12 @@
 .theme-conversion-path {
-  --map-canvas: #faf8f5;
-  --map-surface: #fffdf9;
-  --map-surface-alt: #f0e8ed;
-  --map-ink: #30272d;
-  --map-muted: #665a62;
-  --map-line: #62545d;
-  --map-border: #7b6a75;
-  --map-grid: rgba(101, 61, 88, 0.17);
-  --map-accent: #a44c37;
-  --map-focus: #653d58;
+  --map-canvas: #fbfaf8;
+  --map-surface: #fffefd;
+  --map-surface-alt: #f2ebef;
+  --map-ink: #30252d;
+  --map-muted: #685b63;
+  --map-line: #604f5a;
+  --map-border: #826f7b;
+  --map-grid: rgba(91, 51, 79, 0.15);
+  --map-accent: #a7442f;
+  --map-focus: #5b334f;
 }
