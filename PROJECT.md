@@ -6,13 +6,14 @@
 
 **Checkpoint:** Task 4 complete — four equal-finish starters; authoring accessibility preflight closed
 
-**Phase:** Shared presentation and GitHub packaging are in parallel implementation
+**Phase:** GitHub packaging complete; shared presentation implementation in progress
 
 ## Current product
 
 - Four synthetic advisor story starters share one React Flow authoring system, command registry, persisted undo history, direct/advanced editing, custom relationship renderer, cadence filters, and accessible camera/selection controls.
 - Financial content remains exact display text. Nothing parses, calculates, reconciles, taxes, debits, validates funding capacity, or derives geometry/style from amounts.
 - The frozen starter registry deep-clones defaults; four scoped theme files may change decorative art direction without changing shared behavior or financial semantics.
+- Public packaging now includes visitor-first README, architecture and synthetic-data provenance docs, a relative-asset build check, and SHA-pinned verify/Pages workflows; nothing has been pushed or deployed.
 
 ## Task 4 progress
 
@@ -35,6 +36,7 @@
 - Chromium: 17/17 journeys passed.
 - Production bundle: 137.26 kB gzip JavaScript and 7.49 kB gzip CSS.
 - Authoring preflight: command palette uses a valid non-tabbable active-descendant combobox pattern; starter index contrast is 5.31:1; the three authoring toolbars share roving focus with Arrow and Home/End navigation. Focused tests, ESLint, TypeScript, and formatting pass.
+- Packaging checkpoint: 210 unit tests, lint, TypeScript, build, relative Pages asset check, seven action-pin checks, and tracked-tree hygiene pass; internal tracked agent reports removed.
 
 ## Known limitations
 

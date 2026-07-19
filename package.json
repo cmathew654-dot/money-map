@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run check:pages && npm run test:e2e",
+    "check:pages": "node tools/check-pages-build.mjs"
   },
   "dependencies": {
     "@xyflow/react": "12.11.2",
