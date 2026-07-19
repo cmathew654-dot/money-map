@@ -2,35 +2,35 @@
 
 **Updated:** 2026-07-19
 **Branch:** `codex/reference-reset-2026-07-19`
-**Checkpoint:** Task 2 second review — `fix: close remaining money map guard gaps`
-**Phase:** 2 complete — literal-safe domain foundation
+**Checkpoint:** Task 3A — shared React Flow canvas, camera, and selection
+**Phase:** 3A complete — shared authoring canvas foundation
 
 ## Completed
 
-- Defined the shared Money Map document schema for all starters, with every financial display value represented only as a literal string.
-- Added immutable module and flow updates, compound selection removal, deterministic duplication, and text-independent geometry projection.
-- Added reference-preserving generic undo/redo history with no-op and future-clearing semantics.
-- Added versioned, starter-scoped draft persistence with runtime corruption checks and exact JSON string round-tripping.
-- Added the shared command registry and canonical `selection.duplicate` and `selection.remove` commands for later editor surfaces.
-- Added synthetic fixtures and financial-firewall coverage for exact literals, mutation isolation, geometry independence, source-level numeric-coercion guards, commands, history, and persistence.
-- Hardened draft loading with closed-schema validation at every document object level plus recursive forbidden financial keys; also hardened commands against stale selections and preserved untouched removal references.
-- Replaced the shallow source regex with a self-tested scanner covering production `.ts` and `.tsx`, parsing/coercion calls, compact and compound financial arithmetic, parenthesized/optional-chain unary coercion, and template-interpolation expressions while ignoring strings, comments, type-only names, and geometry arithmetic.
+- Added one shared React Flow canvas for all four starters with literal-safe document/node/edge adapters and immutable final node movement.
+- Added one memoized module renderer spanning every primitive and module kind through data attributes, with semantic authored content, quiet four-sided handles, exact literal values, accessible node labels, and distinct focus/selection states.
+- Added transient camera and selection behavior: pointer-centered wheel/pinch zoom, empty-pane/middle/Space panning, Shift marquee/multi-select, click selection, Escape clear, and keyboard zoom/Fit commands.
+- Added bottom-left screen-space zoom, 100%, Fit map, and Fit selection controls; Fit selection falls back to the complete map when nothing is selected.
+- Added a responsive workspace shell with Cairn identity, story metadata, synthetic-data provenance, polite move/selection announcements, and an honest 1180 by 660 authoring minimum cover that does not mount React Flow.
+- Added intermediate literal-only scaffold documents for Retirement Income, RMD & Withholding, Annuity Income Floor, and Roth Conversion so every starter exercises the same shared canvas.
+- Added focused adapter, node, control, workspace, canvas orchestration, source-guard, and Chromium journeys for all four workspaces, selection, camera controls, responsive cover, and literal-preserving drag.
 
 ## Verification
 
-- `npm test -- src/money-map/source-guard.test.ts src/money-map/model/persistence.test.ts src/money-map/model/document.test.ts` — 55 passed across 3 files in 0.87 seconds.
-- `npm run verify` — pass in 10.1 seconds.
-- Unit: 67 passed across 6 files.
-- Chromium: 1 passed.
-- Production bundle: 61.01 kB gzip JavaScript.
+- Focused Task 3A tests: 7 files, 34 tests passed.
+- `npm run verify`: pass in 12.4 seconds.
+- Formatting, ESLint, and TypeScript: pass.
+- Unit/component: 79 passed across 11 files.
+- Chromium: 4 passed.
+- Production bundle: 121.67 kB gzip JavaScript and 4.98 kB gzip CSS.
 
 ## Known limitations
 
-- Selecting a starter still opens the scaffold canvas; the React Flow canvas and editor interactions are not implemented yet.
-- The domain layer contains representative synthetic fixtures only; the four fully authored starter documents arrive after the shared editor API is frozen.
-- Draft persistence is local and synchronous by design; there is no backend, cloud sync, collaboration, or arbitrary import/export.
+- The four starter documents are intentionally small intermediate scaffolds; fully authored fixtures and distinct final art directions arrive in Task 4.
+- Task 3A does not include the selection halo, command palette, inline or advanced editing, width resize, custom edge editing/routing, cadence filters, or presentation mode.
+- Draft persistence remains local and synchronous by design; there is no backend, cloud sync, collaboration, or arbitrary import/export.
 - Nothing from this rebuild has been pushed or deployed.
 
 ## Next action
 
-Implement Task 3: the shared React Flow canvas, node and edge editing, command surfaces, selection, camera controls, and accessible keyboard/pointer interaction on top of this domain foundation.
+Implement Task 3B shared editing surfaces and command parity on top of the frozen canvas/camera/selection checkpoint without creating starter-specific behavior forks.

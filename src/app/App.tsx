@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import { MoneyMapWorkspace } from "../money-map/editor/MoneyMapWorkspace";
+import type { StarterId } from "../money-map/model/types";
+
 const starters = [
   {
     id: "retirement",
@@ -32,37 +35,13 @@ const starters = [
       "Stage a multi-year conversion story across source, reserve, and destination accounts.",
     accent: "aubergine",
   },
-] as const;
-
-type StarterId = (typeof starters)[number]["id"];
+] as const satisfies ReadonlyArray<{ id: StarterId } & Record<string, string>>;
 
 export function App() {
   const [selected, setSelected] = useState<StarterId | null>(null);
-  const story = starters.find((starter) => starter.id === selected);
 
-  if (story) {
-    return (
-      <main className="app-shell app-shell--workspace">
-        <header className="workspace-header">
-          <button className="text-button" type="button" onClick={() => setSelected(null)}>
-            Back to stories
-          </button>
-          <div className="workspace-heading">
-            <span className="brand-mark" aria-hidden="true">
-              C
-            </span>
-            <div>
-              <p className="workspace-kicker">{story.eyebrow}</p>
-              <h1>{story.title}</h1>
-            </div>
-          </div>
-          <p className="workspace-meta">Hartwell family · Synthetic illustration</p>
-        </header>
-        <section className="workspace-stage" aria-label={`${story.title} canvas`}>
-          <p>Canvas foundation ready.</p>
-        </section>
-      </main>
-    );
+  if (selected) {
+    return <MoneyMapWorkspace starterId={selected} onBack={() => setSelected(null)} />;
   }
 
   return (
