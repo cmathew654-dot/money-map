@@ -14,7 +14,7 @@
 }
 
 .theme-private-ledger .money-map-module {
-  box-shadow: 0 8px 22px var(--private-ledger-shadow);
+  box-shadow: 0 4px 8px var(--private-ledger-shadow);
 }
 
 .theme-private-ledger .money-map-module[data-primitive="ledger"] {
@@ -36,11 +36,11 @@
   border-radius: 999px;
   box-shadow:
     inset 0 0 0 3px #f2e5c9,
-    0 8px 22px var(--private-ledger-shadow);
+    0 4px 8px var(--private-ledger-shadow);
 }
 
 .theme-private-ledger .money-map-module[data-primitive="band"] {
-  border-left-color: var(--private-ledger-rule);
+  border-block-color: var(--private-ledger-rule);
   background: linear-gradient(90deg, #fffdf8, #f4ead7);
 }
 

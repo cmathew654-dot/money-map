@@ -16,6 +16,7 @@ export function PresentationShell({ document, onExit }: PresentationShellProps) 
   const shellRef = useRef<HTMLElement>(null);
   const lastIndex = document.presentation.length - 1;
   const activeStep = document.presentation[activeIndex];
+  const canvasStep = activeIndex === 0 ? { ...activeStep, moduleIds: [], flowIds: [] } : activeStep;
   const theme = getCanvasTheme(document.style);
   const showStep = useCallback(
     (index: number) => setActiveIndex(Math.min(lastIndex, Math.max(0, index))),
@@ -80,7 +81,7 @@ export function PresentationShell({ document, onExit }: PresentationShellProps) 
           mode="presentation"
           onDocumentChange={() => undefined}
           onSelectionChange={() => undefined}
-          presentationStep={activeStep}
+          presentationStep={canvasStep}
           selection={emptySelection}
         />
       </section>

@@ -132,6 +132,16 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     expect(workspace.getAttribute("data-connect-mode")).toBe("false");
   });
 
+  it("closes the module style menu with Escape from its controls", () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    openCommand("style module");
+    const menu = screen.getByLabelText("Choose module style");
+
+    fireEvent.keyDown(menu.querySelector("button") as HTMLButtonElement, { key: "Escape" });
+
+    expect(screen.queryByLabelText("Choose module style")).toBeNull();
+  });
+
   it("clears a selected relationship and its panel when a cadence edit hides it", () => {
     const editor = hookMock.editor;
     setSelection(editor, { moduleIds: [], flowIds: ["income-flow"] });

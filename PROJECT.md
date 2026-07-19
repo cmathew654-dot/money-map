@@ -4,9 +4,9 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 5 integrated - four equal-finish starters, shared authoring, and shared presentation
+**Checkpoint:** Portfolio rebuild complete and locally verified
 
-**Phase:** Final Impeccable audit and implementation of verified findings
+**Phase:** Local handoff ready; publishing remains user-controlled
 
 ## Current product
 
@@ -16,16 +16,17 @@
 - Presentation keeps title, as-of date, and synthetic-data provenance visible; offers direct and keyboard step navigation; restores focus on exit; and disables author mutations.
 - Financial content remains exact display text. Nothing parses, calculates, reconciles, taxes, debits, validates funding capacity, or derives geometry/style from amounts.
 - Public packaging includes a visitor-first README, architecture and provenance docs, relative Pages asset validation, and SHA-pinned verify/deploy workflows. Nothing has been pushed or deployed.
+- The final Impeccable pass removed the side-stripe/ghost-card residue, improved presentation typography and coarse targets, added Escape closure to transient surfaces, tokenized shared relationship colors, and repaired the remaining Retirement total/label lanes.
 
 ## Verification
 
 - ESLint, TypeScript, production build, and Pages asset validation pass in the integration worktree.
-- Unit/component: 35 files, 231 tests passed.
-- Integrated presentation Chromium: 7/7 passed.
-- Presentation worker full Chromium: 24/24 passed.
+- Unit/component: 35 files, 240 tests passed.
+- Full Chromium: 26/26 journeys passed.
 - All four stories pass presentation geometry and readability checks at 1280x720, 1440x900, and 1920x1080: bounded content, no module/label collisions, no unrelated route crossings, and enforced text floors.
 - Independent Task 5 review found no P0/P1 defects. Its three P2 findings - coarse-pointer targets, per-theme presentation surfaces, and fake-height connector ports - were repaired and covered before integration.
-- Final repository-wide verification will run again after the Impeccable repair pass.
+- The independent Impeccable baseline was 13/20. The repaired build is 19/20 with no scoped P0/P1/P2 finding open; the remaining point is incomplete decorative tokenization in stable shared editor chrome.
+- Fresh `npm run verify` passed: formatting, lint, TypeScript, 240 tests, production build, Pages asset validation, and 26 Chromium journeys. The Impeccable static detector returned zero findings.
 
 ## Known boundaries
 
@@ -37,4 +38,4 @@
 
 ## Next action
 
-Run the scoped Impeccable audit, implement verified P0/P1/P2 findings plus only high-value low-risk polish, then complete fresh full verification and the local handoff checkpoint.
+Review the local checkpoint. Push, open a pull request, enable Pages, merge, deploy, or release only with explicit user approval.

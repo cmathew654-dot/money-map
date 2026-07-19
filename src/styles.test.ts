@@ -25,3 +25,11 @@ describe("starter chooser visual contracts", () => {
     expect(contrast(color ?? "#ffffff", "#eee7d8")).toBeGreaterThanOrEqual(4.5);
   });
 });
+describe("workspace composition contracts", () => {
+  it("keeps display tracking within the Impeccable floor and right-aligns workspace actions", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).toMatch(/h1\s*\{[^}]*letter-spacing:\s*-0\.04em/s);
+    const canvasCss = readFileSync("src/money-map/styles/canvas.css", "utf8");
+    expect(canvasCss).toMatch(/\.workspace-actions\s*\{[^}]*justify-self:\s*end/s);
+  });
+});

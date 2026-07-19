@@ -87,7 +87,16 @@ export function RelationshipProperties({
   );
 
   return (
-    <aside aria-label="Relationship properties" className="relationship-properties" style={style}>
+    <aside
+      aria-label="Relationship properties"
+      className="relationship-properties"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+        event.preventDefault();
+        onClose();
+      }}
+      style={style}
+    >
       <header>
         <div>
           <p className="workspace-kicker">Relationship</p>

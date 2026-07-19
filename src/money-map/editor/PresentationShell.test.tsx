@@ -28,7 +28,11 @@ describe("PresentationShell", () => {
     expect(screen.getByRole("button", { name: "Overview" }).getAttribute("aria-current")).toBe(
       "step",
     );
-    expect(canvasMock.props.presentationStep).toEqual(document.presentation[0]);
+    expect(canvasMock.props.presentationStep).toEqual({
+      ...document.presentation[0],
+      moduleIds: [],
+      flowIds: [],
+    });
   });
 
   it("clamps arrow and Space navigation and announces each named state", () => {

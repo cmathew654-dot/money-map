@@ -25,13 +25,13 @@
   border-color: var(--map-line);
   box-shadow:
     inset 0 -5px 0 rgba(163, 111, 44, 0.42),
-    0 5px 16px rgba(41, 46, 49, 0.08);
+    0 4px 8px rgba(41, 46, 49, 0.08);
 }
 
 .theme-foundation .money-map-module[data-primitive="band"] {
   background: linear-gradient(to bottom, var(--map-focus) 0 5px, var(--map-surface) 5px 100%);
   border-color: var(--map-line);
-  box-shadow: 0 8px 20px rgba(41, 46, 49, 0.1);
+  box-shadow: 0 4px 8px rgba(41, 46, 49, 0.1);
 }
 
 .theme-foundation .money-map-module[data-primitive="roundel"] {

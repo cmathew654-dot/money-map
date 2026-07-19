@@ -59,7 +59,7 @@ npm run check:pages
 
 Starter fixtures feed a typed, literal-safe document model. A shared editor hook owns history and per-starter persistence; a single command registry drives keyboard, palette, halo, and property actions. React Flow is isolated behind canvas adapters and custom module/relationship renderers, while the presentation shell projects the same document into a read-only story without changing financial meaning.
 
-See [architecture](docs/architecture.md), [data provenance](docs/provenance.md), [product intent](PRODUCT.md), and [design contract](DESIGN.md).
+See [architecture](docs/architecture.md), [data provenance](docs/provenance.md), [Impeccable audit](docs/impeccable-audit.md), [product intent](PRODUCT.md), and [design contract](DESIGN.md).
 
 ## Accessibility
 

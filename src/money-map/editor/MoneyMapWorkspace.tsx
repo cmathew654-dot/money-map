@@ -620,6 +620,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           <aside
             aria-label="Choose module style"
             className="primitive-menu"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              closeStyle();
+            }}
             ref={styleRef}
             style={
               surfacePosition

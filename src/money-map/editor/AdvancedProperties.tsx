@@ -126,7 +126,16 @@ export function AdvancedProperties({
   );
 
   return (
-    <aside aria-label="Advanced properties" className="advanced-properties" style={style}>
+    <aside
+      aria-label="Advanced properties"
+      className="advanced-properties"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+        event.preventDefault();
+        onClose();
+      }}
+      style={style}
+    >
       <header>
         <div>
           <p className="workspace-kicker">Module properties</p>

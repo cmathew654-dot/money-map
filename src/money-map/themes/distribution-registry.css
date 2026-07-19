@@ -14,14 +14,14 @@
 .theme-distribution-registry .money-map-module {
   border-color: #748079;
   background: #fafaf5;
-  box-shadow: 0 6px 18px rgba(32, 43, 39, 0.08);
+  box-shadow: 0 4px 8px rgba(32, 43, 39, 0.08);
 }
 
 .theme-distribution-registry .money-map-module[data-primitive="ledger"] {
   border-color: #344a41;
   background: linear-gradient(180deg, #fbfbf7, #f0f2ec);
   box-shadow:
-    0 7px 20px rgba(32, 43, 39, 0.1),
+    0 4px 8px rgba(32, 43, 39, 0.1),
     0 -3px 0 #344a41;
 }
 
@@ -34,7 +34,7 @@
 .theme-distribution-registry .money-map-module[data-primitive="band"] {
   border-color: #984c2e;
   background: linear-gradient(90deg, #f5e9e2, #fafaf5 38%);
-  box-shadow: 0 4px 12px rgba(74, 53, 43, 0.08);
+  box-shadow: 0 4px 8px rgba(74, 53, 43, 0.08);
 }
 
 .theme-distribution-registry .money-map-module[data-primitive="tray"] {

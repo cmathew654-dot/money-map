@@ -318,3 +318,71 @@ test("reduced motion removes presentation focus transitions", async ({ page }) =
       .first(),
   ).toHaveCSS("transition-duration", "0s");
 });
+test("Retirement overview avoids blanket focus, wrapped totals, and deep endpoint-label overlap", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPresentation(page, "Retirement Income");
+
+  const audit = await page.locator(".money-map-presentation").evaluate((shell) => {
+    const nodes = [...shell.querySelectorAll<HTMLElement>(".react-flow__node")].map((node) => ({
+      id: node.dataset.id ?? "",
+      box: node.getBoundingClientRect(),
+    }));
+    const deepEndpointOverlaps = [
+      ...shell.querySelectorAll<HTMLElement>(".money-map-flow-label-wrap"),
+    ].flatMap((label) => {
+      const box = label.getBoundingClientRect();
+      const endpoints = new Set([label.dataset.flowSource, label.dataset.flowTarget]);
+      return nodes.flatMap((node) => {
+        if (!endpoints.has(node.id)) return [];
+        const horizontal = Math.min(box.right, node.box.right) - Math.max(box.left, node.box.left);
+        const vertical = Math.min(box.bottom, node.box.bottom) - Math.max(box.top, node.box.top);
+        return horizontal > 8 && vertical > 8 ? [`${label.dataset.flowLabelId}/${node.id}`] : [];
+      });
+    });
+    const wrappedTotals = [...shell.querySelectorAll<HTMLElement>(".money-map-module__total dd")]
+      .filter((value) => {
+        const range = document.createRange();
+        range.selectNodeContents(value);
+        return range.getClientRects().length > 1;
+      })
+      .map((value) => value.textContent);
+
+    return {
+      deepEndpointOverlaps,
+      focusedModules: shell.querySelectorAll('.money-map-module[data-presentation-focus="true"]')
+        .length,
+      focusedLabels: shell.querySelectorAll(
+        '.money-map-flow-label-wrap[data-presentation-focus="true"]',
+      ).length,
+      wrappedTotals,
+    };
+  });
+
+  expect(audit.focusedModules).toBe(0);
+  expect(audit.focusedLabels).toBe(0);
+  expect(audit.wrappedTotals).toEqual([]);
+  expect(audit.deepEndpointOverlaps).toEqual([]);
+});
+
+test("author header keeps the story identity clear of metadata and actions", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/ }).click();
+
+  const geometry = await page.locator(".workspace-header").evaluate((header) => {
+    const heading = header
+      .querySelector<HTMLElement>(".workspace-heading")
+      ?.getBoundingClientRect();
+    const actions = header
+      .querySelector<HTMLElement>(".workspace-actions")
+      ?.getBoundingClientRect();
+    if (!heading || !actions) throw new Error("Expected workspace header regions");
+    return { headingRight: heading.right, actionsLeft: actions.left };
+  });
+
+  expect(geometry.headingRight + 12).toBeLessThanOrEqual(geometry.actionsLeft);
+});

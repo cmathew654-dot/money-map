@@ -21,6 +21,29 @@ function appearanceCommands() {
 }
 
 describe("AdvancedProperties", () => {
+  it("closes on Escape from non-text controls but restores an input draft without closing", () => {
+    const onClose = vi.fn();
+    render(
+      <AdvancedProperties
+        commands={appearanceCommands()}
+        document={baseDocument}
+        moduleId="annuity-policy"
+        initialTab="content"
+        onClose={onClose}
+        onCommitField={vi.fn()}
+        onExecute={vi.fn()}
+      />,
+    );
+
+    const title = screen.getByRole("textbox", { name: "Title" });
+    fireEvent.change(title, { target: { value: "Uncommitted title" } });
+    fireEvent.keyDown(title, { key: "Escape" });
+    expect((title as HTMLInputElement).value).toBe("Illustrative annuity");
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Content" }), { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
   it("offers keyboard-reachable tabs and starts Content concise with details collapsed", () => {
     render(
       <AdvancedProperties

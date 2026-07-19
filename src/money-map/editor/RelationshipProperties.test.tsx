@@ -28,6 +28,17 @@ function renderProperties() {
 }
 
 describe("RelationshipProperties", () => {
+  it("closes on Escape from non-text controls but restores an input draft without closing", () => {
+    const props = renderProperties();
+    const primary = screen.getByRole("textbox", { name: "Primary label" });
+    fireEvent.change(primary, { target: { value: "Uncommitted relationship" } });
+    fireEvent.keyDown(primary, { key: "Escape" });
+    expect((primary as HTMLInputElement).value).toBe("$300,000 premium");
+    expect(props.onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Close" }), { key: "Escape" });
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
   it("uses canonical commands for route, semantics, treatment, cadence, and reset", () => {
     const props = renderProperties();
     fireEvent.click(screen.getByRole("button", { name: "Curved route" }));
