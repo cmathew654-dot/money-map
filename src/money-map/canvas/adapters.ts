@@ -1,4 +1,4 @@
-import { MarkerType, type Edge, type Node } from "@xyflow/react";
+import { MarkerType, Position, type Edge, type Node } from "@xyflow/react";
 
 import { updateModule } from "../model/document";
 import type {
@@ -6,6 +6,7 @@ import type {
   MoneyMapFlow,
   MoneyMapModule,
   Point,
+  PresentationStep,
   Selection,
 } from "../model/types";
 
@@ -28,15 +29,61 @@ export interface MoneyMapNodeData extends Record<string, unknown> {
   haloAnchor: boolean;
   connectMode: boolean;
   reconnectMode: boolean;
+  presentation?: boolean;
+  presentationFocus?: boolean;
 }
 
 export interface MoneyMapEdgeData extends Record<string, unknown> {
   flow: MoneyMapFlow;
   editing?: boolean;
   handlers?: MoneyMapEdgeHandlers;
+  presentation?: boolean;
+  presentationFocus?: boolean;
 }
 
 export type MoneyMapCanvasEdge = Edge<MoneyMapEdgeData, "moneyMapRelationship">;
+
+function moduleHorizontalCenter(module: MoneyMapModule): number {
+  return module.position.x + module.width / 2;
+}
+
+function horizontalHandleToward(
+  module: MoneyMapModule,
+  pointX: number,
+  kind: "source" | "target",
+): string {
+  const deltaX = pointX - moduleHorizontalCenter(module);
+  const position =
+    deltaX === 0
+      ? kind === "source"
+        ? Position.Right
+        : Position.Left
+      : deltaX > 0
+        ? Position.Right
+        : Position.Left;
+  return kind + "-" + position;
+}
+
+function relationshipHandles(
+  document: MoneyMapDocument,
+  flow: MoneyMapFlow,
+): Pick<MoneyMapCanvasEdge, "sourceHandle" | "targetHandle"> {
+  const source = document.modules.find((module) => module.id === flow.source);
+  const target = document.modules.find((module) => module.id === flow.target);
+  if (!source || !target) return {};
+  return {
+    sourceHandle: horizontalHandleToward(
+      source,
+      flow.waypoints[0]?.x ?? moduleHorizontalCenter(target),
+      "source",
+    ),
+    targetHandle: horizontalHandleToward(
+      target,
+      flow.waypoints.at(-1)?.x ?? moduleHorizontalCenter(source),
+      "target",
+    ),
+  };
+}
 
 export function cadenceMatchesFilter(flow: MoneyMapFlow, filter: CadenceFilter): boolean {
   if (filter === "all") return true;
@@ -71,6 +118,7 @@ export function documentToNodes(
   document: MoneyMapDocument,
   selection: Selection,
   connectMode = false,
+  presentationStep?: PresentationStep,
 ): Node<MoneyMapNodeData>[] {
   const selected = new Set(selection.moduleIds);
   const reconnectMode = selection.moduleIds.length === 0 && selection.flowIds.length === 1;
@@ -92,10 +140,14 @@ export function documentToNodes(
         haloAnchor: module.id === haloAnchorId,
         connectMode,
         reconnectMode,
+        presentation: Boolean(presentationStep),
+        presentationFocus: presentationStep?.moduleIds.includes(module.id) ?? false,
       },
       style: { width: module.width },
       selected: selected.has(module.id),
-      focusable: true,
+      draggable: !presentationStep,
+      selectable: !presentationStep,
+      focusable: !presentationStep,
       ariaLabel: moduleAriaLabel(module, outgoingCount),
     };
   });
@@ -105,6 +157,7 @@ export function documentToEdges(
   document: MoneyMapDocument,
   selection: Selection,
   filter: CadenceFilter = "all",
+  presentationStep?: PresentationStep,
 ): MoneyMapCanvasEdge[] {
   const selected = new Set(selection.flowIds);
   const reconnectableId =
@@ -116,19 +169,26 @@ export function documentToEdges(
     id: flow.id,
     source: flow.source,
     target: flow.target,
+    ...relationshipHandles(document, flow),
     type: "moneyMapRelationship",
-    data: { flow },
+    data: {
+      flow,
+      presentation: Boolean(presentationStep),
+      presentationFocus: presentationStep?.flowIds.includes(flow.id) ?? false,
+    },
     selected: selected.has(flow.id),
-    selectable: true,
-    focusable: true,
-    reconnectable: flow.id === reconnectableId,
+    selectable: !presentationStep,
+    focusable: !presentationStep,
+    reconnectable: !presentationStep && flow.id === reconnectableId,
     hidden: !cadenceMatchesFilter(flow, filter),
     markerEnd:
       flow.relationship === "association"
         ? undefined
         : { type: MarkerType.ArrowClosed, width: 18, height: 18 },
     ariaLabel: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
-    className: `money-map-edge money-map-edge--${flow.relationship}`,
+    className: `money-map-edge money-map-edge--${flow.relationship}${
+      presentationStep?.flowIds.includes(flow.id) ? " presentation-focus" : ""
+    }`,
   }));
 }
 

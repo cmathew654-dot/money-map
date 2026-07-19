@@ -243,14 +243,20 @@ describe("RMD & Withholding starter", () => {
 
     expect(moduleById.get("rmd-instruction")?.position).toEqual({ x: 424, y: 274 });
     expect(flowById.get("rmd-qcd")?.waypoints).toEqual([{ x: 560, y: 180 }]);
-    expect(flowById.get("rmd-federal-withholding")?.waypoints).toEqual([{ x: 600, y: 250 }]);
-    expect(flowById.get("rmd-state-withholding")?.waypoints).toEqual([{ x: 500, y: 480 }]);
+    expect(flowById.get("rmd-federal-withholding")?.waypoints).toEqual([{ x: 650, y: 380 }]);
+    expect(flowById.get("rmd-state-withholding")?.waypoints).toEqual([{ x: 520, y: 600 }]);
     expect(flowById.get("rmd-net-distribution")?.waypoints).toEqual([
       { x: 700, y: 480 },
       { x: 1004, y: 470 },
     ]);
     expect(flowById.get("rmd-household-need")?.waypoints).toEqual([{ x: 1226, y: 500 }]);
-    expect(flowById.get("rmd-year-end-review")?.waypoints).toEqual([{ x: 1090, y: 258 }]);
+    expect(flowById.get("rmd-year-end-review")?.waypoints).toEqual([
+      { x: 559, y: 690 },
+      { x: 1010, y: 710 },
+      { x: 1010, y: 480 },
+      { x: 1400, y: 480 },
+      { x: 1400, y: 130 },
+    ]);
   });
   it("keeps financial content literal and theme styling decorative only", () => {
     const serialized = JSON.stringify(rmdStarter.document);

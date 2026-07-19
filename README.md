@@ -18,7 +18,7 @@ Open the address reported by Vite, choose a story, and edit the map. Authoring r
 - **Annuity Income Floor — Foundation:** shows household income, advisor-authored premium planning, an illustrative contract, liquidity, and an income need without implying funding capacity.
 - **Roth Conversion — Conversion Path:** stages source and destination accounts, separate 2026 and 2027 windows, outside tax reserves, and planning guardrails.
 
-Each starter has its own visual direction and contains an Overview plus five named focus states in the document model. The current public interface is the authoring experience; live presentation-step navigation is not yet exposed.
+Each starter has its own visual direction and contains an Overview plus five named focus states. The shared presentation mode keeps the story title, as-of date, and synthetic-data provenance visible while providing direct, keyboard-accessible step navigation.
 
 ## Financial boundary
 
@@ -32,6 +32,7 @@ Money Map does **not** calculate taxes, reconcile balances, annualize cash flows
 - Edit module and relationship text directly; use the property surfaces for appearance, routes, semantics, endpoints, label treatment, and cadence.
 - Pan and zoom the canvas, fit the map or selection, and route relationship labels by pointer or keyboard.
 - Filter relationships by cadence and use one searchable Actions palette (`Ctrl/Cmd+K`) for shared commands.
+- Present any story as a read-only Overview plus five named steps; use Arrow keys or Space to advance, direct step controls to jump, and Escape to return to authoring.
 - Undo, redo, reset a starter, and restore committed edits from local browser storage.
 
 ## Stack
@@ -56,7 +57,7 @@ npm run check:pages
 
 ## Architecture
 
-Starter fixtures feed a typed, literal-safe document model. A shared editor hook owns history and per-starter persistence; a single command registry drives keyboard, palette, halo, and property actions. React Flow is isolated behind canvas adapters and custom module/relationship renderers, while themes change presentation without changing behavior or financial meaning.
+Starter fixtures feed a typed, literal-safe document model. A shared editor hook owns history and per-starter persistence; a single command registry drives keyboard, palette, halo, and property actions. React Flow is isolated behind canvas adapters and custom module/relationship renderers, while the presentation shell projects the same document into a read-only story without changing financial meaning.
 
 See [architecture](docs/architecture.md), [data provenance](docs/provenance.md), [product intent](PRODUCT.md), and [design contract](DESIGN.md).
 

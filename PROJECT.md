@@ -4,48 +4,37 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 4 complete — four equal-finish starters; authoring accessibility preflight closed
+**Checkpoint:** Task 5 integrated - four equal-finish starters, shared authoring, and shared presentation
 
-**Phase:** GitHub packaging complete; shared presentation implementation in progress
+**Phase:** Final Impeccable audit and implementation of verified findings
 
 ## Current product
 
-- Four synthetic advisor story starters share one React Flow authoring system, command registry, persisted undo history, direct/advanced editing, custom relationship renderer, cadence filters, and accessible camera/selection controls.
+- Four synthetic advisor stories share one literal-safe React Flow document model, authoring system, command registry, persisted undo history, and read-only presentation shell.
+- Retirement Income, RMD & Withholding, Annuity Income Floor, and Roth Conversion each provide a complete authored composition with Overview plus five distinct named steps.
+- Authoring includes direct editing, advanced properties, selection halo, Actions palette, cadence filters, pan/zoom/fit controls, horizontal module resize, relationship waypoints, reconnect, undo/redo, reset, and per-starter local persistence.
+- Presentation keeps title, as-of date, and synthetic-data provenance visible; offers direct and keyboard step navigation; restores focus on exit; and disables author mutations.
 - Financial content remains exact display text. Nothing parses, calculates, reconciles, taxes, debits, validates funding capacity, or derives geometry/style from amounts.
-- The frozen starter registry deep-clones defaults; four scoped theme files may change decorative art direction without changing shared behavior or financial semantics.
-- Public packaging now includes visitor-first README, architecture and synthetic-data provenance docs, a relative-asset build check, and SHA-pinned verify/Pages workflows; nothing has been pushed or deployed.
-
-## Task 4 progress
-
-- The shared starter/theme API freeze at `29f3b67` is independently approved.
-- Retirement Income is now a complete Private Ledger composition with nine modules, seven relationships, a reserved lower routing lane, and exact Overview plus five authored focus states.
-- Retirement uses all six visual primitives; straight, orthogonal, and curved routes; flow, planned, and association semantics; plain, plate, and filled labels; and Monthly, Annual, Other, and exact custom cadence.
-- Exact authored literals include `~$11,800/mo`, `~$16,000/mo`, `$37,818 gross`, `After W/H: $25,471`, `$21,475/yr gross`, and `Up to $105,000`.
-- RMD now has eight modules, seven relationships, all route/relationship/label/cadence variants, and Overview plus five named distribution steps.
-- Annuity now has six distinct modules and six semantic relationships, preserving the `$250,000` source and `$300,000 — revised illustration` premium plan as independent literal display text with no funding-capacity inference.
-- Roth now has seven modules, eight relationships, all relationship vocabulary, and five distinct endpoint-owning focus states across its 2026/2027 conversion story.
-- The seven stale Annuity journeys now use final source-to-plan-to-contract semantics; the shared relationship panel also stays usable near the lower viewport edge.
+- Public packaging includes a visitor-first README, architecture and provenance docs, relative Pages asset validation, and SHA-pinned verify/deploy workflows. Nothing has been pushed or deployed.
 
 ## Verification
 
-- Retirement RED: three fixture/theme contract failures against the intermediate scaffold.
-- Retirement focused GREEN: 2 files, 8 tests passed.
-- Fresh `npm run verify`: pass in the integration worktree.
-- Prettier, ESLint, TypeScript, financial source guard, and production build: pass.
-- Unit/component: 33 files, 210 tests passed.
-- Chromium: 17/17 journeys passed.
-- Production bundle: 137.26 kB gzip JavaScript and 7.49 kB gzip CSS.
-- Authoring preflight: command palette uses a valid non-tabbable active-descendant combobox pattern; starter index contrast is 5.31:1; the three authoring toolbars share roving focus with Arrow and Home/End navigation. Focused tests, ESLint, TypeScript, and formatting pass.
-- Packaging checkpoint: 210 unit tests, lint, TypeScript, build, relative Pages asset check, seven action-pin checks, and tracked-tree hygiene pass; internal tracked agent reports removed.
+- ESLint, TypeScript, production build, and Pages asset validation pass in the integration worktree.
+- Unit/component: 35 files, 231 tests passed.
+- Integrated presentation Chromium: 7/7 passed.
+- Presentation worker full Chromium: 24/24 passed.
+- All four stories pass presentation geometry and readability checks at 1280x720, 1440x900, and 1920x1080: bounded content, no module/label collisions, no unrelated route crossings, and enforced text floors.
+- Independent Task 5 review found no P0/P1 defects. Its three P2 findings - coarse-pointer targets, per-theme presentation surfaces, and fake-height connector ports - were repaired and covered before integration.
+- Final repository-wide verification will run again after the Impeccable repair pass.
 
-## Known limitations
+## Known boundaries
 
-- All four final starters are integrated and green. The rendered 1440×760 probes report zero module/module, label/module, label/label, and unrelated path/module intersections.
-- Presentation chrome, named-step navigation behavior, responsive presentation repair, and screenshot evidence remain Task 5.
-- Stale local v1 drafts can mask new defaults until Reset; visual verification must reset each starter first.
-- Draft persistence is local and synchronous. No backend, cloud sync, collaboration, arbitrary import/export, or production-advisory claim exists.
-- Nothing from this rebuild has been pushed or deployed.
+- This is a clean portfolio demonstration, not production financial-planning software or financial advice.
+- Authoring requires at least 1180x660 and shows an honest cover below that minimum; presentation targets the three verified desktop viewports.
+- Draft persistence is local and synchronous. There is no backend, cloud sync, collaboration, authentication, or arbitrary import/export.
+- Stale local drafts can mask updated starter defaults until Reset.
+- No branch has been pushed, merged, deployed, or released.
 
 ## Next action
 
-Implement the shared presentation system with persistent metadata, Overview plus five named steps, keyboard navigation, reduced motion, and bounded responsive compositions.
+Run the scoped Impeccable audit, implement verified P0/P1/P2 findings plus only high-value low-risk polish, then complete fresh full verification and the local handoff checkpoint.

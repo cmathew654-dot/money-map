@@ -28,6 +28,7 @@ import {
   type FlowField,
 } from "./mutations";
 import { RelationshipProperties } from "./RelationshipProperties";
+import { PresentationShell } from "./PresentationShell";
 import { positionEditorSurface, type EditorSurfacePosition } from "./surfacePosition";
 import { useMoneyMapEditor } from "./useMoneyMapEditor";
 
@@ -53,11 +54,12 @@ function initialDimensions(): Dimensions {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
-function useWorkspaceDimensions() {
+function useWorkspaceDimensions(enabled = true) {
   const ref = useRef<HTMLElement>(null);
   const [dimensions, setDimensions] = useState<Dimensions>(initialDimensions);
 
   useEffect(() => {
+    if (!enabled) return;
     const element = ref.current;
     if (!element) return;
 
@@ -84,7 +86,7 @@ function useWorkspaceDimensions() {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [enabled]);
 
   return { ref, dimensions };
 }
@@ -115,10 +117,14 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     "content" | "appearance" | "connections" | null
   >(null);
   const [styleOpen, setStyleOpen] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const presentingRef = useRef(presenting);
+  presentingRef.current = presenting;
   const [surfacePosition, setSurfacePosition] = useState<EditorSurfacePosition | null>(null);
   const actionsRef = useRef<HTMLButtonElement>(null);
+  const presentRef = useRef<HTMLButtonElement>(null);
   const styleRef = useRef<HTMLElement>(null);
-  const { ref, dimensions } = useWorkspaceDimensions();
+  const { ref, dimensions } = useWorkspaceDimensions(!presenting);
   const supported = isAuthoringViewportSupported(dimensions.width, dimensions.height);
   const selectedModuleId =
     editor.selection.moduleIds.length === 1 && editor.selection.flowIds.length === 0
@@ -419,6 +425,21 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     focusSelectedModule();
   }, [focusSelectedModule]);
 
+  const exitPresentation = useCallback(() => {
+    setPresenting(false);
+    requestAnimationFrame(() => presentRef.current?.focus());
+  }, []);
+
+  const enterPresentation = useCallback(() => {
+    setActiveInlineField(null);
+    setActiveFlowId(null);
+    setRelationshipOpen(false);
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setStyleOpen(false);
+    setPresenting(true);
+  }, []);
+
   useEffect(() => {
     if (styleOpen) styleRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
   }, [styleOpen]);
@@ -480,7 +501,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   };
 
   useEffect(() => {
+    if (presenting) return;
     const handleGlobalShortcut = (event: globalThis.KeyboardEvent) => {
+      if (presentingRef.current) return;
       if (event.defaultPrevented || isTextControl(event.target) || event.isComposing) return;
       const commandKey = event.ctrlKey || event.metaKey;
       const key = event.key.toLocaleLowerCase();
@@ -514,7 +537,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     };
     window.addEventListener("keydown", handleGlobalShortcut);
     return () => window.removeEventListener("keydown", handleGlobalShortcut);
-  }, [availableCommands, executeCommand, nudgeSelected, openPalette]);
+  }, [availableCommands, executeCommand, nudgeSelected, openPalette, presenting]);
+
+  if (presenting) {
+    return <PresentationShell document={editor.document} onExit={exitPresentation} />;
+  }
 
   return (
     <EditorInteractionContext.Provider value={interaction}>
@@ -543,6 +570,14 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               <span>{editor.document.asOf}</span>
               <span>{"Synthetic demo \u00b7 advisor-entered values"}</span>
             </div>
+            <button
+              className="present-button"
+              onClick={enterPresentation}
+              ref={presentRef}
+              type="button"
+            >
+              Present
+            </button>
             <button
               className="actions-button"
               onClick={() => actionsRef.current && openPalette(actionsRef.current)}

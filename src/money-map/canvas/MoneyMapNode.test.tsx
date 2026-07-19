@@ -76,4 +76,44 @@ describe("MoneyMapNode", () => {
     expect(handles.every((handle) => !handle.classList.contains("connectablestart"))).toBe(true);
     expect(container.querySelector('[data-reconnect-mode="true"]')).toBeTruthy();
   });
+
+  it("renders presentation focus without author handles or editing affordances", () => {
+    const module = createTestDocument().modules[0];
+    const props = {
+      id: module.id,
+      data: {
+        module,
+        outgoingCount: 1,
+        selectionCount: 0,
+        selectionModuleIds: [],
+        haloAnchor: false,
+        connectMode: false,
+        reconnectMode: false,
+        presentation: true,
+        presentationFocus: true,
+      },
+      selected: false,
+      dragging: false,
+      zIndex: 0,
+      selectable: false,
+      deletable: false,
+      draggable: false,
+      isConnectable: false,
+      positionAbsoluteX: module.position.x,
+      positionAbsoluteY: module.position.y,
+      type: "moneyMapModule",
+    } as NodeProps<MoneyMapCanvasNode>;
+
+    const { container } = render(
+      <ReactFlowProvider>
+        <MoneyMapNode {...props} />
+      </ReactFlowProvider>,
+    );
+
+    expect(container.querySelector('[data-presentation-focus="true"]')).toBeTruthy();
+    expect(container.querySelectorAll(".money-map-handle")).toHaveLength(8);
+    expect(container.querySelector(".money-map-handle.connectablestart")).toBeNull();
+    expect(container.querySelector(".selection-halo")).toBeNull();
+    expect(container.querySelector("input, button")).toBeNull();
+  });
 });

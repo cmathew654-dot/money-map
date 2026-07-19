@@ -105,6 +105,38 @@ describe("canvas document adapters", () => {
     ).toBe("curved");
   });
 
+  it("attaches relationships to deterministic sides from authored geometry", () => {
+    const document = createTestDocument();
+    const edges = documentToEdges(document, { moduleIds: [], flowIds: [] });
+
+    expect(
+      edges.map(({ id, sourceHandle, targetHandle }) => ({ id, sourceHandle, targetHandle })),
+    ).toEqual([
+      {
+        id: "funding-flow",
+        sourceHandle: "source-right",
+        targetHandle: "target-left",
+      },
+      {
+        id: "income-flow",
+        sourceHandle: "source-right",
+        targetHandle: "target-left",
+      },
+    ]);
+
+    const vertical = {
+      ...document,
+      modules: document.modules.map((module, index) =>
+        index === 1 ? { ...module, position: { x: 40, y: -260 } } : module,
+      ),
+      flows: [{ ...document.flows[0], target: "annuity-policy", waypoints: [] }],
+    };
+    expect(documentToEdges(vertical, { moduleIds: [], flowIds: [] })[0]).toMatchObject({
+      sourceHandle: "source-right",
+      targetHandle: "target-left",
+    });
+  });
+
   it("counts modules and relationships together for one mixed-selection halo anchor", () => {
     const document = createTestDocument();
     const mixed = documentToNodes(document, {
@@ -159,5 +191,37 @@ describe("canvas document adapters", () => {
       flowIds: ["income-flow"],
     });
     expect(selectionForCadence(document, selection, "all")).toBe(selection);
+  });
+
+  it("projects a presentation step without changing geometry or enabling author interaction", () => {
+    const document = createTestDocument();
+    const step = {
+      id: "focus",
+      title: "Focused state",
+      moduleIds: [document.modules[0].id],
+      flowIds: [document.flows[0].id],
+    };
+    const nodes = documentToNodes(document, { moduleIds: [], flowIds: [] }, false, step);
+    const edges = documentToEdges(document, { moduleIds: [], flowIds: [] }, "all", step);
+
+    expect(nodes.map(({ position, style }) => ({ position, style }))).toEqual(
+      documentToNodes(document, { moduleIds: [], flowIds: [] }).map(({ position, style }) => ({
+        position,
+        style,
+      })),
+    );
+    expect(
+      nodes.every(
+        ({ focusable, draggable, selectable }) => !focusable && !draggable && !selectable,
+      ),
+    ).toBe(true);
+    expect(nodes.find(({ id }) => id === step.moduleIds[0])?.data.presentationFocus).toBe(true);
+    expect(nodes.find(({ id }) => id !== step.moduleIds[0])?.data.presentationFocus).toBe(false);
+    expect(
+      edges.every(
+        ({ focusable, reconnectable, selectable }) => !focusable && !reconnectable && !selectable,
+      ),
+    ).toBe(true);
+    expect(edges.find(({ id }) => id === step.flowIds[0])?.data?.presentationFocus).toBe(true);
   });
 });

@@ -26,7 +26,7 @@ import {
 
 import { matchCommandShortcut } from "../editor/commandShortcuts";
 import { useEditorInteraction } from "../editor/EditorInteractionContext";
-import type { MoneyMapDocument, Selection } from "../model/types";
+import type { MoneyMapDocument, PresentationStep, Selection } from "../model/types";
 import { CanvasControls, type CanvasController } from "./CanvasControls";
 import { MoneyMapEdge } from "./MoneyMapEdge";
 import { MoneyMapNode, type MoneyMapCanvasNode } from "./MoneyMapNode";
@@ -45,6 +45,8 @@ interface MoneyMapCanvasProps {
   onSelectionChange(selection: Selection): void;
   onDocumentChange(document: MoneyMapDocument): void;
   cadenceFilter?: CadenceFilter;
+  mode?: "author" | "presentation";
+  presentationStep?: PresentationStep;
 }
 
 const nodeTypes = { moneyMapModule: MoneyMapNode };
@@ -110,22 +112,32 @@ function MoneyMapCanvasInner({
   onSelectionChange,
   onDocumentChange,
   cadenceFilter = "all",
+  mode = "author",
+  presentationStep,
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const editor = useEditorInteraction();
   const screenToFlowPosition = flow.screenToFlowPosition;
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
-  const reconnectMode = selection.moduleIds.length === 0 && selection.flowIds.length === 1;
+  const presenting = mode === "presentation";
+  const reconnectMode =
+    !presenting && selection.moduleIds.length === 0 && selection.flowIds.length === 1;
   const adaptedNodes = useMemo(
-    () => documentToNodes(document, selection, editor?.connectMode ?? false),
-    [document, editor?.connectMode, selection],
+    () =>
+      documentToNodes(
+        document,
+        selection,
+        presenting ? false : (editor?.connectMode ?? false),
+        presentationStep,
+      ),
+    [document, editor?.connectMode, presentationStep, presenting, selection],
   );
   const adaptedEdges = useMemo(
     () =>
-      documentToEdges(document, selection, cadenceFilter).map((edge) => {
+      documentToEdges(document, selection, cadenceFilter, presentationStep).map((edge) => {
         const relationship = edge.data?.flow;
-        if (!editor || !relationship) return edge;
+        if (presenting || !editor || !relationship) return edge;
         return {
           ...edge,
           data: {
@@ -148,7 +160,15 @@ function MoneyMapCanvasInner({
           },
         };
       }),
-    [cadenceFilter, document, editor, screenToFlowPosition, selection],
+    [
+      cadenceFilter,
+      document,
+      editor,
+      presentationStep,
+      presenting,
+      screenToFlowPosition,
+      selection,
+    ],
   );
   const [nodes, setNodes] = useState(adaptedNodes);
   const [edges, setEdges] = useState(adaptedEdges);
@@ -225,6 +245,16 @@ function MoneyMapCanvasInner({
   const fitMap = useCallback(() => {
     void flow.fitView({ padding: 0.16, duration: cameraDuration(180) });
   }, [flow]);
+
+  useEffect(() => {
+    if (!presenting) return;
+    const fitPresentation = () => {
+      void flow.fitView({ padding: 0.08, duration: cameraDuration(220) });
+    };
+    fitPresentation();
+    window.addEventListener("resize", fitPresentation);
+    return () => window.removeEventListener("resize", fitPresentation);
+  }, [document.id, flow, presenting]);
 
   const fitSelection = useCallback(() => {
     if (selection.moduleIds.length === 0) {
@@ -448,41 +478,47 @@ function MoneyMapCanvasInner({
 
   return (
     <div
-      className="money-map-canvas"
-      tabIndex={0}
-      aria-label={`${document.title} authoring canvas`}
-      onKeyDown={handleKeyDown}
-      onPointerDownCapture={handlePointerDownCapture}
+      className={`money-map-canvas${presenting ? " money-map-canvas--presentation" : ""}`}
+      tabIndex={presenting ? -1 : 0}
+      aria-label={`${document.title} ${presenting ? "presentation" : "authoring"} canvas`}
+      onKeyDown={presenting ? undefined : handleKeyDown}
+      onPointerDownCapture={presenting ? undefined : handlePointerDownCapture}
     >
       <ReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
-        onSelectionChange={handleFlowSelectionChange}
-        onNodeDragStop={handleNodeDragStop}
-        onConnect={handleConnect}
-        onReconnect={handleReconnect}
+        onNodesChange={presenting ? undefined : handleNodesChange}
+        onEdgesChange={presenting ? undefined : handleEdgesChange}
+        onSelectionChange={presenting ? undefined : handleFlowSelectionChange}
+        onNodeDragStop={presenting ? undefined : handleNodeDragStop}
+        onConnect={presenting ? undefined : handleConnect}
+        onReconnect={presenting ? undefined : handleReconnect}
         onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
         minZoom={0.3}
         maxZoom={2}
-        zoomOnScroll
-        zoomOnPinch
-        panOnDrag={[0, 1]}
-        panActivationKeyCode="Space"
-        selectionKeyCode="Shift"
+        fitView={presenting}
+        fitViewOptions={presenting ? { padding: 0.08 } : undefined}
+        zoomOnScroll={!presenting}
+        zoomOnPinch={!presenting}
+        panOnDrag={presenting ? false : [0, 1]}
+        panActivationKeyCode={presenting ? null : "Space"}
+        selectionKeyCode={presenting ? null : "Shift"}
         multiSelectionKeyCode="Shift"
         selectionOnDrag={false}
-        nodesConnectable={(editor?.connectMode ?? false) || reconnectMode}
+        nodesDraggable={!presenting}
+        elementsSelectable={!presenting}
+        nodesConnectable={!presenting && ((editor?.connectMode ?? false) || reconnectMode)}
         connectionMode={ConnectionMode.Loose}
-        edgesReconnectable
+        edgesReconnectable={!presenting}
         reconnectRadius={26}
         deleteKeyCode={null}
-        proOptions={{ hideAttribution: false }}
+        proOptions={{ hideAttribution: presenting }}
       />
-      <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />
+      {presenting ? null : (
+        <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />
+      )}
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {editor?.announcement || announcement}
       </p>

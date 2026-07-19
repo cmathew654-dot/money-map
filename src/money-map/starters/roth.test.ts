@@ -72,7 +72,7 @@ const expectedFlows = [
     "Advisor tax review",
     "custom",
   ],
-  ["roth-source", "roth-2027", "planned", "orthogonal", "plate", "Annual", "annual"],
+  ["roth-source", "roth-2027", "planned", "straight", "plate", "Annual", "annual"],
   ["roth-2027", "roth-destination", "flow", "curved", "filled", "One-time", "one-time"],
   [
     "roth-liquidity",
@@ -156,10 +156,13 @@ describe("Roth Conversion Path starter", () => {
     expect(flowById.get("roth-tax-reserve-to-2026")?.waypoints[0]).toEqual({ x: 640, y: 350 });
     expect(flowById.get("roth-source-to-2027")?.waypoints).toEqual([
       { x: 360, y: 310 },
-      { x: 1030, y: 310 },
+      { x: 410, y: 310 },
+      { x: 410, y: 700 },
+      { x: 1075, y: 700 },
+      { x: 1075, y: 520 },
     ]);
     expect(flowById.get("roth-liquidity-to-source")?.waypoints[0]).toEqual({ x: 185, y: 350 });
-    expect(flowById.get("roth-2026-to-guardrails")?.waypoints[0]).toEqual({ x: 850, y: 360 });
+    expect(flowById.get("roth-2026-to-guardrails")?.waypoints[0]).toEqual({ x: 850, y: 320 });
     expect(flowById.get("roth-2027-to-destination")?.waypoints[0]).toEqual({ x: 1300, y: 385 });
   });
   it("provides Overview plus five endpoint-owning named focus states", () => {

@@ -68,6 +68,9 @@ export function MoneyMapEdge({
   return (
     <>
       <g
+        data-flow-id={flow.id}
+        data-flow-source={flow.source}
+        data-flow-target={flow.target}
         onClick={(event) => {
           event.stopPropagation();
           handlers?.select();
@@ -84,15 +87,24 @@ export function MoneyMapEdge({
         <div
           className="money-map-flow-label-wrap nodrag nopan"
           data-flow-label-id={flow.id}
+          data-flow-source={flow.source}
+          data-flow-target={flow.target}
           data-treatment={flow.labelTreatment}
           data-selected={selected ? "true" : "false"}
+          data-presentation-focus={data.presentationFocus ? "true" : "false"}
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${geometry.label.x}px, ${geometry.label.y}px)`,
             pointerEvents: "all",
           }}
         >
-          {editing ? (
+          {data.presentation ? (
+            <span className="money-map-flow-label" role="group" aria-label={ariaLabel}>
+              <strong>{flow.label}</strong>
+              {flow.secondaryLabel ? <span>{flow.secondaryLabel}</span> : null}
+              <small>{flow.cadence.label}</small>
+            </span>
+          ) : editing ? (
             <InlineField
               ariaLabel="Edit relationship label"
               value={flow.label}

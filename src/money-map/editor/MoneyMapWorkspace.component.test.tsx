@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { createTestDocument } from "../model/test-fixtures";
@@ -94,6 +94,24 @@ describe("MoneyMapWorkspace command lifecycle", () => {
 
     expect(workspace?.getAttribute("data-canvas-style")).toBe("foundation");
     expect(workspace?.classList.contains("theme-foundation")).toBe(true);
+  });
+
+  it("enters from one Present control and restores its focus after Exit", async () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const present = screen.getByRole("button", { name: "Present" });
+
+    expect(screen.getAllByRole("button", { name: "Present" })).toHaveLength(1);
+    present.focus();
+    fireEvent.click(present);
+    expect(screen.queryByRole("button", { name: /Actions/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Exit presentation" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Exit presentation" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Present" })).toBe(
+        globalThis.document.activeElement,
+      );
+    });
   });
   it("limits create-connection mode to the live Connections surface", () => {
     const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);

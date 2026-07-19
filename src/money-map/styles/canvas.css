@@ -336,6 +336,23 @@
   cursor: pointer;
 }
 
+.present-button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid var(--map-focus);
+  border-radius: 3px;
+  color: var(--map-surface);
+  background: var(--map-focus);
+  font: inherit;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.present-button:focus-visible {
+  outline: 3px solid var(--map-accent);
+  outline-offset: 2px;
+}
+
 .actions-button kbd,
 .command-palette kbd {
   color: #756e61;
@@ -886,6 +903,278 @@
   .money-map-flow-label,
   .money-map-relationship-path,
   .money-map-handle {
+    transition: none !important;
+  }
+}
+
+/* Shared read-only presentation system */
+.money-map-presentation {
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr) 64px;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--map-ink);
+  background: var(--map-canvas);
+  outline: none;
+}
+
+.presentation-header {
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(150px, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 8px 22px;
+  border-bottom: 1px solid rgba(99, 88, 69, 0.3);
+  background: rgba(248, 244, 235, 0.98);
+}
+
+.presentation-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.presentation-title .brand-mark {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+.presentation-title h1 {
+  margin: 1px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.presentation-meta {
+  display: grid;
+  gap: 2px;
+  color: #625d53;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.presentation-exit,
+.presentation-overview,
+.presentation-dots button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid #958b79;
+  border-radius: 999px;
+  color: #373b36;
+  background: #fbf8f0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.presentation-exit {
+  justify-self: end;
+  min-height: 44px;
+  padding: 7px 14px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.presentation-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--map-canvas);
+}
+
+.money-map-canvas--presentation {
+  background-color: var(--map-canvas);
+  background-image: none;
+  pointer-events: none;
+}
+
+.money-map-presentation .money-map-module {
+  padding: 9px;
+  cursor: default;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.money-map-presentation .money-map-module[data-presentation-focus="true"] {
+  border-color: var(--map-accent);
+  box-shadow:
+    0 0 0 4px var(--map-canvas),
+    0 0 0 8px var(--map-accent),
+    0 8px 22px rgba(49, 43, 34, 0.16);
+}
+
+.money-map-presentation .react-flow__edge.presentation-focus .money-map-relationship-path {
+  stroke: var(--map-accent);
+  stroke-width: 3;
+}
+
+.money-map-presentation .money-map-flow-label {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  gap: 4px;
+  align-items: baseline;
+  padding: 3px 6px;
+  cursor: default;
+  line-height: 1.05;
+  white-space: nowrap;
+  transition:
+    outline-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.money-map-presentation
+  .money-map-flow-label-wrap[data-presentation-focus="true"]
+  .money-map-flow-label {
+  outline: 4px solid var(--map-accent);
+  outline-offset: 3px;
+  box-shadow: 0 5px 16px rgba(49, 43, 34, 0.18);
+}
+
+.money-map-presentation .money-map-module__header h2 {
+  margin-top: 2px;
+  font-size: 29px;
+  line-height: 1;
+}
+
+.money-map-presentation .money-map-module__eyebrow {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.money-map-presentation .money-map-module__subtitle {
+  margin-top: 3px;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.money-map-presentation .money-map-module__rows,
+.money-map-presentation .money-map-module__total {
+  margin-top: 8px;
+}
+
+.money-map-presentation .money-map-module__row,
+.money-map-presentation .money-map-module__total > div {
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.money-map-presentation .money-map-module dt,
+.money-map-presentation .money-map-module dd {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.money-map-presentation .money-map-module__total dd {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.money-map-presentation .money-map-module__note {
+  margin-top: 6px;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.money-map-presentation .money-map-flow-label strong {
+  font-size: 16px;
+}
+
+.money-map-presentation .money-map-flow-label span,
+.money-map-presentation .money-map-flow-label small {
+  font-size: 16px;
+}
+
+.presentation-nav {
+  z-index: 10;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  border-top: 1px solid rgba(99, 88, 69, 0.3);
+  background: rgba(248, 244, 235, 0.98);
+}
+
+.presentation-overview {
+  min-width: 96px;
+  padding: 6px 14px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.presentation-step-copy {
+  display: grid;
+  min-width: 250px;
+  gap: 1px;
+  text-align: center;
+}
+
+.presentation-step-copy strong {
+  overflow: hidden;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presentation-step-copy span {
+  color: #6e685d;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.presentation-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.presentation-dots button {
+  position: relative;
+  border-color: transparent;
+  background: transparent;
+}
+
+.presentation-dots button::after {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #6d685d;
+  border-radius: 50%;
+  background: #fbf8f0;
+  content: "";
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+.presentation-overview[aria-current="step"],
+.presentation-dots button[aria-current="step"] {
+  border-color: var(--map-accent);
+  box-shadow: 0 0 0 2px var(--map-accent);
+}
+
+.presentation-dots button[aria-current="step"]::after {
+  border-color: var(--map-accent);
+  background: var(--map-accent);
+}
+
+.presentation-exit:focus-visible,
+.presentation-overview:focus-visible,
+.presentation-dots button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-map-presentation .money-map-module,
+  .money-map-presentation .money-map-flow-label,
+  .money-map-presentation .money-map-relationship-path {
     transition: none !important;
   }
 }

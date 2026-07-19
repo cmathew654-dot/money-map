@@ -595,6 +595,44 @@ describe("MoneyMapCanvas movement and camera", () => {
     expect(flowMock.zoomIn).toHaveBeenCalledWith({ duration: 0 });
     expect(flowMock.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }));
   });
+
+  it("fits a presentation as one read-only map with no author camera or canvas tab stop", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false }),
+    });
+    const document = createTestDocument();
+    const { container } = render(
+      <MoneyMapCanvas
+        document={document}
+        mode="presentation"
+        presentationStep={document.presentation[0]}
+        selection={{ moduleIds: [], flowIds: [] }}
+        onSelectionChange={vi.fn()}
+        onDocumentChange={vi.fn()}
+      />,
+    );
+
+    const canvas = container.querySelector(".money-map-canvas");
+    expect(canvas?.getAttribute("tabindex")).toBe("-1");
+    expect(canvas?.getAttribute("aria-label")).toBe(`${document.title} presentation canvas`);
+    expect(screen.queryByRole("toolbar", { name: "Canvas camera" })).toBeNull();
+    expect(flowMock.props).toMatchObject({
+      edgesReconnectable: false,
+      elementsSelectable: false,
+      fitView: true,
+      nodesConnectable: false,
+      nodesDraggable: false,
+      panOnDrag: false,
+      panActivationKeyCode: null,
+      selectionKeyCode: null,
+      zoomOnPinch: false,
+      zoomOnScroll: false,
+    });
+    expect(flowMock.fitView).toHaveBeenCalledWith(
+      expect.objectContaining({ padding: 0.08, duration: 220 }),
+    );
+  });
 });
 describe("MoneyMapCanvas relationship callbacks", () => {
   beforeEach(() => {

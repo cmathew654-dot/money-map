@@ -28,7 +28,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
 
   return (
     <>
-      {data.haloAnchor && editor ? (
+      {data.haloAnchor && editor && !data.presentation ? (
         <NodeToolbar
           className="selection-halo-anchor"
           isVisible
@@ -43,7 +43,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         </NodeToolbar>
       ) : null}
 
-      {selected && editor?.selectionCount === 1 ? (
+      {selected && editor?.selectionCount === 1 && !data.presentation ? (
         <>
           {[Position.Left, Position.Right].map((position) => (
             <NodeResizeControl
@@ -70,6 +70,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-selected={selected ? "true" : "false"}
         data-connect-mode={data.connectMode ? "true" : "false"}
         data-reconnect-mode={data.reconnectMode ? "true" : "false"}
+        data-presentation-focus={data.presentationFocus ? "true" : "false"}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
         {handlePositions.map((position) => (

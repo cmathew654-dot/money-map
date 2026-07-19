@@ -204,7 +204,7 @@ const flows = [
     labelTreatment: "plain" as const,
     label: "QCD — Up to $105,000",
     cadence: { kind: "annual" as const, label: "Annual" },
-    waypoints: [{ x: 1220, y: 310 }],
+    waypoints: [{ x: 1280, y: 260 }],
   },
   {
     id: "retirement-legacy-flow",
@@ -216,7 +216,7 @@ const flows = [
     label: "Legacy context",
     cadence: { kind: "custom" as const, label: "Estate-plan context" },
     waypoints: [
-      { x: 980, y: 690 },
+      { x: 1300, y: 690 },
       { x: 300, y: 730 },
     ],
   },

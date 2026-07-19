@@ -147,12 +147,12 @@ describe("Retirement Income — Private Ledger", () => {
       },
       "retirement-qcd-flow": {
         label: "QCD — Up to $105,000",
-        waypoints: [{ x: 1220, y: 310 }],
+        waypoints: [{ x: 1280, y: 260 }],
       },
       "retirement-legacy-flow": {
         label: "Legacy context",
         waypoints: [
-          { x: 980, y: 690 },
+          { x: 1300, y: 690 },
           { x: 300, y: 730 },
         ],
       },

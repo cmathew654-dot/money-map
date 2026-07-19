@@ -135,4 +135,24 @@ describe("MoneyMapEdge", () => {
     fireEvent.click(target);
     expect(handlers.select).toHaveBeenCalledTimes(1);
   });
+
+  it("renders presentation labels as non-interactive focused content", () => {
+    const { flow, handlers } = renderEdge({ presentation: true, presentationFocus: true });
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(
+      screen.getByRole("group", {
+        name: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
+      }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByText(flow.label)
+        .closest("[data-presentation-focus]")
+        ?.getAttribute("data-presentation-focus"),
+    ).toBe("true");
+    fireEvent.click(screen.getByText(flow.label));
+    expect(handlers.select).not.toHaveBeenCalled();
+    expect(handlers.beginEdit).not.toHaveBeenCalled();
+  });
 });

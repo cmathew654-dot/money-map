@@ -156,7 +156,7 @@ export const rmdStarter = {
         labelTreatment: "filled",
         label: "Federal instruction",
         cadence: { kind: "annual", label: "Annual" },
-        waypoints: [{ x: 600, y: 250 }],
+        waypoints: [{ x: 650, y: 380 }],
       },
       {
         id: "rmd-state-withholding",
@@ -167,7 +167,7 @@ export const rmdStarter = {
         labelTreatment: "filled",
         label: "State instruction",
         cadence: { kind: "annual", label: "Annual" },
-        waypoints: [{ x: 500, y: 480 }],
+        waypoints: [{ x: 520, y: 600 }],
       },
       {
         id: "rmd-net-distribution",
@@ -203,7 +203,13 @@ export const rmdStarter = {
         labelTreatment: "plain",
         label: "Review distribution records",
         cadence: { kind: "custom", label: "At year-end" },
-        waypoints: [{ x: 1090, y: 258 }],
+        waypoints: [
+          { x: 559, y: 690 },
+          { x: 1010, y: 710 },
+          { x: 1010, y: 480 },
+          { x: 1400, y: 480 },
+          { x: 1400, y: 130 },
+        ],
       },
     ],
     presentation: [

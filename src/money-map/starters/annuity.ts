@@ -114,7 +114,7 @@ export const annuityStarter = {
         label: "Monthly income",
         cadence: { kind: "monthly", label: "Monthly" },
         waypoints: [
-          { x: 400, y: 306 },
+          { x: 350, y: 306 },
           { x: 930, y: 376 },
         ],
       },
@@ -138,7 +138,7 @@ export const annuityStarter = {
         labelTreatment: "plate",
         label: "Premium schedule",
         cadence: { kind: "custom", label: "Monthly installments — advisor entered" },
-        waypoints: [{ x: 650, y: 382 }],
+        waypoints: [{ x: 650, y: 340 }],
       },
       {
         id: "annuity-contract-need",
@@ -149,7 +149,7 @@ export const annuityStarter = {
         labelTreatment: "filled",
         label: "$21,475/yr gross — income rider",
         cadence: { kind: "annual", label: "Annual" },
-        waypoints: [{ x: 900, y: 420 }],
+        waypoints: [{ x: 960, y: 420 }],
       },
       {
         id: "annuity-reserve-need",

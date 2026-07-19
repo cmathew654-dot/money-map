@@ -1,6 +1,6 @@
 # Architecture
 
-Money Map is a client-only React application with one shared authoring system and four data-driven starters.
+Money Map is a client-only React application with shared authoring and presentation systems for four data-driven starters.
 
 ## Boundaries
 
@@ -24,7 +24,7 @@ starter registry
 
 Committed document edits enter one undo/redo history and are saved synchronously to a starter-scoped `localStorage` key. Selection, filters, viewport, open surfaces, and inline drafts are transient. Reset clears the stored draft and restores a fresh clone of the selected starter.
 
-The canvas reports drag, resize, selection, connection, and waypoint intent back to the editor. The editor applies a typed mutation, validates selection against the resulting document, announces the result, and then renders the next document. Financial text is copied or replaced verbatim; it is never parsed for arithmetic, warnings, capacity, geometry, or styling.
+The canvas reports drag, resize, selection, connection, and waypoint intent back to the editor. The editor applies a typed mutation, validates selection against the resulting document, announces the result, and then renders the next document. Presentation receives the same validated document as a read-only projection; author shortcuts and graph mutation affordances are disabled while it is active. Financial text is copied or replaced verbatim; it is never parsed for arithmetic, warnings, capacity, geometry, or styling.
 
 ## Maintainability rules
 
@@ -36,4 +36,4 @@ The canvas reports drag, resize, selection, connection, and waypoint intent back
 
 ## Testing
 
-Vitest covers document invariants, persistence validation, history, commands, geometry, adapters, renderers, editor surfaces, accessibility behavior, all four starter contracts, and the financial source guard. Playwright covers representative keyboard, pointer, persistence, focus, filtering, relationship, and reset journeys in Chromium. The production build is followed by `npm run check:pages`, which rejects root-relative or missing asset references before a Pages artifact can be uploaded.
+Vitest covers document invariants, persistence validation, history, commands, geometry, adapters, renderers, editor surfaces, accessibility behavior, all four starter contracts, and the financial source guard. Playwright covers representative keyboard, pointer, persistence, focus, filtering, relationship, reset, and presentation journeys in Chromium. Presentation geometry and readability are exercised for all four starters at 1280×720, 1440×900, and 1920×1080. The production build is followed by `npm run check:pages`, which rejects root-relative or missing asset references before a Pages artifact can be uploaded.
