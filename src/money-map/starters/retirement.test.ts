@@ -100,6 +100,70 @@ describe("Retirement Income — Private Ledger", () => {
     }
   });
 
+  it("reserves unique authored label lanes and clear lower routing channels", () => {
+    const { document } = retirementStarter;
+    expect(Object.fromEntries(document.modules.map(({ id, position }) => [id, position]))).toEqual({
+      "retirement-income": { x: 40, y: 20 },
+      "retirement-need": { x: 40, y: 520 },
+      "retirement-reserve": { x: 400, y: 470 },
+      "retirement-joint": { x: 350, y: 20 },
+      "retirement-annuity": { x: 710, y: 470 },
+      "retirement-giving": { x: 740, y: 20 },
+      "retirement-ira": { x: 1100, y: 20 },
+      "retirement-roth": { x: 1110, y: 350 },
+      "retirement-trust": { x: 1040, y: 560 },
+    });
+
+    const authoredLanes = Object.fromEntries(
+      document.flows.map(({ id, label, waypoints }) => [id, { label, waypoints }]),
+    );
+    expect(authoredLanes).toEqual({
+      "retirement-income-flow": {
+        label: "~$11,800 monthly — after tax",
+        waypoints: [{ x: 165, y: 400 }],
+      },
+      "retirement-reserve-flow": {
+        label: "As needed",
+        waypoints: [{ x: 345, y: 430 }],
+      },
+      "retirement-refill-flow": {
+        label: "Periodic refill",
+        waypoints: [{ x: 515, y: 370 }],
+      },
+      "retirement-rmd-flow": {
+        label: "2026 RMD — $37,818 gross",
+        waypoints: [
+          { x: 1030, y: 310 },
+          { x: 1020, y: 735 },
+          { x: 300, y: 736 },
+        ],
+      },
+      "retirement-annuity-flow": {
+        label: "$21,475/yr — income rider",
+        waypoints: [
+          { x: 820, y: 710 },
+          { x: 300, y: 711 },
+        ],
+      },
+      "retirement-qcd-flow": {
+        label: "QCD — Up to $105,000",
+        waypoints: [{ x: 1220, y: 310 }],
+      },
+      "retirement-legacy-flow": {
+        label: "Legacy context",
+        waypoints: [
+          { x: 980, y: 690 },
+          { x: 300, y: 730 },
+        ],
+      },
+    });
+
+    const labelLaneKeys = document.flows.map(({ waypoints }) => {
+      const labelLane = waypoints[0];
+      return labelLane.x + ":" + labelLane.y;
+    });
+    expect(new Set(labelLaneKeys).size).toBe(document.flows.length);
+  });
   it("keeps the private-ledger theme scoped to decorative tokens and selectors", () => {
     const css = readFileSync("src/money-map/themes/private-ledger.css", "utf8");
     expect(css).toContain(".theme-private-ledger");

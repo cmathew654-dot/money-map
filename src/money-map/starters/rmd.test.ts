@@ -109,7 +109,7 @@ describe("RMD & Withholding starter", () => {
     );
   });
 
-  it("covers every route, relationship, label treatment, cadence filter, and five primitives", () => {
+  it("covers every route, relationship, label treatment, cadence filter, and all six primitives", () => {
     const { modules, flows } = rmdStarter.document;
 
     expect(new Set(flows.map(({ route }) => route))).toEqual(
@@ -124,7 +124,9 @@ describe("RMD & Withholding starter", () => {
     expect(new Set(flows.map(({ cadence }) => cadence.kind))).toEqual(
       new Set(["monthly", "annual", "custom"]),
     );
-    expect(new Set(modules.map(({ primitive }) => primitive)).size).toBeGreaterThanOrEqual(5);
+    expect(new Set(modules.map(({ primitive }) => primitive))).toEqual(
+      new Set(["ledger", "plate", "tray", "band", "roundel", "frame"]),
+    );
 
     expect(flows).toEqual(
       expect.arrayContaining([

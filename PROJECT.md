@@ -4,9 +4,9 @@
 
 **Branch:** `codex/reference-reset-2026-07-19`
 
-**Checkpoint:** Task 4 four-starter integration
+**Checkpoint:** Task 4 complete — four equal-finish starters
 
-**Phase:** All four starters integrated and green; isolated Retirement collision repair in progress
+**Phase:** Task 4 complete; shared presentation implementation next
 
 ## Current product
 
@@ -31,13 +31,13 @@
 - Retirement focused GREEN: 2 files, 8 tests passed.
 - Fresh `npm run verify`: pass in the integration worktree.
 - Prettier, ESLint, TypeScript, financial source guard, and production build: pass.
-- Unit/component: 33 files, 209 tests passed.
+- Unit/component: 33 files, 210 tests passed.
 - Chromium: 17/17 journeys passed.
-- Production bundle: 137.24 kB gzip JavaScript and 7.49 kB gzip CSS.
+- Production bundle: 137.26 kB gzip JavaScript and 7.49 kB gzip CSS.
 
 ## Known limitations
 
-- All four final starters are integrated and green. The isolated Retirement route/label collision repair remains the only Task 4 blocker.
+- All four final starters are integrated and green. The rendered 1440×760 probes report zero module/module, label/module, label/label, and unrelated path/module intersections.
 - Default author compositions still need cross-starter visual collision checks after all four branches land.
 - Presentation chrome, named-step navigation behavior, responsive presentation repair, and screenshot evidence remain Task 5.
 - Stale local v1 drafts can mask new defaults until Reset; visual verification must reset each starter first.
@@ -46,4 +46,4 @@
 
 ## Next action
 
-Integrate the isolated Retirement collision repair, run the four-starter visual gate, then implement the shared presentation system.
+Implement the shared presentation system with persistent metadata, Overview plus five named steps, keyboard navigation, reduced motion, and bounded responsive compositions.
