@@ -9,4 +9,43 @@
   --map-grid: rgba(118, 105, 82, 0.24);
   --map-accent: #a45b19;
   --map-focus: #3d6170;
+  --private-ledger-rule: #b88945;
+  --private-ledger-shadow: rgba(58, 46, 30, 0.14);
+}
+
+.theme-private-ledger .money-map-module {
+  box-shadow: 0 8px 22px var(--private-ledger-shadow);
+}
+
+.theme-private-ledger .money-map-module[data-primitive="ledger"] {
+  border-color: var(--map-ink);
+  background: linear-gradient(180deg, #fffdf8, #f4eddf);
+}
+
+.theme-private-ledger .money-map-module[data-primitive="plate"] {
+  border-top-color: var(--private-ledger-rule);
+  background: #fffdf8;
+}
+
+.theme-private-ledger .money-map-module[data-primitive="tray"] {
+  border-bottom-color: var(--private-ledger-rule);
+  background: linear-gradient(180deg, #f7f1e5, #eadbbc);
+}
+
+.theme-private-ledger .money-map-module[data-primitive="roundel"] {
+  border-radius: 999px;
+  box-shadow:
+    inset 0 0 0 3px #f2e5c9,
+    0 8px 22px var(--private-ledger-shadow);
+}
+
+.theme-private-ledger .money-map-module[data-primitive="band"] {
+  border-left-color: var(--private-ledger-rule);
+  background: linear-gradient(90deg, #fffdf8, #f4ead7);
+}
+
+.theme-private-ledger .money-map-module[data-primitive="frame"] {
+  border-style: double;
+  background: rgba(255, 253, 248, 0.72);
+  box-shadow: none;
 }
