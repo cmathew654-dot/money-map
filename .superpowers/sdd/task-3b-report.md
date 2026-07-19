@@ -119,3 +119,31 @@ Observed before the repair:
 - Style and Properties close each other, receive focus on open, and restore the selected module on close. Connect switches an already-open surface directly to Connections.
 - Selection removal prunes every deleted module/flow reference from presentation steps as part of the same compound history mutation; exact undo restores the original document and presentation reference.
 - Existing literal safety, resize behavior, history boundaries, draft isolation, and Task 3C scope remain intact.
+
+
+## Second independent-review repair
+
+### Status
+
+- Scope addressed: Backspace command alias, invalid-selection surface teardown, and compact single-halo ordering.
+- Prior repair checkpoint: `d03d6e1 fix: harden money map editing system`.
+- Fix checkpoint: this commit (`fix: close remaining money map editing gaps`).
+- Push/deploy: not performed.
+
+### RED and GREEN evidence
+
+- Focused RED command covered shortcut matching, canvas routing, global routing, surface lifecycle, and halo ordering.
+- RED result: 7 expected failing assertions across 4 files.
+- The identical focused command passed after the repair: 4 files, 23 tests.
+- Complete unit/component suite passed: 22 files, 142 tests.
+- Chromium passed: 12/12 journeys.
+- Production bundle passed: 129.88 kB gzip JavaScript and 5.93 kB gzip CSS.
+- Final fresh `npm run verify`: pass.
+- `git diff --check`: pass before commit.
+
+### Scoped fixes
+
+- The canonical Delete removal command now declares Backspace as runtime shortcut metadata. The single matcher resolves canonical shortcuts and aliases, so canvas and global handlers execute the matched definition ID without command-ID branches.
+- A valid single-module surface context is exactly one module and zero relationships. Empty, mixed, and multi-selection states clear Style and Properties state; a later single selection stays closed until a new Style, More, or Connect command.
+- The compact single halo projects runtime definitions through the ordered IDs Edit, Style, Connect, Duplicate, More. Labels and availability still come only from resolved definitions.
+- Task 3C code and the ignored Task 3C brief were not changed.

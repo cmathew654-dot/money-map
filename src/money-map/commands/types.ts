@@ -5,6 +5,7 @@ export interface CommandDefinition<Context, Result> {
   label: string;
   keywords: string[];
   shortcut?: string;
+  shortcutAliases?: string[];
   isAvailable(context: Context): boolean;
   execute(context: Context): Result;
 }

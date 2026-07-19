@@ -17,28 +17,10 @@ export type MoneyMapCanvasNode = Node<MoneyMapNodeData>;
 
 const handlePositions = [Position.Top, Position.Right, Position.Bottom, Position.Left];
 
-const singleHaloCommandIds = new Set([
-  "module.edit",
-  "module.style",
-  "module.connect",
-  "selection.duplicate",
-  "module.properties",
-]);
-const groupHaloCommandIds = new Set([
-  "selection.duplicate",
-  "selection.remove",
-  "module.width.small",
-  "module.width.standard",
-  "module.width.wide",
-]);
-
 function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>) {
   const { module, outgoingCount } = data;
   const editor = useEditorInteraction();
   const active = editor?.activeInlineField;
-  const haloCommandIds = data.selectionCount === 1 ? singleHaloCommandIds : groupHaloCommandIds;
-  const haloCommands = editor?.availableCommands.filter(({ id }) => haloCommandIds.has(id)) ?? [];
-
   const beginTitle = () =>
     editor?.beginInlineEdit({ moduleId: module.id, field: "title", original: module.title });
 
@@ -52,7 +34,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
           position={Position.Top}
         >
           <SelectionHalo
-            commands={haloCommands}
+            commands={editor.availableCommands}
             selectionCount={data.selectionCount}
             onExecute={editor.executeCommand}
           />

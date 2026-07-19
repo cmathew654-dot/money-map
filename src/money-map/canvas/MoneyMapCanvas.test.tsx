@@ -3,6 +3,11 @@ import { useEffect, type ReactNode } from "react";
 import type * as ReactFlowExports from "@xyflow/react";
 import { vi } from "vitest";
 
+import { createWorkspaceCommands, type WorkspaceCommandContext } from "../editor/commands";
+import {
+  EditorInteractionContext,
+  type EditorInteraction,
+} from "../editor/EditorInteractionContext";
 import { documentGeometry } from "../model/document";
 import { createTestDocument } from "../model/test-fixtures";
 import { MoneyMapCanvas } from "./MoneyMapCanvas";
@@ -407,6 +412,50 @@ describe("MoneyMapCanvas selection", () => {
   });
 });
 
+describe("MoneyMapCanvas command shortcuts", () => {
+  it("routes Backspace through the available removal command definition", () => {
+    const mapDocument = createTestDocument();
+    const context: WorkspaceCommandContext = {
+      document: mapDocument,
+      selection: { moduleIds: ["annuity-policy"], flowIds: [] },
+      canUndo: false,
+      canRedo: false,
+    };
+    const registry = createWorkspaceCommands(() => "copy");
+    const executeCommand = vi.fn();
+    const interaction: EditorInteraction = {
+      selectionCount: 1,
+      announcement: "",
+      selectedModuleIds: ["annuity-policy"],
+      availableCommands: registry.available(context),
+      activeInlineField: null,
+      beginInlineEdit: vi.fn(),
+      commitInlineEdit: vi.fn(),
+      cancelInlineEdit: vi.fn(),
+      executeCommand,
+      openPalette: vi.fn(),
+      nudgeSelected: vi.fn(),
+      commitModuleWidth: vi.fn(),
+      commitModuleMove: vi.fn(),
+    };
+
+    render(
+      <EditorInteractionContext.Provider value={interaction}>
+        <MoneyMapCanvas
+          document={mapDocument}
+          selection={context.selection}
+          onSelectionChange={vi.fn()}
+          onDocumentChange={vi.fn()}
+        />
+      </EditorInteractionContext.Provider>,
+    );
+
+    fireEvent.keyDown(screen.getByLabelText("Hartwell income foundation authoring canvas"), {
+      key: "Backspace",
+    });
+    expect(executeCommand).toHaveBeenCalledWith("selection.remove");
+  });
+});
 describe("MoneyMapCanvas movement and camera", () => {
   beforeEach(() => {
     vi.clearAllMocks();

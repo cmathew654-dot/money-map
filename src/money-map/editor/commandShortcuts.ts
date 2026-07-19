@@ -27,7 +27,9 @@ export function matchCommandShortcut<Context, Result>(
   event: CommandShortcutEvent,
   availableCommands: CommandDefinition<Context, Result>[],
 ): CommandDefinition<Context, Result> | undefined {
-  return availableCommands.find(
-    (command) => command.shortcut && matchesShortcut(event, command.shortcut),
+  return availableCommands.find((command) =>
+    [command.shortcut, ...(command.shortcutAliases ?? [])].some(
+      (shortcut) => shortcut && matchesShortcut(event, shortcut),
+    ),
   );
 }

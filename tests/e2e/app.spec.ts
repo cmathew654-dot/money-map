@@ -338,3 +338,66 @@ test("keeps properties fresh, switches Connect, and makes style and properties e
   await page.getByRole("button", { name: "Close properties" }).click();
   await expect(source.locator("..")).toBeFocused();
 });
+
+test("routes Backspace through canonical removal from canvas and global handlers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/i }).click();
+
+  const socialSecurity = page.locator(".money-map-module").filter({ hasText: "Social Security" });
+  const canvas = page.getByLabel("Retirement Income authoring canvas");
+
+  await socialSecurity.click();
+  await canvas.focus();
+  await page.keyboard.press("Backspace");
+  await expect(socialSecurity).toHaveCount(0);
+
+  await page.keyboard.press("Control+z");
+  await expect(socialSecurity).toHaveCount(1);
+  await socialSecurity.click();
+  await expect(socialSecurity).toHaveAttribute("data-selected", "true");
+  await page.evaluate(() => {
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }),
+    );
+  });
+  await expect(socialSecurity).toHaveCount(0);
+});
+
+test("invalid selections close editing surfaces and later singles do not reopen them", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const annuity = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
+  const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
+
+  await annuity.click();
+  await page.getByRole("button", { name: "More properties" }).click();
+  await page.locator(".react-flow__pane").click({ force: true, position: { x: 8, y: 8 } });
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+  await source.click();
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "More properties" }).click();
+  await page.locator(".react-flow__edge-interaction").first().click({ force: true });
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+  await page.keyboard.down("Shift");
+  await annuity.click();
+  await page.keyboard.up("Shift");
+  await expect(page.getByRole("toolbar", { name: "2 selected items" })).toBeVisible();
+  await source.click();
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Style module" }).click();
+  await annuity.click({ modifiers: ["Shift"] });
+  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+  await source.click();
+  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+});

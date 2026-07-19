@@ -66,4 +66,28 @@ describe("SelectionHalo", () => {
     expect(execute).toHaveBeenCalledWith("selection.remove");
     expect(screen.queryByRole("button", { name: /duplicate/i })).toBeNull();
   });
+
+  it("projects the compact single-module order from runtime definitions", () => {
+    render(
+      <SelectionHalo
+        commands={[
+          command("module.properties", "More"),
+          command("selection.duplicate", "Duplicate"),
+          command("module.connect", "Connect"),
+          command("module.edit", "Edit"),
+          command("module.style", "Style"),
+        ]}
+        selectionCount={1}
+        onExecute={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Edit",
+      "Style",
+      "Connect",
+      "Duplicate",
+      "More",
+    ]);
+  });
 });

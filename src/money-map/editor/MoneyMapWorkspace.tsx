@@ -100,7 +100,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const { ref, dimensions } = useWorkspaceDimensions();
   const supported = isAuthoringViewportSupported(dimensions.width, dimensions.height);
   const selectedModuleId =
-    editor.selection.moduleIds.length === 1 ? editor.selection.moduleIds[0] : null;
+    editor.selection.moduleIds.length === 1 && editor.selection.flowIds.length === 0
+      ? editor.selection.moduleIds[0]
+      : null;
   const availableCommands = editor.registry.available(editor.commandContext);
   const appearanceCommands = availableCommands.filter(
     ({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."),
@@ -108,6 +110,12 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const primitiveCommands = appearanceCommands.filter(({ id }) =>
     id.startsWith("module.primitive."),
   );
+
+  useEffect(() => {
+    if (selectedModuleId) return;
+    setPropertiesTab(null);
+    setStyleOpen(false);
+  }, [selectedModuleId]);
 
   useEffect(() => {
     if (activeInlineField && !editor.selection.moduleIds.includes(activeInlineField.moduleId)) {

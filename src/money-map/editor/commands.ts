@@ -107,6 +107,7 @@ export function createWorkspaceCommands(
     label: "Remove selection",
     keywords: ["delete"],
     shortcut: "Delete",
+    shortcutAliases: ["Backspace"],
     isAvailable: hasActionableSelection,
     execute: (context) => ({
       kind: "mutation",

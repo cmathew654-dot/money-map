@@ -4,12 +4,17 @@ import { matchCommandShortcut } from "./commandShortcuts";
 type Context = Record<string, never>;
 type Result = Record<string, never>;
 
-function command(id: string, shortcut?: string): CommandDefinition<Context, Result> {
+function command(
+  id: string,
+  shortcut?: string,
+  shortcutAliases?: string[],
+): CommandDefinition<Context, Result> {
   return {
     id,
     label: id,
     keywords: [],
     shortcut,
+    shortcutAliases,
     isAvailable: () => true,
     execute: () => ({}),
   };
@@ -20,7 +25,7 @@ describe("matchCommandShortcut", () => {
     const definitions = [
       command("renamed.duplicate", "Ctrl/Cmd+D"),
       command("renamed.redo", "Ctrl/Cmd+Shift+Z"),
-      command("renamed.remove", "Delete"),
+      command("renamed.remove", "Delete", ["Backspace"]),
     ];
 
     expect(
@@ -38,6 +43,12 @@ describe("matchCommandShortcut", () => {
     expect(
       matchCommandShortcut(
         { key: "Delete", ctrlKey: false, metaKey: false, shiftKey: false, altKey: false },
+        definitions,
+      )?.id,
+    ).toBe("renamed.remove");
+    expect(
+      matchCommandShortcut(
+        { key: "Backspace", ctrlKey: false, metaKey: false, shiftKey: false, altKey: false },
         definitions,
       )?.id,
     ).toBe("renamed.remove");
