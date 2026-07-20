@@ -28,5 +28,14 @@ export default defineConfig({
         viewport: { width: 1280, height: 720 },
       },
     },
+    {
+      name: "webkit-smoke",
+      testMatch: "presentation.spec.ts",
+      grep: /all four starters retain metadata and the same Overview/,
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
   ],
 });

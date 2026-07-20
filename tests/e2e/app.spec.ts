@@ -204,7 +204,9 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox", { name: "Search actions" }).fill("standard width");
   await page.getByRole("option", { name: /Standard width/ }).click();
-  await expect.poll(() => module.evaluate((element) => element.parentElement?.clientWidth)).toBe(320);
+  await expect
+    .poll(() => module.evaluate((element) => element.parentElement?.clientWidth))
+    .toBe(320);
   await expect
     .poll(() => module.locator("h2").evaluate((element) => getComputedStyle(element).fontSize))
     .toBe(fontSize);
