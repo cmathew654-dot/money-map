@@ -243,7 +243,7 @@ describe("RMD & Withholding starter", () => {
 
     expect(moduleById.get("rmd-instruction")?.position).toEqual({ x: 424, y: 274 });
     expect(flowById.get("rmd-qcd")?.waypoints).toEqual([{ x: 560, y: 180 }]);
-    expect(flowById.get("rmd-federal-withholding")?.waypoints).toEqual([{ x: 650, y: 380 }]);
+    expect(flowById.get("rmd-federal-withholding")?.waypoints).toEqual([]);
     expect(flowById.get("rmd-state-withholding")?.waypoints).toEqual([{ x: 520, y: 600 }]);
     expect(flowById.get("rmd-net-distribution")?.waypoints).toEqual([
       { x: 700, y: 480 },

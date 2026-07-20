@@ -113,7 +113,7 @@ describe("Retirement Income — Private Ledger", () => {
       "retirement-ira": { x: 1100, y: 20 },
       "retirement-roth": { x: 1110, y: 350 },
       "retirement-trust": { x: 1040, y: 560 },
-      "retirement-installment-note": { x: 690, y: 380 },
+      "retirement-installment-note": { x: 690, y: 330 },
     });
 
     const authoredLanes = Object.fromEntries(
@@ -149,7 +149,7 @@ describe("Retirement Income — Private Ledger", () => {
       },
       "retirement-qcd-flow": {
         label: "QCD — Up to $105,000",
-        waypoints: [{ x: 820, y: 350 }],
+        waypoints: [{ x: 820, y: 300 }],
       },
       "retirement-legacy-flow": {
         label: "Legacy context",

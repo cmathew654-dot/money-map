@@ -142,7 +142,7 @@ describe("Roth Conversion Path starter", () => {
       "Advisor review",
       "2027 window",
       "To Roth IRA",
-      "Reserve context",
+      "Reserve",
       "Monthly review",
     ]);
     expect(flowById.get("roth-tax-reserve-to-2026")?.waypoints[0]).toEqual({ x: 640, y: 350 });

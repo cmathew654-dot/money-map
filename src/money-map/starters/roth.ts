@@ -223,7 +223,7 @@ const flows: MoneyMapFlow[] = [
     relationship: "replenishment",
     route: "straight",
     labelTreatment: "plain",
-    label: "Reserve context",
+    label: "Reserve",
     cadence: { kind: "as-needed", label: "As needed" },
     labelPosition: { x: 375, y: 530 },
     waypoints: [],

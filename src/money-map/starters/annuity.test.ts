@@ -95,7 +95,7 @@ describe("annuity foundation starter", () => {
         source: "annuity-income",
         target: "annuity-need",
         relationship: "income",
-        route: "curved",
+        route: "orthogonal",
         labelTreatment: "filled",
         cadence: { kind: "monthly", label: "Monthly" },
         label: "Monthly income",

@@ -125,7 +125,14 @@ for (const viewport of viewports) {
           node.getBoundingClientRect(),
         );
         const nodeEntries = [...shell.querySelectorAll<HTMLElement>(".react-flow__node")].map(
-          (node) => ({ id: node.dataset.id ?? "", box: node.getBoundingClientRect() }),
+          (node) => ({
+            id: node.dataset.id ?? "",
+            box: node.getBoundingClientRect(),
+            element: node,
+            body:
+              node.querySelector<HTMLElement>(".money-map-module")?.getBoundingClientRect() ??
+              node.getBoundingClientRect(),
+          }),
         );
         const labelEntries = [
           ...shell.querySelectorAll<HTMLElement>(".money-map-flow-label-wrap"),
@@ -135,6 +142,22 @@ for (const viewport of viewports) {
           target: label.dataset.flowTarget ?? "",
           box: label.getBoundingClientRect(),
         }));
+        const contentOverflows = nodeEntries.flatMap(({ id, element }) => {
+          const body = element.querySelector<HTMLElement>(".money-map-module");
+          if (!body) return [];
+          return body.scrollHeight > body.clientHeight + 4 ||
+            body.scrollWidth > body.clientWidth + 4
+            ? [
+                {
+                  id,
+                  scrollHeight: body.scrollHeight,
+                  clientHeight: body.clientHeight,
+                  scrollWidth: body.scrollWidth,
+                  clientWidth: body.clientWidth,
+                },
+              ]
+            : [];
+        });
         const intersects = (first: DOMRect, second: DOMRect, inset = 0) =>
           first.left < second.right - inset &&
           first.right > second.left + inset &&
@@ -180,9 +203,26 @@ for (const viewport of viewports) {
         const labelModulePairs = labelEntries.flatMap((label) =>
           nodeEntries.flatMap(({ id, box }) =>
             id !== label.source && id !== label.target && intersects(label.box, box, 1)
-              ? [`${label.id}/${id}`]
+              ? [label.id + "/" + id]
               : [],
           ),
+        );
+        const deepEndpointPairs = labelEntries.flatMap((label) =>
+          nodeEntries.flatMap(({ id, body }) => {
+            if (id !== label.source && id !== label.target) return [];
+            const horizontal =
+              Math.min(label.box.right, body.right) - Math.max(label.box.left, body.left);
+            const vertical =
+              Math.min(label.box.bottom, body.bottom) - Math.max(label.box.top, body.top);
+            return horizontal > 8 && vertical > 8 ? [label.id + "/" + id] : [];
+          }),
+        );
+        const visualModulePairs = nodeEntries.flatMap((first, index) =>
+          nodeEntries
+            .slice(index + 1)
+            .flatMap((second) =>
+              intersects(first.body, second.body, 1) ? [first.id + "/" + second.id] : [],
+            ),
         );
         const unrelatedPathModulePairs = [
           ...shell.querySelectorAll<SVGPathElement>(".money-map-relationship-path"),
@@ -220,6 +260,16 @@ for (const viewport of viewports) {
           scale,
           overlaps,
           overlapPairs,
+          contentOverflows,
+          visualModulePairs,
+          deepEndpointPairs,
+          labelsBounded: labelEntries.every(
+            ({ box }) =>
+              box.left >= stage.left - 1 &&
+              box.right <= stage.right + 1 &&
+              box.top >= stage.top - 1 &&
+              box.bottom <= stage.bottom + 1,
+          ),
           labelLabelOverlaps: labelLabelPairs.length,
           labelLabelPairs,
           labelModuleOverlaps: labelModulePairs.length,
@@ -261,8 +311,12 @@ for (const viewport of viewports) {
         };
       });
 
-      expect(audit.nodesBounded, `${story} nodes bounded ${JSON.stringify(audit)}`).toBe(true);
-      expect(audit.chromeBounded, `${story} chrome bounded`).toBe(true);
+      expect(audit.nodesBounded, story + " nodes bounded " + JSON.stringify(audit)).toBe(true);
+      expect(audit.labelsBounded, story + " labels bounded " + JSON.stringify(audit)).toBe(true);
+      expect(audit.chromeBounded, story + " chrome bounded").toBe(true);
+      expect(audit.contentOverflows, story + " module content overflow").toEqual([]);
+      expect(audit.visualModulePairs, story + " rendered module collisions").toEqual([]);
+      expect(audit.deepEndpointPairs, story + " deep endpoint/label collisions").toEqual([]);
       expect(audit.overlaps, `${story} node collisions ${JSON.stringify(audit)}`).toBe(0);
       expect(
         audit.labelLabelOverlaps,

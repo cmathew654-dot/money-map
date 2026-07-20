@@ -37,7 +37,10 @@ describe("presentation CSS contract", () => {
       /\.money-map-presentation \.money-map-flow-label strong[^}]*font-size:\s*16\.2px/s,
     );
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label (?:span|small),[\s\S]*font-size:\s*16\.2px/s,
+      /\.money-map-presentation \.money-map-flow-label span[^}]*display:\s*none;[^}]*font-size:\s*16\.2px/s,
+    );
+    expect(css).toMatch(
+      /\.money-map-presentation \.money-map-flow-label small[^}]*display:\s*none;[^}]*font-size:\s*16\.2px/s,
     );
   });
 

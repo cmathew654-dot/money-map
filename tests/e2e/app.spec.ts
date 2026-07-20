@@ -341,6 +341,42 @@ test("quick-creates a connected object by dropping a visible port on empty canva
   await expect(created).toHaveCount(0);
 });
 
+test("draws a relationship by dragging a visible port onto an existing module", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const source = page.locator('.react-flow__node[data-id="annuity-source"]');
+  const target = page.locator('.react-flow__node[data-id="annuity-policy"]');
+  await source.hover();
+  const sourcePort = source.locator(".react-flow__handle.source.react-flow__handle-right");
+  const targetPort = target.locator(".react-flow__handle.target.react-flow__handle-left");
+  const sourceBox = await sourcePort.boundingBox();
+  const targetBox = await targetPort.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Expected source and target port geometry");
+
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
+
+  const label = page.getByRole("textbox", { name: "Edit relationship label" });
+  await expect(label).toBeFocused();
+  await label.fill("Direct port relationship — exact");
+  await label.press("Enter");
+  await expect(
+    page.getByRole("button", {
+      name: /relationship from annuity-source to annuity-policy: Direct port relationship — exact/i,
+    }),
+  ).toBeFocused();
+  await page.evaluate(() => localStorage.clear());
+});
+
 test("persists committed edits only for one starter and Reset restores its scaffold", async ({
   page,
 }) => {

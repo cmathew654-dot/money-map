@@ -1367,11 +1367,65 @@
   font-size: 16.2px;
 }
 
-.money-map-presentation .money-map-flow-label span,
-.money-map-presentation .money-map-flow-label small {
+.money-map-presentation .money-map-flow-label span {
+  display: none;
   font-size: 16.2px;
 }
 
+.money-map-presentation .money-map-flow-label small {
+  display: none;
+  font-size: 16.2px;
+}
+
+.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__header {
+  display: none;
+}
+
+.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__note {
+  margin: 0;
+  font-size: 17.5px;
+  line-height: 1.2;
+}
+/* Compact the fixed authored geometry without shrinking presentation type below its tested floor. */
+.money-map-presentation .money-map-module {
+  padding: 5px;
+}
+
+.money-map-presentation .money-map-module__header h2 {
+  margin-top: 0;
+  line-height: 0.95;
+}
+
+.money-map-presentation .money-map-module__subtitle {
+  margin-top: 1px;
+  line-height: 1;
+}
+
+.money-map-presentation .money-map-module__rows,
+.money-map-presentation .money-map-module__total {
+  margin-top: 2px;
+}
+
+.money-map-presentation .money-map-module__row,
+.money-map-presentation .money-map-module__total > div {
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.money-map-presentation .money-map-module dt,
+.money-map-presentation .money-map-module dd {
+  line-height: 1;
+}
+
+.money-map-presentation .money-map-module__total dd {
+  font-size: 32.2px;
+  line-height: 0.95;
+}
+
+.money-map-presentation .money-map-module__note {
+  margin-top: 2px;
+  line-height: 1;
+}
 .presentation-nav {
   z-index: 10;
   display: flex;

@@ -33,3 +33,7 @@ playwright/.cache/
 
 # Archives
 *.zip
+
+# Local project and agent context
+PROJECT.md
+AGENTS.md
