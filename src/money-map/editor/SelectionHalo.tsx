@@ -11,7 +11,7 @@ interface SelectionHaloProps {
 const singleCommandOrder = [
   "module.edit",
   "module.style",
-  "module.connect",
+  "module.draw-flow",
   "selection.duplicate",
   "module.properties",
 ];

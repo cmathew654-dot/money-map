@@ -42,13 +42,13 @@ describe("RelationshipProperties", () => {
   it("uses canonical commands for route, semantics, treatment, cadence, and reset", () => {
     const props = renderProperties();
     fireEvent.click(screen.getByRole("button", { name: "Curved route" }));
-    fireEvent.click(screen.getByRole("button", { name: "Association relationship" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replenishment relationship" }));
     fireEvent.click(screen.getByRole("button", { name: "Filled label" }));
     fireEvent.click(screen.getByRole("button", { name: "Monthly cadence" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset label position" }));
     expect(props.onExecute.mock.calls.map(([id]) => id)).toEqual([
       "flow.route.curved",
-      "flow.relationship.association",
+      "flow.relationship.replenishment",
       "flow.label-treatment.filled",
       "flow.cadence.monthly",
       "flow.label-position.reset",

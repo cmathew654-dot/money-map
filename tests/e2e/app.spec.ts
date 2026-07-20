@@ -194,7 +194,7 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
     .toBe(fontSize);
 });
 
-test("uses palette duplicate, keyboard remove, undo, and compact advanced tabs", async ({
+test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow", async ({
   page,
 }) => {
   await page.goto("/");
@@ -225,14 +225,16 @@ test("uses palette duplicate, keyboard remove, undo, and compact advanced tabs",
   await page.getByRole("button", { name: "More properties" }).click();
   await expect(page.getByRole("tab", { name: "Content" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Appearance" }).click();
-  await page.getByRole("tab", { name: "Connections" }).click();
-  await page.getByRole("combobox", { name: "Connection target" }).selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Add connection" }).click();
+  await expect(page.getByRole("tab", { name: "Connections" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close properties" }).click();
+  await page.getByRole("button", { name: "Draw flow" }).click();
+  await expect(page.getByRole("complementary", { name: "Draw flow" })).toBeVisible();
+  await page.getByRole("button", { name: /Core lifestyle/ }).click();
   const relationshipLabel = page.getByRole("textbox", { name: "Edit relationship label" });
   await relationshipLabel.fill("Advisor-authored relationship — exact");
   await relationshipLabel.press("Enter");
   await expect(
-    page.getByRole("button", { name: /Advisor-authored relationship — exact/ }),
+    page.locator(".money-map-flow-label").filter({ hasText: /Advisor-authored relationship/ }),
   ).toBeFocused();
 });
 
@@ -327,7 +329,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await expect(page.getByRole("toolbar", { name: /selected items/ })).toHaveCount(0);
 });
 
-test("keeps properties fresh, switches Connect, and makes style and properties exclusive", async ({
+test("keeps properties fresh and makes Draw flow, style, and properties exclusive", async ({
   page,
 }) => {
   await page.goto("/");
@@ -353,11 +355,11 @@ test("keeps properties fresh, switches Connect, and makes style and properties e
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Investment account");
   await expect(source.getByRole("heading", { name: "Investment account" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Connect module" }).click();
-  await expect(page.getByRole("tab", { name: "Connections" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
+  await page.getByRole("button", { name: "Draw flow" }).click();
+  await expect(page.getByRole("complementary", { name: "Draw flow" })).toBeVisible();
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Connections" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel draw flow" }).click();
 
   await page.getByRole("button", { name: "Style module" }).click();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
@@ -418,7 +420,7 @@ test("invalid selections close editing surfaces and later singles do not reopen 
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
 
   await page.getByRole("button", { name: "More properties" }).click();
-  await page.getByRole("button", { name: /flow relationship from annuity-policy/i }).click();
+  await page.getByRole("button", { name: /income relationship from annuity-policy/i }).click();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
   await annuity.click({ modifiers: ["Shift"] });
   await expect(page.getByRole("toolbar", { name: "2 selected items" })).toBeVisible();
@@ -455,13 +457,13 @@ test("edits exact relationship text and appearance with undo and redo", async ({
   };
 
   await executeAction("curved route", "Curved route");
-  await executeAction("association relationship", "Association relationship");
+  await executeAction("replenishment relationship", "Replenishment relationship");
   await executeAction("filled label", "Filled label");
 
   const path = page.locator(
     '.react-flow__edge[data-id="annuity-plan-contract"] .money-map-relationship-path',
   );
-  await expect(path).toHaveClass(/relationship--association/);
+  await expect(path).toHaveClass(/relationship--replenishment/);
   await expect(path).not.toHaveAttribute("d", originalPath ?? "");
   await expect(labelWrap).toHaveAttribute("data-treatment", "filled");
 
@@ -500,7 +502,7 @@ test("routes a relationship label by pointer and keyboard, then resets and undoe
   const nudgedTransform = await labelWrap.getAttribute("style");
   expect(nudgedTransform).not.toBe(draggedTransform);
 
-  await page.keyboard.press("Control+k");
+  await page.getByRole("button", { name: /Actions/ }).click();
   await page.getByRole("combobox", { name: "Search actions" }).fill("reset label position");
   await page.getByRole("option", { name: "Reset label position", exact: true }).click();
   await expect.poll(() => labelWrap.getAttribute("style")).not.toBe(nudgedTransform);
@@ -599,7 +601,7 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   });
   await relationshipLabel.click();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
-  await page.keyboard.press("Control+k");
+  await page.getByRole("button", { name: /Actions/ }).click();
   await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
   await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
   const properties = page.getByLabel("Relationship properties");
@@ -624,7 +626,7 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
 
   await dragCenterToCenter(
     page.locator(".react-flow__edgeupdater-target"),
-    page.locator('.react-flow__node[data-id="annuity-need"] .react-flow__handle-left.target'),
+    page.locator('.react-flow__node[data-id="annuity-need"] .react-flow__handle-left.source'),
   );
   const targetReconnected = page.getByRole("button", {
     name: /planned relationship from annuity-source to annuity-need/i,

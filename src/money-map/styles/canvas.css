@@ -240,9 +240,28 @@
   transition: opacity 120ms ease;
 }
 
+.money-map-module[data-reconnect-mode=true] .money-map-handle {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: all;
+}
+
 .react-flow__node:hover .money-map-handle,
 .react-flow__node.selected .money-map-handle {
-  opacity: 0.5;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: radial-gradient(
+    circle,
+    var(--map-accent) 0 4px,
+    var(--map-surface) 5px 7px,
+    transparent 8px
+  );
+  opacity: 1;
+  pointer-events: all;
 }
 
 .money-map-canvas .react-flow__edge-path {
@@ -562,7 +581,8 @@
 }
 
 .advanced-properties,
-.primitive-menu {
+.primitive-menu,
+.flow-target-picker {
   position: fixed;
   z-index: 20;
   top: 92px;
@@ -578,7 +598,8 @@
 }
 
 .advanced-properties > header,
-.primitive-menu > header {
+.primitive-menu > header,
+.flow-target-picker > header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -593,7 +614,7 @@
 
 .advanced-properties [role="tablist"] {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   margin: 0 -4px 14px;
   border-bottom: 1px solid #b6ad9d;
 }
@@ -676,6 +697,51 @@
   width: 260px;
 }
 
+.flow-target-picker {
+  width: 292px;
+}
+
+.flow-target-picker h2,
+.flow-target-picker p {
+  margin: 0;
+}
+
+.flow-target-picker > p {
+  margin: 10px 0;
+  color: var(--map-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.flow-target-picker__targets {
+  display: grid;
+  gap: 4px;
+  max-height: 318px;
+  overflow: auto;
+}
+
+.flow-target-picker__targets button {
+  display: grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid #b6ad9d;
+  color: var(--map-ink);
+  background: var(--map-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.flow-target-picker__targets span {
+  color: var(--map-muted);
+  font-size: 10px;
+}
+
+.flow-target-picker button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
 .primitive-menu > div {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -716,17 +782,27 @@
   fill: none;
 }
 
-.money-map-canvas .relationship--flow {
+.money-map-canvas .money-map-relationship-casing {
+  stroke: var(--map-canvas);
+  stroke-width: 5.5;
+  fill: none;
+}
+
+.money-map-canvas .relationship--income {
   stroke-dasharray: none;
 }
 
-.money-map-canvas .relationship--association {
-  stroke-dasharray: 2 7;
+.money-map-canvas .relationship--transfer {
+  stroke-dasharray: 10 6;
+}
+
+.money-map-canvas .relationship--replenishment {
+  stroke-dasharray: 2 6;
   stroke-linecap: round;
 }
 
 .money-map-canvas .relationship--planned {
-  stroke-dasharray: 10 7;
+  stroke-dasharray: 12 5 2 5;
 }
 
 .money-map-canvas .react-flow__edge.selected .money-map-relationship-path {
@@ -736,6 +812,27 @@
 
 .money-map-flow-label-wrap {
   z-index: 4;
+}
+
+.money-map-route-handle {
+  z-index: 5;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--map-accent) 0 3px,
+    var(--map-surface) 4px 7px,
+    var(--map-line) 8px 9px,
+    transparent 10px
+  );
+  cursor: move;
+}
+
+.money-map-route-handle:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
 }
 
 .money-map-flow-label {
@@ -791,21 +888,6 @@
 .cadence-filter button:focus-visible {
   outline: 3px solid var(--map-focus);
   outline-offset: 2px;
-}
-
-.money-map-module[data-connect-mode="true"] .money-map-handle,
-.money-map-module[data-reconnect-mode="true"] .money-map-handle {
-  width: 24px;
-  height: 24px;
-  border: 0;
-  background: radial-gradient(
-    circle,
-    var(--map-accent) 0 4px,
-    var(--map-surface) 5px 7px,
-    transparent 8px
-  );
-  opacity: 1;
-  pointer-events: all;
 }
 
 .cadence-filter {
@@ -944,8 +1026,8 @@
     stroke-width: 44px !important;
   }
 
-  .money-map-module[data-connect-mode="true"] .money-map-handle,
-  .money-map-module[data-reconnect-mode="true"] .money-map-handle {
+  .react-flow__node:hover .money-map-handle,
+  .react-flow__node.selected .money-map-handle {
     width: 44px;
     height: 44px;
   }
@@ -1104,7 +1186,7 @@
 
 .money-map-presentation .money-map-module__eyebrow {
   color: var(--map-muted);
-  font-size: 16px;
+  font-size: 16.2px;
   font-weight: 720;
   letter-spacing: 0.025em;
 }
@@ -1158,12 +1240,12 @@
 }
 
 .money-map-presentation .money-map-flow-label strong {
-  font-size: 16px;
+  font-size: 16.2px;
 }
 
 .money-map-presentation .money-map-flow-label span,
 .money-map-presentation .money-map-flow-label small {
-  font-size: 16px;
+  font-size: 16.2px;
 }
 
 .presentation-nav {

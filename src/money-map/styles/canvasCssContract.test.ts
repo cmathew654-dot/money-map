@@ -26,14 +26,14 @@ describe("presentation CSS contract", () => {
 
   it("raises presentation detail and relationship label source sizes for fitted viewports", () => {
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-module__eyebrow[^}]*font-size:\s*16px/s,
+      /\.money-map-presentation \.money-map-module__eyebrow[^}]*font-size:\s*16\.2px/s,
     );
     expect(css).toMatch(/\.money-map-presentation \.money-map-module dt,[\s\S]*font-size:\s*20px/s);
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label strong[^}]*font-size:\s*16px/s,
+      /\.money-map-presentation \.money-map-flow-label strong[^}]*font-size:\s*16\.2px/s,
     );
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label (?:span|small),[\s\S]*font-size:\s*16px/s,
+      /\.money-map-presentation \.money-map-flow-label (?:span|small),[\s\S]*font-size:\s*16\.2px/s,
     );
   });
 

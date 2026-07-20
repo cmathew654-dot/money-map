@@ -121,17 +121,9 @@ function MoneyMapCanvasInner({
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const [announcement, setAnnouncement] = useState("");
   const presenting = mode === "presentation";
-  const reconnectMode =
-    !presenting && selection.moduleIds.length === 0 && selection.flowIds.length === 1;
   const adaptedNodes = useMemo(
-    () =>
-      documentToNodes(
-        document,
-        selection,
-        presenting ? false : (editor?.connectMode ?? false),
-        presentationStep,
-      ),
-    [document, editor?.connectMode, presentationStep, presenting, selection],
+    () => documentToNodes(document, selection, presentationStep),
+    [document, presentationStep, selection],
   );
   const adaptedEdges = useMemo(
     () =>
@@ -155,6 +147,13 @@ function MoneyMapCanvasInner({
                 ),
               nudgeLabelPosition: (point: { x: number; y: number }) =>
                 editor.commitFlowLabelPosition(relationship.id, point),
+              moveWaypointPosition: (clientPoint: { x: number; y: number }) =>
+                editor.commitFlowWaypoint(
+                  relationship.id,
+                  screenToFlowPosition ? screenToFlowPosition(clientPoint) : clientPoint,
+                ),
+              nudgeWaypointPosition: (point: { x: number; y: number }) =>
+                editor.commitFlowWaypoint(relationship.id, point),
               select: () => editor.selectFlow(relationship.id),
             },
           },
@@ -509,7 +508,7 @@ function MoneyMapCanvasInner({
         selectionOnDrag={false}
         nodesDraggable={!presenting}
         elementsSelectable={!presenting}
-        nodesConnectable={!presenting && ((editor?.connectMode ?? false) || reconnectMode)}
+        nodesConnectable={!presenting}
         connectionMode={ConnectionMode.Loose}
         edgesReconnectable={!presenting}
         reconnectRadius={26}

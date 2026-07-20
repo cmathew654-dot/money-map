@@ -135,8 +135,8 @@ describe("canvas document adapters", () => {
       flows: [{ ...document.flows[0], target: "annuity-policy", waypoints: [] }],
     };
     expect(documentToEdges(vertical, { moduleIds: [], flowIds: [] })[0]).toMatchObject({
-      sourceHandle: "source-right",
-      targetHandle: "target-left",
+      sourceHandle: "source-top",
+      targetHandle: "target-bottom",
     });
   });
 
@@ -167,7 +167,7 @@ describe("canvas document adapters", () => {
     const single = { moduleIds: [], flowIds: ["funding-flow"] };
     const nodes = documentToNodes(document, single);
     const edges = documentToEdges(document, single);
-    expect(nodes.every(({ data }) => data.reconnectMode && !data.connectMode)).toBe(true);
+    expect(nodes.every(({ data }) => data.reconnectMode)).toBe(true);
     expect(edges.find(({ id }) => id === "funding-flow")?.reconnectable).toBe(true);
     expect(edges.find(({ id }) => id === "income-flow")?.reconnectable).toBe(false);
 
@@ -204,7 +204,7 @@ describe("canvas document adapters", () => {
       moduleIds: [document.modules[0].id],
       flowIds: [document.flows[0].id],
     };
-    const nodes = documentToNodes(document, { moduleIds: [], flowIds: [] }, false, step);
+    const nodes = documentToNodes(document, { moduleIds: [], flowIds: [] }, step);
     const edges = documentToEdges(document, { moduleIds: [], flowIds: [] }, "all", step);
 
     expect(nodes.map(({ position, style }) => ({ position, style }))).toEqual(

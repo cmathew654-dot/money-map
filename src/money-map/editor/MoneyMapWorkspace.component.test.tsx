@@ -113,23 +113,18 @@ describe("MoneyMapWorkspace command lifecycle", () => {
       );
     });
   });
-  it("limits create-connection mode to the live Connections surface", () => {
-    const view = render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
-    const workspace = view.container.querySelector(".money-map-workspace");
-    if (!workspace) throw new Error("Expected workspace");
+  it("draws a flow from one explicit, keyboard-accessible surface", () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
 
-    openCommand("connect module");
-    expect(workspace.getAttribute("data-connect-mode")).toBe("true");
-    fireEvent.click(screen.getByRole("tab", { name: "Content" }));
-    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+    openCommand("draw flow");
+    const picker = screen.getByLabelText("Draw flow");
+    expect(picker.textContent).toContain("Illustrative annuity");
+    expect(screen.queryByRole("tab", { name: "Connections" })).toBeNull();
 
-    openCommand("connect module");
-    fireEvent.click(screen.getByRole("button", { name: "Close properties" }));
-    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: /Source account/ }));
 
-    openCommand("connect module");
-    fireEvent.click(screen.getByRole("button", { name: /Actions/ }));
-    expect(workspace.getAttribute("data-connect-mode")).toBe("false");
+    expect(hookMock.editor.applyDocument).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText("Draw flow")).toBeNull();
   });
 
   it("closes the module style menu with Escape from its controls", () => {

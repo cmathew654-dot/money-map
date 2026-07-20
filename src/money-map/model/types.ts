@@ -17,7 +17,7 @@ export type ColorRole = ModuleKind;
 
 export type ThemeSwatch = "base" | "muted" | "accent" | "contrast";
 
-export type RelationshipKind = "flow" | "association" | "planned";
+export type RelationshipKind = "income" | "transfer" | "replenishment" | "planned";
 
 export type RouteKind = "straight" | "orthogonal" | "curved";
 

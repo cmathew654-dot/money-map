@@ -23,7 +23,7 @@ describe("SelectionHalo", () => {
     const commands = [
       command("module.edit", "Edit"),
       command("module.style", "Style"),
-      command("module.connect", "Connect"),
+      command("module.draw-flow", "Draw flow"),
       command("selection.duplicate", "Duplicate"),
       command("module.properties", "More"),
     ];
@@ -31,7 +31,7 @@ describe("SelectionHalo", () => {
     for (const [label, id] of [
       ["Edit", "module.edit"],
       ["Style", "module.style"],
-      ["Connect", "module.connect"],
+      ["Draw flow", "module.draw-flow"],
       ["Duplicate", "selection.duplicate"],
       ["More", "module.properties"],
     ]) {
@@ -73,7 +73,7 @@ describe("SelectionHalo", () => {
         commands={[
           command("module.properties", "More"),
           command("selection.duplicate", "Duplicate"),
-          command("module.connect", "Connect"),
+          command("module.draw-flow", "Draw flow"),
           command("module.edit", "Edit"),
           command("module.style", "Style"),
         ]}
@@ -85,7 +85,7 @@ describe("SelectionHalo", () => {
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Edit",
       "Style",
-      "Connect",
+      "Draw flow",
       "Duplicate",
       "More",
     ]);

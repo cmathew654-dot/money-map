@@ -27,7 +27,7 @@ describe("workspace command registry", () => {
     expect(registry.available(context()).map(({ id }) => id)).toEqual([
       "module.edit",
       "module.style",
-      "module.connect",
+      "module.draw-flow",
       "module.properties",
       "selection.duplicate",
       "selection.remove",
@@ -113,7 +113,7 @@ describe("workspace command registry", () => {
     expect(available).toContain("selection.remove");
     expect(available).not.toContain("module.edit");
     expect(available).not.toContain("module.style");
-    expect(available).not.toContain("module.connect");
+    expect(available).not.toContain("module.draw-flow");
     expect(available).not.toContain("module.properties");
   });
 
@@ -131,8 +131,9 @@ describe("workspace command registry", () => {
         "flow.route.straight",
         "flow.route.orthogonal",
         "flow.route.curved",
-        "flow.relationship.flow",
-        "flow.relationship.association",
+        "flow.relationship.income",
+        "flow.relationship.transfer",
+        "flow.relationship.replenishment",
         "flow.relationship.planned",
         "flow.label-treatment.plain",
         "flow.label-treatment.plate",

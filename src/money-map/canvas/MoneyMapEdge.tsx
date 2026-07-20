@@ -24,6 +24,8 @@ export function MoneyMapEdge({
   const pointerStart = useRef<Point | null>(null);
   const pointerDragged = useRef(false);
   const suppressClick = useRef(false);
+  const routePointerStart = useRef<Point | null>(null);
+  const routePointerDragged = useRef(false);
   if (!data) return null;
   const { flow, handlers, editing = false } = data;
   const geometry = relationshipGeometry(
@@ -77,13 +79,91 @@ export function MoneyMapEdge({
         }}
       >
         <BaseEdge
+          className="money-map-relationship-casing"
+          interactionWidth={0}
+          path={geometry.path}
+        />
+        <BaseEdge
           className={`money-map-relationship-path relationship--${flow.relationship}`}
           interactionWidth={28}
-          markerEnd={flow.relationship === "association" ? undefined : markerEnd}
+          markerEnd={markerEnd}
           path={geometry.path}
         />
       </g>
       <EdgeLabelRenderer>
+        {selected && !data.presentation ? (
+          <button
+            aria-label={"Adjust route: " + flow.label}
+            className="money-map-route-handle nodrag nopan"
+            type="button"
+            style={{
+              position: "absolute",
+              transform:
+                "translate(-50%, -50%) translate(" +
+                (flow.labelPosition.x + 96) +
+                "px, " +
+                flow.labelPosition.y +
+                "px)",
+              pointerEvents: "all",
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handlers?.select();
+            }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              routePointerStart.current = { x: event.clientX, y: event.clientY };
+              routePointerDragged.current = false;
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+            }}
+            onPointerMove={(event) => {
+              event.stopPropagation();
+              if (!routePointerStart.current) return;
+              routePointerDragged.current = pointerMovedBeyondThreshold(
+                routePointerStart.current,
+                { x: event.clientX, y: event.clientY },
+              );
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              if (routePointerStart.current && routePointerDragged.current) {
+                handlers?.select();
+                handlers?.moveWaypointPosition({ x: event.clientX, y: event.clientY });
+              }
+              routePointerStart.current = null;
+              routePointerDragged.current = false;
+            }}
+            onPointerCancel={() => {
+              routePointerStart.current = null;
+              routePointerDragged.current = false;
+            }}
+            onLostPointerCapture={() => {
+              routePointerStart.current = null;
+              routePointerDragged.current = false;
+            }}
+            onKeyDown={(event) => {
+              if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+                return;
+              }
+              event.stopPropagation();
+              event.preventDefault();
+              const distance = event.shiftKey ? 32 : 8;
+              const delta =
+                event.key === "ArrowLeft"
+                  ? { x: -distance, y: 0 }
+                  : event.key === "ArrowRight"
+                    ? { x: distance, y: 0 }
+                    : event.key === "ArrowUp"
+                      ? { x: 0, y: -distance }
+                      : { x: 0, y: distance };
+              handlers?.select();
+              handlers?.nudgeWaypointPosition({
+                x: geometry.label.x + delta.x,
+                y: geometry.label.y + delta.y,
+              });
+            }}
+          />
+        ) : null}
         <div
           className="money-map-flow-label-wrap nodrag nopan"
           data-flow-label-id={flow.id}

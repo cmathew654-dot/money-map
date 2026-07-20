@@ -83,7 +83,6 @@ describe("MoneyMapNode", () => {
       availableCommands: [],
       announcement: "",
       activeFlowId: null,
-      connectMode: false,
     } as unknown as EditorInteraction;
     const props = {
       id: module.id,
@@ -118,7 +117,7 @@ describe("MoneyMapNode", () => {
     expect(begun).toEqual(["eyebrow", "subtitle", "row-label", "total-label", "note"]);
   });
 
-  it("allows reconnect drops but not new connection starts outside Connections mode", () => {
+  it("allows new flow starts and reconnect drops whenever authoring", () => {
     const module = createTestDocument().modules[0];
     const props = {
       id: module.id,
@@ -128,7 +127,6 @@ describe("MoneyMapNode", () => {
         selectionCount: 1,
         selectionModuleIds: [],
         haloAnchor: false,
-        connectMode: false,
         reconnectMode: true,
       },
       selected: false,
@@ -151,7 +149,7 @@ describe("MoneyMapNode", () => {
     const handles = [...container.querySelectorAll(".money-map-handle")];
     expect(handles).toHaveLength(8);
     expect(handles.every((handle) => handle.classList.contains("connectableend"))).toBe(true);
-    expect(handles.every((handle) => !handle.classList.contains("connectablestart"))).toBe(true);
+    expect(handles.every((handle) => handle.classList.contains("connectablestart"))).toBe(true);
     expect(container.querySelector('[data-reconnect-mode="true"]')).toBeTruthy();
   });
 
@@ -165,7 +163,6 @@ describe("MoneyMapNode", () => {
         selectionCount: 0,
         selectionModuleIds: [],
         haloAnchor: false,
-        connectMode: false,
         reconnectMode: false,
         presentation: true,
         presentationFocus: true,

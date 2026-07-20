@@ -13,31 +13,10 @@ function straightPath(points: Point[]): string {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
 }
 
-function doglegOffset(distance: number): number {
-  return Math.min(72, Math.max(32, distance / 3));
-}
-
 function orthogonalSegment(previous: Point, next: Point): Point[] {
   const deltaX = next.x - previous.x;
   const deltaY = next.y - previous.y;
-  if (deltaY === 0) {
-    const offsetY = previous.y + doglegOffset(Math.abs(deltaX)) * (deltaX >= 0 ? 1 : -1);
-    return [
-      { x: previous.x, y: offsetY },
-      { x: (previous.x + next.x) / 2, y: offsetY },
-      { x: next.x, y: offsetY },
-      next,
-    ];
-  }
-  if (deltaX === 0) {
-    const offsetX = previous.x + doglegOffset(Math.abs(deltaY)) * (deltaY >= 0 ? -1 : 1);
-    return [
-      { x: offsetX, y: previous.y },
-      { x: offsetX, y: (previous.y + next.y) / 2 },
-      { x: offsetX, y: next.y },
-      next,
-    ];
-  }
+  if (deltaY === 0 || deltaX === 0) return [next];
   if (Math.abs(deltaX) >= Math.abs(deltaY)) {
     const elbowX = (previous.x + next.x) / 2;
     return [

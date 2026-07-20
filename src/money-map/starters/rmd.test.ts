@@ -116,7 +116,7 @@ describe("RMD & Withholding starter", () => {
       new Set(["straight", "orthogonal", "curved"]),
     );
     expect(new Set(flows.map(({ relationship }) => relationship))).toEqual(
-      new Set(["flow", "association", "planned"]),
+      new Set(["transfer", "planned"]),
     );
     expect(new Set(flows.map(({ labelTreatment }) => labelTreatment))).toEqual(
       new Set(["plain", "plate", "filled"]),
@@ -134,7 +134,7 @@ describe("RMD & Withholding starter", () => {
           id: "rmd-net-distribution",
           source: "rmd-instruction",
           target: "rmd-reserve",
-          relationship: "flow",
+          relationship: "transfer",
           route: "orthogonal",
           labelTreatment: "plate",
           label: "Net distribution — advisor entered",
@@ -144,7 +144,7 @@ describe("RMD & Withholding starter", () => {
           id: "rmd-household-need",
           source: "rmd-reserve",
           target: "rmd-need",
-          relationship: "flow",
+          relationship: "transfer",
           route: "curved",
           labelTreatment: "plain",
           cadence: { kind: "monthly", label: "Monthly" },
@@ -153,7 +153,7 @@ describe("RMD & Withholding starter", () => {
           id: "rmd-year-end-review",
           source: "rmd-instruction",
           target: "rmd-review",
-          relationship: "association",
+          relationship: "planned",
           route: "straight",
           labelTreatment: "plain",
           cadence: { kind: "custom", label: "At year-end" },
@@ -253,8 +253,8 @@ describe("RMD & Withholding starter", () => {
     expect(flowById.get("rmd-year-end-review")?.waypoints).toEqual([
       { x: 559, y: 690 },
       { x: 1010, y: 710 },
-      { x: 1010, y: 480 },
-      { x: 1400, y: 480 },
+      { x: 1010, y: 500 },
+      { x: 1400, y: 500 },
       { x: 1400, y: 130 },
     ]);
   });

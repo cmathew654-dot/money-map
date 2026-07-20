@@ -18,11 +18,13 @@ import {
   type EditorInteraction,
   type InlineEditTarget,
 } from "./EditorInteractionContext";
+import { FlowTargetPicker } from "./FlowTargetPicker";
 import {
   createRelationship,
   editFlowField,
   editModuleField,
   moveFlowLabel,
+  moveFlowWaypoint,
   nudgeSelection,
   reconnectFlow,
   type FlowField,
@@ -113,10 +115,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const [relationshipOpen, setRelationshipOpen] = useState(false);
   const [cadenceFilter, setCadenceFilter] = useState<CadenceFilterValue>("all");
   const [paletteInvoker, setPaletteInvoker] = useState<HTMLElement | null>(null);
-  const [propertiesTab, setPropertiesTab] = useState<
-    "content" | "appearance" | "connections" | null
-  >(null);
+  const [propertiesTab, setPropertiesTab] = useState<"content" | "appearance" | null>(null);
   const [styleOpen, setStyleOpen] = useState(false);
+  const [drawFlowOpen, setDrawFlowOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const presentingRef = useRef(presenting);
   presentingRef.current = presenting;
@@ -134,7 +135,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     editor.selection.flowIds.length === 1 && editor.selection.moduleIds.length === 0
       ? editor.selection.flowIds[0]
       : null;
-  const connectMode = propertiesTab === "connections" && selectedModuleId !== null;
   const availableCommands = editor.registry.available(editor.commandContext);
   const appearanceCommands = availableCommands.filter(
     ({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."),
@@ -148,6 +148,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     if (selectedModuleId) return;
     setPropertiesTab(null);
     setStyleOpen(false);
+    setDrawFlowOpen(false);
   }, [selectedModuleId]);
 
   useEffect(() => {
@@ -232,15 +233,25 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
         setRelationshipOpen(true);
         return;
       }
+      if (result.surface === "draw-flow") {
+        setPropertiesTab(null);
+        setStyleOpen(false);
+        setRelationshipOpen(false);
+        placeSurface();
+        setDrawFlowOpen(true);
+        return;
+      }
 
       setRelationshipOpen(false);
       placeSurface();
       if (result.surface === "style") {
         setPropertiesTab(null);
+        setDrawFlowOpen(false);
         setStyleOpen(true);
       } else {
         setStyleOpen(false);
-        setPropertiesTab(result.surface === "connections" ? "connections" : "content");
+        setDrawFlowOpen(false);
+        setPropertiesTab("content");
       }
     },
     [beginSelectedTitle, editor, placeFlowSurface, placeSurface, selectedFlowId],
@@ -351,6 +362,15 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor, focusFlowLabel],
   );
 
+  const commitFlowWaypoint = useCallback(
+    (flowId: string, point: Point) => {
+      const next = moveFlowWaypoint(editor.document, flowId, point);
+      editor.applyDocument(next, "Relationship route updated.", "move relationship bend");
+      focusFlowLabel(flowId);
+    },
+    [editor, focusFlowLabel],
+  );
+
   const reconnectRelationship = useCallback(
     (flowId: string, connection: { source: string; target: string }) => {
       const next = reconnectFlow(editor.document, flowId, connection);
@@ -374,6 +394,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       editor.applyDocument(next, "Relationship created.", "create relationship");
       editor.setSelection({ moduleIds: [], flowIds: [created.id] });
       setPropertiesTab(null);
+      setDrawFlowOpen(false);
       setActiveFlowId(created.id);
     },
     [editor],
@@ -389,6 +410,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const openPalette = useCallback((invoker: HTMLElement) => {
     setPropertiesTab(null);
     setStyleOpen(false);
+    setDrawFlowOpen(false);
     setRelationshipOpen(false);
     setActiveFlowId(null);
     setPaletteInvoker(invoker);
@@ -425,6 +447,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     focusSelectedModule();
   }, [focusSelectedModule]);
 
+  const closeDrawFlow = useCallback(() => {
+    setDrawFlowOpen(false);
+    focusSelectedModule();
+  }, [focusSelectedModule]);
+
   const exitPresentation = useCallback(() => {
     setPresenting(false);
     requestAnimationFrame(() => presentRef.current?.focus());
@@ -437,6 +464,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setPaletteInvoker(null);
     setPropertiesTab(null);
     setStyleOpen(false);
+    setDrawFlowOpen(false);
     setPresenting(true);
   }, []);
 
@@ -452,7 +480,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       availableCommands,
       activeInlineField,
       activeFlowId,
-      connectMode,
       beginInlineEdit: setActiveInlineField,
       commitInlineEdit,
       cancelInlineEdit: () => setActiveInlineField(null),
@@ -461,6 +488,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       commitFlowEdit,
       selectFlow,
       commitFlowLabelPosition,
+      commitFlowWaypoint,
       executeCommand,
       openPalette,
       nudgeSelected,
@@ -477,10 +505,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       cancelFlowEdit,
       commitFlowEdit,
       commitFlowLabelPosition,
+      commitFlowWaypoint,
       commitInlineEdit,
       commitModuleMove,
       commitModuleSize,
-      connectMode,
       createConnection,
       editor.announcement,
       editor.selection.flowIds.length,
@@ -548,7 +576,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       <main
         className={`money-map-workspace ${theme.className}`}
         data-canvas-style={theme.id}
-        data-connect-mode={connectMode ? "true" : "false"}
         onKeyDown={handleWorkspaceKeyDown}
         ref={ref}
       >
@@ -655,6 +682,20 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           </aside>
         ) : null}
 
+        {drawFlowOpen && selectedModuleId ? (
+          <FlowTargetPicker
+            document={editor.document}
+            sourceId={selectedModuleId}
+            onChoose={(targetId) => createConnection(selectedModuleId, targetId)}
+            onClose={closeDrawFlow}
+            style={
+              surfacePosition
+                ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }
+                : undefined
+            }
+          />
+        ) : null}
+
         {propertiesTab && selectedModuleId ? (
           <AdvancedProperties
             commands={appearanceCommands}
@@ -666,7 +707,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
             onClose={closeProperties}
             onCommitField={commitPropertyField}
             onExecute={executeCommand}
-            onCreateConnection={createConnection}
             style={
               surfacePosition
                 ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }

@@ -94,7 +94,7 @@ describe("annuity foundation starter", () => {
         id: "annuity-income-need",
         source: "annuity-income",
         target: "annuity-need",
-        relationship: "flow",
+        relationship: "income",
         route: "curved",
         labelTreatment: "filled",
         cadence: { kind: "monthly", label: "Monthly" },
@@ -124,7 +124,7 @@ describe("annuity foundation starter", () => {
         id: "annuity-contract-need",
         source: "annuity-policy",
         target: "annuity-need",
-        relationship: "flow",
+        relationship: "income",
         route: "straight",
         labelTreatment: "filled",
         cadence: { kind: "annual", label: "Annual" },
@@ -134,7 +134,7 @@ describe("annuity foundation starter", () => {
         id: "annuity-reserve-need",
         source: "annuity-reserve",
         target: "annuity-need",
-        relationship: "flow",
+        relationship: "transfer",
         route: "orthogonal",
         labelTreatment: "plate",
         cadence: { kind: "as-needed", label: "As needed" },
@@ -143,7 +143,7 @@ describe("annuity foundation starter", () => {
         id: "annuity-contract-reserve",
         source: "annuity-policy",
         target: "annuity-reserve",
-        relationship: "association",
+        relationship: "planned",
         route: "curved",
         labelTreatment: "plain",
         cadence: { kind: "custom", label: "Liquidity context" },
@@ -154,7 +154,7 @@ describe("annuity foundation starter", () => {
       new Set(["ledger", "plate", "tray", "band", "roundel", "frame"]),
     );
     expect(new Set(document.flows.map(({ relationship }) => relationship))).toEqual(
-      new Set(["flow", "planned", "association"]),
+      new Set(["income", "transfer", "planned"]),
     );
     expect(new Set(document.flows.map(({ route }) => route))).toEqual(
       new Set(["straight", "orthogonal", "curved"]),

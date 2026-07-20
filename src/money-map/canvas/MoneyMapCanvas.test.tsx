@@ -500,12 +500,12 @@ describe("MoneyMapCanvas command shortcuts", () => {
       availableCommands: registry.available(context),
       activeInlineField: null,
       activeFlowId: null,
-      connectMode: false,
       beginFlowEdit: vi.fn(),
       cancelFlowEdit: vi.fn(),
       commitFlowEdit: vi.fn(),
       selectFlow: vi.fn(),
       commitFlowLabelPosition: vi.fn(),
+      commitFlowWaypoint: vi.fn(),
       createConnection: vi.fn(),
       reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
@@ -651,12 +651,12 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       availableCommands: [],
       activeInlineField: null,
       activeFlowId: null,
-      connectMode: true,
       beginFlowEdit: vi.fn(),
       cancelFlowEdit: vi.fn(),
       commitFlowEdit: vi.fn(),
       selectFlow: vi.fn(),
       commitFlowLabelPosition: vi.fn(),
+      commitFlowWaypoint: vi.fn(),
       createConnection,
       reconnectRelationship,
       beginInlineEdit: vi.fn(),
@@ -689,7 +689,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     expect(createConnection).toHaveBeenCalledTimes(1);
     expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
 
-    const reconnectInteraction = { ...interaction, connectMode: false };
+    const reconnectInteraction = interaction;
     view.rerender(
       <EditorInteractionContext.Provider value={reconnectInteraction}>
         <MoneyMapCanvas
@@ -703,8 +703,8 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     expect(flowMock.props.nodesConnectable).toBe(true);
     expect(
       (
-        flowMock.props.nodes as Array<{ data: { reconnectMode: boolean; connectMode: boolean } }>
-      ).every(({ data }) => data.reconnectMode && !data.connectMode),
+        flowMock.props.nodes as Array<{ data: { reconnectMode: boolean } }>
+      ).every(({ data }) => data.reconnectMode),
     ).toBe(true);
     expect(
       (flowMock.props.edges as Array<{ id: string; reconnectable: boolean }>).filter(

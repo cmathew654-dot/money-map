@@ -163,6 +163,31 @@ describe("relationship mutations", () => {
     ).toBe(document);
   });
 
+  it("keeps a translated label clear of a newly reconnected endpoint", () => {
+    const document = createTestDocument();
+    const starting = {
+      ...document,
+      flows: document.flows.map((flow) =>
+        flow.id === "funding-flow"
+          ? {
+              ...flow,
+              target: "monthly-need",
+              labelPosition: { x: 600, y: 210 },
+            }
+          : flow,
+      ),
+    };
+
+    const reconnected = reconnectFlow(starting, "funding-flow", {
+      source: "source-account",
+      target: "annuity-policy",
+    });
+
+    expect(reconnected.flows[0].labelPosition.x).toBeLessThanOrEqual(280);
+    expect(reconnected.flows[0].labelPosition.y).toBe(213.25);
+    expect(reconnected.flows[0].waypoints).toBe(document.flows[0].waypoints);
+  });
+
   it("moves label position independently from authored route waypoints", () => {
     const document = createTestDocument();
     const waypoints = document.flows[0].waypoints;
@@ -206,10 +231,10 @@ describe("relationship mutations", () => {
       id: "new-flow",
       source: "source-account",
       target: "monthly-need",
-      relationship: "flow",
+      relationship: "transfer",
       route: "curved",
       labelTreatment: "plate",
-      label: "New relationship",
+      label: "New transfer",
       cadence: { kind: "as-needed", label: "As needed" },
       labelPosition: { x: 562, y: 202 },
       waypoints: [],

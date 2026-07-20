@@ -18,6 +18,8 @@ export interface MoneyMapEdgeHandlers {
   commitEdit(literal: string): void;
   moveLabelPosition(clientPoint: Point): void;
   nudgeLabelPosition(point: Point): void;
+  moveWaypointPosition(clientPoint: Point): void;
+  nudgeWaypointPosition(point: Point): void;
   select(): void;
 }
 
@@ -27,7 +29,6 @@ export interface MoneyMapNodeData extends Record<string, unknown> {
   selectionCount: number;
   selectionModuleIds: string[];
   haloAnchor: boolean;
-  connectMode: boolean;
   reconnectMode: boolean;
   presentation?: boolean;
   presentationFocus?: boolean;
@@ -43,24 +44,24 @@ export interface MoneyMapEdgeData extends Record<string, unknown> {
 
 export type MoneyMapCanvasEdge = Edge<MoneyMapEdgeData, "moneyMapRelationship">;
 
-function moduleHorizontalCenter(module: MoneyMapModule): number {
-  return module.position.x + module.width / 2;
+function moduleCenter(module: MoneyMapModule): Point {
+  return {
+    x: module.position.x + module.width / 2,
+    y: module.position.y + module.height / 2,
+  };
 }
 
-function horizontalHandleToward(
+function handleToward(
   module: MoneyMapModule,
-  pointX: number,
+  point: Point,
   kind: "source" | "target",
 ): string {
-  const deltaX = pointX - moduleHorizontalCenter(module);
-  const position =
-    deltaX === 0
-      ? kind === "source"
-        ? Position.Right
-        : Position.Left
-      : deltaX > 0
-        ? Position.Right
-        : Position.Left;
+  const center = moduleCenter(module);
+  const deltaX = point.x - center.x;
+  const deltaY = point.y - center.y;
+  const position = Math.abs(deltaX) >= Math.abs(deltaY)
+    ? deltaX >= 0 ? Position.Right : Position.Left
+    : deltaY >= 0 ? Position.Bottom : Position.Top;
   return kind + "-" + position;
 }
 
@@ -72,14 +73,14 @@ function relationshipHandles(
   const target = document.modules.find((module) => module.id === flow.target);
   if (!source || !target) return {};
   return {
-    sourceHandle: horizontalHandleToward(
+    sourceHandle: handleToward(
       source,
-      flow.waypoints[0]?.x ?? moduleHorizontalCenter(target),
+      flow.waypoints[0] ?? moduleCenter(target),
       "source",
     ),
-    targetHandle: horizontalHandleToward(
+    targetHandle: handleToward(
       target,
-      flow.waypoints.at(-1)?.x ?? moduleHorizontalCenter(source),
+      flow.waypoints.at(-1) ?? moduleCenter(source),
       "target",
     ),
   };
@@ -117,7 +118,6 @@ export function moduleAriaLabel(module: MoneyMapModule, outgoingCount: number): 
 export function documentToNodes(
   document: MoneyMapDocument,
   selection: Selection,
-  connectMode = false,
   presentationStep?: PresentationStep,
 ): Node<MoneyMapNodeData>[] {
   const selected = new Set(selection.moduleIds);
@@ -138,7 +138,6 @@ export function documentToNodes(
         selectionCount: selection.moduleIds.length + selection.flowIds.length,
         selectionModuleIds: selection.moduleIds,
         haloAnchor: module.id === haloAnchorId,
-        connectMode,
         reconnectMode,
         presentation: Boolean(presentationStep),
         presentationFocus: presentationStep?.moduleIds.includes(module.id) ?? false,
@@ -181,10 +180,7 @@ export function documentToEdges(
     focusable: !presentationStep,
     reconnectable: !presentationStep && flow.id === reconnectableId,
     hidden: !cadenceMatchesFilter(flow, filter),
-    markerEnd:
-      flow.relationship === "association"
-        ? undefined
-        : { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
     ariaLabel: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
     className: `money-map-edge money-map-edge--${flow.relationship}${
       presentationStep?.flowIds.includes(flow.id) ? " presentation-focus" : ""

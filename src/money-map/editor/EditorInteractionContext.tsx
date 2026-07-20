@@ -15,7 +15,6 @@ export interface EditorInteraction {
   availableCommands: WorkspaceCommandDefinition[];
   activeInlineField: InlineEditTarget | null;
   activeFlowId: string | null;
-  connectMode: boolean;
   beginInlineEdit(target: InlineEditTarget): void;
   commitInlineEdit(exact: string): void;
   cancelInlineEdit(): void;
@@ -24,6 +23,7 @@ export interface EditorInteraction {
   commitFlowEdit(flowId: string, exact: string): void;
   selectFlow(flowId: string): void;
   commitFlowLabelPosition(flowId: string, point: Point): void;
+  commitFlowWaypoint(flowId: string, point: Point): void;
   executeCommand(id: string): void;
   openPalette(invoker: HTMLElement): void;
   nudgeSelected(delta: Point): void;

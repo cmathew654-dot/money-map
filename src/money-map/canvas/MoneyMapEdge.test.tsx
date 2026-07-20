@@ -37,6 +37,8 @@ function renderEdge(overrides: Partial<MoneyMapCanvasEdge["data"]> = {}) {
     commitEdit: vi.fn(),
     moveLabelPosition: vi.fn(),
     nudgeLabelPosition: vi.fn(),
+    moveWaypointPosition: vi.fn(),
+    nudgeWaypointPosition: vi.fn(),
     select: vi.fn(),
   };
   const props = {
@@ -90,7 +92,7 @@ describe("MoneyMapEdge", () => {
       </ReactFlowProvider>,
     );
 
-    expect(useRefCalls).toHaveBeenCalledTimes(3);
+    expect(useRefCalls).toHaveBeenCalledTimes(5);
 
     expect(() => {
       view.rerender(
@@ -98,13 +100,13 @@ describe("MoneyMapEdge", () => {
           <MoneyMapEdge {...props} data={undefined} />
         </ReactFlowProvider>,
       );
-      expect(useRefCalls).toHaveBeenCalledTimes(6);
+      expect(useRefCalls).toHaveBeenCalledTimes(10);
       view.rerender(
         <ReactFlowProvider>
           <MoneyMapEdge {...props} />
         </ReactFlowProvider>,
       );
-      expect(useRefCalls).toHaveBeenCalledTimes(9);
+      expect(useRefCalls).toHaveBeenCalledTimes(15);
     }).not.toThrow();
     expect(consoleError.mock.calls.flat().join(" ")).not.toMatch(/change in the order of Hooks/i);
     consoleError.mockRestore();
@@ -120,6 +122,9 @@ describe("MoneyMapEdge", () => {
     expect(label.textContent).toContain(flow.cadence.label);
     expect(label.closest("[data-treatment]")?.getAttribute("data-treatment")).toBe("plate");
     expect(document.querySelector("path")?.getAttribute("class")).toContain(
+      "money-map-relationship-casing",
+    );
+    expect(document.querySelectorAll("path")[1]?.getAttribute("class")).toContain(
       "relationship--planned",
     );
   });
@@ -173,6 +178,45 @@ describe("MoneyMapEdge", () => {
     expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(label, { key: "ArrowRight", shiftKey: true });
     expect(handlers.nudgeLabelPosition).toHaveBeenCalledWith({ x: 392, y: 176 });
+  });
+
+  it("moves route geometry from a separate selected-flow bend handle", () => {
+    const flow = createTestDocument().flows[0];
+    const handlers = {
+      beginEdit: vi.fn(),
+      cancelEdit: vi.fn(),
+      commitEdit: vi.fn(),
+      moveLabelPosition: vi.fn(),
+      nudgeLabelPosition: vi.fn(),
+      moveWaypointPosition: vi.fn(),
+      nudgeWaypointPosition: vi.fn(),
+      select: vi.fn(),
+    };
+    render(
+      <ReactFlowProvider>
+        <MoneyMapEdge
+          {...({
+            id: flow.id,
+            source: flow.source,
+            target: flow.target,
+            sourceX: 20,
+            sourceY: 40,
+            targetX: 420,
+            targetY: 180,
+            data: { flow, handlers },
+            selected: true,
+          } as unknown as EdgeProps<MoneyMapCanvasEdge>)}
+        />
+      </ReactFlowProvider>,
+    );
+    const bend = screen.getByRole("button", { name: "Adjust route: " + flow.label });
+    fireEvent.pointerDown(bend, { clientX: 200, clientY: 160, pointerId: 2 });
+    fireEvent.pointerMove(bend, { clientX: 220, clientY: 180, pointerId: 2 });
+    fireEvent.pointerUp(bend, { clientX: 220, clientY: 180, pointerId: 2 });
+    expect(handlers.moveWaypointPosition).toHaveBeenCalledWith({ x: 220, y: 180 });
+
+    fireEvent.keyDown(bend, { key: "ArrowRight" });
+    expect(handlers.nudgeWaypointPosition).toHaveBeenCalledTimes(1);
   });
 
   it("commits or restores an exact inline label", () => {

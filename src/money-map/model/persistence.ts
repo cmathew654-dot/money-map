@@ -192,7 +192,7 @@ function isFlow(value: unknown): value is MoneyMapFlow {
     typeof value.id === "string" &&
     typeof value.source === "string" &&
     typeof value.target === "string" &&
-    isOneOf(value.relationship, ["flow", "association", "planned"]) &&
+    isOneOf(value.relationship, ["income", "transfer", "replenishment", "planned"]) &&
     isOneOf(value.route, ["straight", "orthogonal", "curved"]) &&
     isOneOf(value.labelTreatment, ["plain", "plate", "filled"]) &&
     typeof value.label === "string" &&

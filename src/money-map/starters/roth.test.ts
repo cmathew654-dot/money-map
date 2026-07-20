@@ -53,11 +53,11 @@ const expectedModules = [
 
 const expectedFlows = [
   ["roth-source", "roth-2026", "planned", "curved", "filled", "Annual", "annual"],
-  ["roth-2026", "roth-destination", "flow", "straight", "plate", "One-time", "one-time"],
+  ["roth-2026", "roth-destination", "transfer", "straight", "plate", "One-time", "one-time"],
   [
     "roth-tax-reserve",
     "roth-2026",
-    "association",
+    "planned",
     "orthogonal",
     "plain",
     "Alongside each conversion",
@@ -66,24 +66,24 @@ const expectedFlows = [
   [
     "roth-2026",
     "roth-guardrails",
-    "association",
+    "planned",
     "straight",
     "plain",
     "Advisor tax review",
     "custom",
   ],
   ["roth-source", "roth-2027", "planned", "straight", "plate", "Annual", "annual"],
-  ["roth-2027", "roth-destination", "flow", "curved", "filled", "One-time", "one-time"],
+  ["roth-2027", "roth-destination", "transfer", "curved", "filled", "One-time", "one-time"],
   [
     "roth-liquidity",
     "roth-tax-reserve",
-    "association",
+    "replenishment",
     "straight",
     "plain",
     "As needed",
     "as-needed",
   ],
-  ["roth-liquidity", "roth-source", "association", "curved", "plate", "Monthly", "monthly"],
+  ["roth-liquidity", "roth-source", "planned", "curved", "plate", "Monthly", "monthly"],
 ] as const;
 
 const expectedSteps = [
@@ -130,7 +130,7 @@ describe("Roth Conversion Path starter", () => {
       new Set(["straight", "orthogonal", "curved"]),
     );
     expect(new Set(flows.map(({ relationship }) => relationship))).toEqual(
-      new Set(["flow", "association", "planned"]),
+      new Set(["transfer", "replenishment", "planned"]),
     );
     expect(new Set(flows.map(({ labelTreatment }) => labelTreatment))).toEqual(
       new Set(["plain", "plate", "filled"]),

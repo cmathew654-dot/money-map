@@ -4,9 +4,9 @@
 
 **Branch:** `codex/advisor-shape-studio`
 
-**Checkpoint:** R1 Retirement reference slice complete locally
+**Checkpoint:** R2 reliable Draw flow complete locally
 
-**Phase:** R2 reliable Draw flow is next
+**Phase:** R3 compact catalog and authoring is next
 
 ## Current product
 
@@ -15,6 +15,8 @@
 - The v2 authoring model now carries independent width/height, snapped rotation, priority, density, semantic color, curated swatch, z-order, and independent flow-label position. Local v1 drafts are intentionally abandoned under the new `money-map:v2:` key.
 - Retirement is the reference slice: ledger, tabbed plate, liquidity tray, dimensional roundel, statement band, frame, and text object now read as distinct financial-story primitives. Priority and density create visible hierarchy without deriving anything from amounts.
 - Every visible module text role is directly editable by double-click. Modules resize on both axes with content-safe clamping; rotated objects deliberately do not resize. Existing selection halo, Actions palette, undo/redo, persistence, and presentation history remain shared.
+- Draw flow is available from the selection halo, Actions palette, and `L`. Hover-visible ports and a compact keyboard-accessible destination picker replace the hidden connection mode and Connections tab. Labels and route bends move independently; endpoint reconnect remains available by pointer and properties.
+- Four advisor-language relationship meanings - income, transfer, replenishment, and planned - use redundant label and line-pattern cues. Aligned modules no longer receive manufactured doglegs, routes use all four module sides, and edge casing keeps genuine crossings legible.
 - Presentation keeps title, as-of date, and synthetic-data provenance visible; offers direct and keyboard step navigation; restores focus on exit; and disables author mutations.
 - Financial content remains exact display text. Nothing parses, calculates, reconciles, taxes, debits, validates funding capacity, or derives geometry/style from amounts.
 - Public packaging includes a visitor-first README, architecture and provenance docs, relative Pages asset validation, and SHA-pinned verify/deploy workflows. Nothing has been pushed or deployed.
@@ -23,13 +25,13 @@
 ## Verification
 
 - ESLint, TypeScript, production build, and Pages asset validation pass in the integration worktree.
-- R1 unit/component gate: 35 files, 265 tests passed.
+- R2 unit/component gate: 35 files, 266 tests passed.
 - Full Chromium: 26/26 journeys passed.
 - All four stories pass presentation geometry and readability checks at 1280x720, 1440x900, and 1920x1080: bounded content, no module/label collisions, no unrelated route crossings, and enforced text floors.
 - Independent Task 5 review found no P0/P1 defects. Its three P2 findings - coarse-pointer targets, per-theme presentation surfaces, and fake-height connector ports - were repaired and covered before integration.
 - The independent Impeccable baseline was 13/20. The repaired build is 19/20 with no scoped P0/P1/P2 finding open; the remaining point is incomplete decorative tokenization in stable shared editor chrome.
 - Fresh `npm run verify` passed: formatting, lint, TypeScript, 240 tests, production build, Pages asset validation, and 26 Chromium journeys. The Impeccable static detector returned zero findings.
-- R1 production build passed on 2026-07-19: 458.46 kB JavaScript / 140.26 kB gzip and 47.10 kB CSS / 8.96 kB gzip, within the audited budget.
+- R2 production build passed on 2026-07-19: 460.64 kB JavaScript / 140.64 kB gzip and 48.23 kB CSS / 9.15 kB gzip, within the audited budget.
 - The 1440x900 Retirement slice was inspected in-browser: no module content clips; direct title editing opens on double-click; one two-axis resize control appears on selection.
 
 ## Known boundaries
@@ -44,7 +46,7 @@
 
 - Implement the externally audited lean plan in `docs/superpowers/plans/2026-07-19-advisor-safe-shape-studio.md`.
 - The external verdict was `PROCEED AFTER MANDATORY REVISIONS`. The accepted plan removes the multiplicative material matrix, speculative schema/migration, obstacle avoidance, line jumps, and generic-canvas extras; it promotes reliable flows ahead of the full catalog.
-- R1 is complete. R2 now replaces hidden connection mode with the reliable Draw flow workflow, decouples bends from labels, removes generated doglegs, and uses all four connection sides.
+- R1 and R2 are complete. R3 now finishes the eight-shape catalog, compact Add and style authoring, and one authored default view per starter without adding new panels or modes.
 - Eight purposeful shapes, three priority levels, three content densities, and curated theme swatches form the release grammar. Rotation remains available to every object with explicit React Flow-safe constraints.
 - Per explicit user instruction, ceremony has been removed: direct implementation, focused checks during development, full gates only after user-visible checkpoints, and independent review only at four-starter integration/final audit.
 - Nothing will be pushed, merged, deployed, or released without explicit user approval.

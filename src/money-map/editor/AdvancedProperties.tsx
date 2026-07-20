@@ -9,7 +9,7 @@ export type PropertyField =
   | { field: "row-label" | "row-value"; rowId: string }
   | { field: "total-label" | "total-value" };
 
-type PropertiesTab = "content" | "appearance" | "connections";
+type PropertiesTab = "content" | "appearance";
 type WorkspaceCommandDefinition = CommandDefinition<
   WorkspaceCommandContext,
   WorkspaceCommandResult
@@ -22,7 +22,6 @@ interface AdvancedPropertiesProps {
   initialTab: PropertiesTab;
   onCommitField(moduleId: string, field: PropertyField, value: string): void;
   onExecute(id: string): void;
-  onCreateConnection?(source: string, target: string): void;
   onTabChange?(tab: PropertiesTab): void;
   onClose(): void;
   style?: CSSProperties;
@@ -31,7 +30,6 @@ interface AdvancedPropertiesProps {
 const tabs: Array<{ id: PropertiesTab; label: string }> = [
   { id: "content", label: "Content" },
   { id: "appearance", label: "Appearance" },
-  { id: "connections", label: "Connections" },
 ];
 
 function PropertyInput({
@@ -83,22 +81,13 @@ export function AdvancedProperties({
   initialTab,
   onCommitField,
   onExecute,
-  onCreateConnection,
   onTabChange,
   onClose,
   style,
 }: AdvancedPropertiesProps) {
   const [tab, setTab] = useState<PropertiesTab>(initialTab);
-  const [connectionTarget, setConnectionTarget] = useState("");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const module = document.modules.find(({ id }) => id === moduleId);
-  const availableTargets = document.modules.filter(({ id }) => id !== moduleId);
-
-  useEffect(() => {
-    if (!availableTargets.some(({ id }) => id === connectionTarget)) {
-      setConnectionTarget(availableTargets[0]?.id ?? "");
-    }
-  }, [availableTargets, connectionTarget]);
   const primitiveCommands = commands.filter(({ id }) => id.startsWith("module.primitive."));
   const widthCommands = commands.filter(({ id }) => id.startsWith("module.width."));
 
@@ -120,10 +109,6 @@ export function AdvancedProperties({
     setTab(tabs[next].id);
     onTabChange?.(tabs[next].id);
   };
-
-  const relationships = document.flows.filter(
-    ({ source, target }) => source === moduleId || target === moduleId,
-  );
 
   return (
     <aside
@@ -251,41 +236,6 @@ export function AdvancedProperties({
               </button>
             ))}
           </fieldset>
-        </div>
-      ) : null}
-
-      {tab === "connections" ? (
-        <div
-          aria-labelledby="properties-tab-connections"
-          id="properties-connections"
-          role="tabpanel"
-        >
-          <ul>
-            {relationships.map((flow) => (
-              <li key={flow.id}>{flow.label}</li>
-            ))}
-          </ul>
-          <label>
-            <span>Connection target</span>
-            <select
-              aria-label="Connection target"
-              value={connectionTarget}
-              onChange={(event) => setConnectionTarget(event.currentTarget.value)}
-            >
-              {availableTargets.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            disabled={!connectionTarget || !onCreateConnection}
-            type="button"
-            onClick={() => onCreateConnection?.(moduleId, connectionTarget)}
-          >
-            Add connection
-          </button>
         </div>
       ) : null}
     </aside>

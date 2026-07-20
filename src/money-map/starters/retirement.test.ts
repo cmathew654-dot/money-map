@@ -45,7 +45,7 @@ describe("Retirement Income — Private Ledger", () => {
       new Set(["straight", "orthogonal", "curved"]),
     );
     expect(new Set(document.flows.map(({ relationship }) => relationship))).toEqual(
-      new Set(["flow", "planned", "association"]),
+      new Set(["income", "transfer", "replenishment", "planned"]),
     );
     expect(new Set(document.flows.map(({ labelTreatment }) => labelTreatment))).toEqual(
       new Set(["plain", "plate", "filled"]),

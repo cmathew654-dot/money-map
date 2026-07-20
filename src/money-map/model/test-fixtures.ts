@@ -88,7 +88,7 @@ export function createTestDocument(): MoneyMapDocument {
         id: "income-flow",
         source: "annuity-policy",
         target: "monthly-need",
-        relationship: "flow",
+        relationship: "transfer",
         route: "straight",
         labelTreatment: "plain",
         label: "~$11,800/mo",

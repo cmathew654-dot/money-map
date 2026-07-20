@@ -65,7 +65,7 @@ describe("AdvancedProperties", () => {
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Appearance" }));
   });
 
-  it("reports controlled tab changes from clicks and arrow keys", () => {
+  it("reports controlled Content and Appearance tab changes", () => {
     const onTabChange = vi.fn();
     render(
       <AdvancedProperties
@@ -79,16 +79,14 @@ describe("AdvancedProperties", () => {
         onTabChange={onTabChange}
       />,
     );
-    fireEvent.click(screen.getByRole("tab", { name: "Connections" }));
-    expect(onTabChange).toHaveBeenCalledWith("connections");
     fireEvent.keyDown(screen.getByRole("tab", { name: "Content" }), { key: "ArrowRight" });
     expect(onTabChange).toHaveBeenLastCalledWith("appearance");
+    expect(screen.queryByRole("tab", { name: "Connections" })).toBeNull();
   });
 
-  it("commits exact fields and creates a keyboard-selected relationship target", () => {
+  it("commits exact fields without exposing connection internals", () => {
     const commit = vi.fn();
     const execute = vi.fn();
-    const createConnection = vi.fn();
     render(
       <AdvancedProperties
         commands={appearanceCommands()}
@@ -98,20 +96,13 @@ describe("AdvancedProperties", () => {
         onClose={vi.fn()}
         onCommitField={commit}
         onExecute={execute}
-        onCreateConnection={createConnection}
       />,
     );
     const title = screen.getByRole("textbox", { name: "Title" });
     fireEvent.change(title, { target: { value: "$20,000\u2013?" } });
     fireEvent.blur(title);
     expect(commit).toHaveBeenCalledWith("annuity-policy", { field: "title" }, "$20,000\u2013?");
-
-    fireEvent.click(screen.getByRole("tab", { name: "Connections" }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Connection target" }), {
-      target: { value: "monthly-need" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add connection" }));
-    expect(createConnection).toHaveBeenCalledWith("annuity-policy", "monthly-need");
+    expect(screen.queryByLabelText("Connection target")).toBeNull();
   });
 
   it("refreshes drafts for document history and never carries stale text to a new module", () => {

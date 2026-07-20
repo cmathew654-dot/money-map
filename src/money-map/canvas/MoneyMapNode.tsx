@@ -21,8 +21,8 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
   const { module, outgoingCount } = data;
   const editor = useEditorInteraction();
   const active = editor?.activeInlineField;
-  const canStartConnection = data.connectMode;
-  const canEndConnection = data.connectMode || data.reconnectMode;
+  const canStartConnection = !data.presentation;
+  const canEndConnection = !data.presentation;
   const showDetails = module.density !== "essential";
   const showNote = showDetails;
   const beginTitle = () =>
@@ -38,7 +38,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
           className="selection-halo-anchor"
           isVisible
           nodeId={data.selectionModuleIds}
-          position={Position.Top}
+          position={module.position.y < 150 ? Position.Bottom : Position.Top}
         >
           <SelectionHalo
             commands={editor.availableCommands}
@@ -77,7 +77,6 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-color-role={module.colorRole}
         data-swatch={module.swatch}
         data-selected={selected ? "true" : "false"}
-        data-connect-mode={data.connectMode ? "true" : "false"}
         data-reconnect-mode={data.reconnectMode ? "true" : "false"}
         data-presentation-focus={data.presentationFocus ? "true" : "false"}
         style={{ transform: `rotate(${module.rotation}deg)` }}

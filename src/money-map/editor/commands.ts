@@ -20,7 +20,7 @@ export interface WorkspaceCommandContext {
 }
 
 export type WorkspaceSurface =
-  "inline" | "style" | "properties" | "connections" | "flow-inline" | "flow-properties";
+  "inline" | "style" | "properties" | "draw-flow" | "flow-inline" | "flow-properties";
 
 export type WorkspaceCommandResult =
   | { kind: "mutation"; mutation: EditorMutation; nextSelection?: Selection }
@@ -106,14 +106,14 @@ export function createWorkspaceCommands(
   for (const [id, label, surface] of [
     ["module.edit", "Edit module", "inline"],
     ["module.style", "Style module", "style"],
-    ["module.connect", "Connect module", "connections"],
+    ["module.draw-flow", "Draw flow", "draw-flow"],
     ["module.properties", "More properties", "properties"],
   ] as const) {
     registry.register({
       id,
       label,
       keywords: surface === "properties" ? ["details", "advanced"] : [surface],
-      shortcut: surface === "inline" ? "Enter" : undefined,
+      shortcut: surface === "inline" ? "Enter" : surface === "draw-flow" ? "L" : undefined,
       isAvailable: hasSingleModule,
       execute: () => ({ kind: "surface", surface }),
     });
@@ -243,7 +243,12 @@ export function createWorkspaceCommands(
     });
   }
 
-  for (const relationship of ["flow", "association", "planned"] as RelationshipKind[]) {
+  for (const relationship of [
+    "income",
+    "transfer",
+    "replenishment",
+    "planned",
+  ] as RelationshipKind[]) {
     registry.register({
       id: `flow.relationship.${relationship}`,
       label: `${relationship[0].toLocaleUpperCase()}${relationship.slice(1)} relationship`,
