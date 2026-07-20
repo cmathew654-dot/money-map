@@ -2,11 +2,11 @@
 
 **Updated:** 2026-07-19
 
-**Branch:** `codex/reference-reset-2026-07-19`
+**Branch:** `codex/advisor-shape-studio`
 
-**Checkpoint:** Portfolio rebuild complete and locally verified
+**Checkpoint:** R0 audited Shape Studio scope locked locally
 
-**Phase:** Local handoff ready; publishing remains user-controlled
+**Phase:** R1 ready; no Shape Studio feature code has been implemented yet
 
 ## Current product
 
@@ -27,6 +27,7 @@
 - Independent Task 5 review found no P0/P1 defects. Its three P2 findings - coarse-pointer targets, per-theme presentation surfaces, and fake-height connector ports - were repaired and covered before integration.
 - The independent Impeccable baseline was 13/20. The repaired build is 19/20 with no scoped P0/P1/P2 finding open; the remaining point is incomplete decorative tokenization in stable shared editor chrome.
 - Fresh `npm run verify` passed: formatting, lint, TypeScript, 240 tests, production build, Pages asset validation, and 26 Chromium journeys. The Impeccable static detector returned zero findings.
+- New-branch baseline rechecked on 2026-07-19: 240/240 unit tests pass and `npm run build` produces 450.30 kB JavaScript / 138.72 kB gzip.
 
 ## Known boundaries
 
@@ -36,6 +37,11 @@
 - Stale local drafts can mask updated starter defaults until Reset.
 - No branch has been pushed, merged, deployed, or released.
 
-## Next action
+## Active direction
 
-Review the local checkpoint. Push, open a pull request, enable Pages, merge, deploy, or release only with explicit user approval.
+- Implement the externally audited lean plan in `docs/superpowers/plans/2026-07-19-advisor-safe-shape-studio.md`.
+- The external verdict was `PROCEED AFTER MANDATORY REVISIONS`. The accepted plan removes the multiplicative material matrix, speculative schema/migration, obstacle avoidance, line jumps, and generic-canvas extras; it promotes reliable flows ahead of the full catalog.
+- R1 is one user-visible reference slice plus only the v2 fields it consumes. R2 immediately replaces hidden connection mode with the reliable Draw flow workflow.
+- Eight purposeful shapes, three priority levels, three content densities, and curated theme swatches form the release grammar. Rotation remains available to every object with explicit React Flow-safe constraints.
+- Full independent implementation and bloat reviews occur at R1, R2, R5, and R7. Interior checkpoints use focused verification and self-review.
+- Nothing will be pushed, merged, deployed, or released without explicit user approval.

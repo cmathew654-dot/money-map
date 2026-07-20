@@ -17,6 +17,7 @@ audit-screenshots/
 .vscode/
 .idea/
 .claude/
+.impeccable/
 .DS_Store
 Thumbs.db
 

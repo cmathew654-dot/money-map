@@ -35,6 +35,16 @@ The project must demonstrate WealthTech product judgment and frontend design-eng
 
 No starter is the hero or control fixture. Each receives a complete authored composition, editor, five-step presentation, responsive treatment, accessibility coverage, and final evidence.
 
-## Non-goals for v0.1
+## Locked product direction
 
-No backend, authentication, cloud sync, collaboration, financial computation, arbitrary file import/export, auto-layout, freehand drawing, rich text, rotation, mobile authoring, or production-advisory claims.
+Money Map is an advisor-safe, near-freeform story studio: substantially more expressive than a template editor, deliberately more constrained than PowerPoint or a general-purpose whiteboard.
+
+- Advisors can compose with eight purposeful shapes, rotate and resize objects, edit visible text directly, style with semantic colors and curated theme swatches, and draw reliable labeled flows.
+- A compact Add control, contextual selection halo, command palette, and optional advanced inspector expose one shared command system and undo history.
+- Shapes support Essential, Standard, and Full content density so hierarchy does not require every object to share the same card anatomy.
+- Presentation is a first-class output: clean paper, named story steps, authored cadence views, and fit-to-story camera behavior.
+- The four starters demonstrate equal craft and distinct financial stories while sharing one system.
+
+## Non-goals for this portfolio release
+
+No backend, authentication, cloud sync, real-time collaboration, financial computation, arbitrary file import/export, global auto-layout, freehand drawing, rich-text document editing, mobile authoring, or production-advisory claims. Grouping, locking, Tidy selected, sphere and pyramid shapes, arbitrary color pickers, scenario authoring, privacy curtain, and presentation marker are deferred.
