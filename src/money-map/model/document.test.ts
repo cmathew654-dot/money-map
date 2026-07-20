@@ -1,4 +1,5 @@
 import {
+  createModule,
   documentGeometry,
   duplicateSelection,
   removeSelection,
@@ -6,8 +7,9 @@ import {
   updateModule,
 } from "./document";
 import { createHistory, undoHistory } from "./history";
+import { minimumModuleSize } from "./moduleSizing";
 import { createTestDocument } from "./test-fixtures";
-import type { MoneyMapDocument } from "./types";
+import type { ContentDensity, MoneyMapDocument, PrimitiveStyle } from "./types";
 
 describe("literal-safe money map document", () => {
   it("keeps a larger annuity premium and smaller source balance as independent display strings", () => {
@@ -192,5 +194,83 @@ describe("literal-safe money map document", () => {
       "copy-placeholder",
     ]);
     expect(calls).toEqual(["module", "row", "row", "module", "row", "row", "row", "flow"]);
+  });
+
+  it("creates purposeful modules with exact placeholder text and compatible style carry-forward", () => {
+    const document = createTestDocument();
+    const sourceStyle = {
+      ...document.modules[0],
+      priority: "spotlight" as const,
+      density: "full" as const,
+      swatch: "accent" as const,
+    };
+    const ids = ["new-ledger", "new-ledger-row", "new-plate", "new-plate-row"];
+    const createId = () => ids.shift() ?? "unexpected";
+
+    const withLedger = createModule(document, "ledger", { x: 444, y: 222 }, createId, sourceStyle);
+    const ledger = withLedger.modules.at(-1)!;
+    expect(ledger).toMatchObject({
+      id: "new-ledger",
+      primitive: "ledger",
+      kind: "account",
+      priority: "spotlight",
+      density: "full",
+      colorRole: "account",
+      swatch: "accent",
+      width: sourceStyle.width,
+      height: 196,
+      position: { x: 444, y: 222 },
+      rows: [{ id: "new-ledger-row", label: "Amount", value: "$_____" }],
+    });
+
+    const withPlate = createModule(withLedger, "plate", { x: 500, y: 300 }, createId, sourceStyle);
+    expect(withPlate.modules.at(-1)).toMatchObject({
+      id: "new-plate",
+      primitive: "plate",
+      kind: "account",
+      priority: "spotlight",
+      density: "full",
+      swatch: "accent",
+      width: 300,
+      height: 196,
+      rows: [{ id: "new-plate-row", label: "Balance", value: "$_____" }],
+    });
+    expect(withPlate.flows).toBe(document.flows);
+  });
+
+  it("enforces a no-clip minimum for all eight shapes across all three densities", () => {
+    const document = createTestDocument();
+    const primitives: PrimitiveStyle[] = [
+      "ledger",
+      "plate",
+      "tray",
+      "band",
+      "roundel",
+      "frame",
+      "cylinder",
+      "text",
+    ];
+    const densities: ContentDensity[] = ["essential", "standard", "full"];
+    for (const primitive of primitives) {
+      for (const density of densities) {
+        let sequence = 0;
+        const created = createModule(
+          document,
+          primitive,
+          { x: 0, y: 0 },
+          (kind) => `${primitive}-${density}-${kind}-${sequence++}`,
+          {
+            ...document.modules[0],
+            primitive,
+            density,
+            width: 1,
+            height: 1,
+          },
+        ).modules.at(-1)!;
+        const minimum = minimumModuleSize(created);
+        expect(created.width, `${primitive}/${density} width`).toBeGreaterThanOrEqual(minimum.x);
+        expect(created.height, `${primitive}/${density} height`).toBeGreaterThanOrEqual(minimum.y);
+      }
+    }
   });
 });

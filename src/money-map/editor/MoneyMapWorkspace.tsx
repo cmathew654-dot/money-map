@@ -7,8 +7,16 @@ import {
   type CadenceFilter as CadenceFilterValue,
 } from "../canvas/adapters";
 import { MoneyMapCanvas } from "../canvas/MoneyMapCanvas";
-import type { Point, StarterId } from "../model/types";
+import { createModule, type NewModuleStyle } from "../model/document";
+import type {
+  MoneyMapCadence,
+  MoneyMapDocument,
+  Point,
+  PrimitiveStyle,
+  StarterId,
+} from "../model/types";
 import { getCanvasTheme } from "../themes/registry";
+import { AddMenu } from "./AddMenu";
 import { AdvancedProperties, type PropertyField } from "./AdvancedProperties";
 import { CommandPalette } from "./CommandPalette";
 import { CadenceFilter } from "./CadenceFilter";
@@ -46,6 +54,47 @@ interface Dimensions {
 
 const authoringMinimum = { width: 1180, height: 660 };
 const relationshipSurfaceSize = { width: 368, height: 604 };
+
+function carriedStyle(module: NewModuleStyle): NewModuleStyle {
+  return {
+    primitive: module.primitive,
+    kind: module.kind,
+    priority: module.priority,
+    density: module.density,
+    colorRole: module.colorRole,
+    swatch: module.swatch,
+    width: module.width,
+    height: module.height,
+  };
+}
+
+function cadenceForNewRelationship(filter: CadenceFilterValue): MoneyMapCadence {
+  if (filter === "monthly") return { kind: "monthly", label: "Monthly" };
+  if (filter === "annual") return { kind: "annual", label: "Annual" };
+  return { kind: "as-needed", label: "As needed" };
+}
+
+function visibleCanvasPlacement(mapDocument: MoneyMapDocument): Point {
+  const viewport = globalThis.document.querySelector<HTMLElement>(
+    ".money-map-canvas .react-flow__viewport",
+  );
+  const pane = globalThis.document.querySelector<HTMLElement>(".money-map-canvas .react-flow");
+  if (viewport && pane && typeof DOMMatrixReadOnly !== "undefined") {
+    const transform = getComputedStyle(viewport).transform;
+    const matrix = new DOMMatrixReadOnly(transform === "none" ? undefined : transform);
+    return {
+      x: (pane.clientWidth / 2 - matrix.e) / matrix.a - 150,
+      y: (pane.clientHeight / 2 - matrix.f) / matrix.d - 95,
+    };
+  }
+  const left = Math.min(...mapDocument.modules.map(({ position }) => position.x));
+  const top = Math.min(...mapDocument.modules.map(({ position }) => position.y));
+  const right = Math.max(...mapDocument.modules.map((module) => module.position.x + module.width));
+  const bottom = Math.max(
+    ...mapDocument.modules.map((module) => module.position.y + module.height),
+  );
+  return { x: (left + right) / 2 - 150, y: (top + bottom) / 2 - 95 };
+}
 
 export function isAuthoringViewportSupported(width: number, height: number): boolean {
   return width >= authoringMinimum.width && height >= authoringMinimum.height;
@@ -113,18 +162,21 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const [activeInlineField, setActiveInlineField] = useState<InlineEditTarget | null>(null);
   const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
   const [relationshipOpen, setRelationshipOpen] = useState(false);
-  const [cadenceFilter, setCadenceFilter] = useState<CadenceFilterValue>("all");
+  const [cadenceFilter, setCadenceFilter] = useState<CadenceFilterValue>(
+    editor.document.defaultCadence,
+  );
   const [paletteInvoker, setPaletteInvoker] = useState<HTMLElement | null>(null);
   const [propertiesTab, setPropertiesTab] = useState<"content" | "appearance" | null>(null);
-  const [styleOpen, setStyleOpen] = useState(false);
   const [drawFlowOpen, setDrawFlowOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const presentingRef = useRef(presenting);
   presentingRef.current = presenting;
   const [surfacePosition, setSurfacePosition] = useState<EditorSurfacePosition | null>(null);
   const actionsRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
   const presentRef = useRef<HTMLButtonElement>(null);
-  const styleRef = useRef<HTMLElement>(null);
+  const lastModuleStyle = useRef<NewModuleStyle | null>(null);
   const { ref, dimensions } = useWorkspaceDimensions(!presenting);
   const supported = isAuthoringViewportSupported(dimensions.width, dimensions.height);
   const selectedModuleId =
@@ -137,17 +189,25 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       : null;
   const availableCommands = editor.registry.available(editor.commandContext);
   const appearanceCommands = availableCommands.filter(
-    ({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."),
-  );
-  const primitiveCommands = appearanceCommands.filter(({ id }) =>
-    id.startsWith("module.primitive."),
+    ({ id }) =>
+      id.startsWith("module.primitive.") ||
+      id.startsWith("module.width.") ||
+      id.startsWith("module.priority.") ||
+      id.startsWith("module.density.") ||
+      id.startsWith("module.swatch.") ||
+      id.startsWith("module.order."),
   );
   const relationshipCommands = availableCommands.filter(({ id }) => id.startsWith("flow."));
 
   useEffect(() => {
+    if (!selectedModuleId) return;
+    const module = editor.document.modules.find(({ id }) => id === selectedModuleId);
+    if (module) lastModuleStyle.current = carriedStyle(module);
+  }, [editor.document.modules, selectedModuleId]);
+
+  useEffect(() => {
     if (selectedModuleId) return;
     setPropertiesTab(null);
-    setStyleOpen(false);
     setDrawFlowOpen(false);
   }, [selectedModuleId]);
 
@@ -212,16 +272,15 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     (id: string) => {
       const result = editor.executeCommand(id);
       if (result?.kind !== "surface") return;
+      setAddOpen(false);
       if (result.surface === "inline") {
         setPropertiesTab(null);
-        setStyleOpen(false);
         setRelationshipOpen(false);
         beginSelectedTitle();
         return;
       }
       if (result.surface === "flow-inline") {
         setPropertiesTab(null);
-        setStyleOpen(false);
         setRelationshipOpen(false);
         if (selectedFlowId) setActiveFlowId(selectedFlowId);
         return;
@@ -229,13 +288,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       if (result.surface === "flow-properties") {
         placeFlowSurface();
         setPropertiesTab(null);
-        setStyleOpen(false);
         setRelationshipOpen(true);
         return;
       }
       if (result.surface === "draw-flow") {
         setPropertiesTab(null);
-        setStyleOpen(false);
         setRelationshipOpen(false);
         placeSurface();
         setDrawFlowOpen(true);
@@ -244,15 +301,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
 
       setRelationshipOpen(false);
       placeSurface();
-      if (result.surface === "style") {
-        setPropertiesTab(null);
-        setDrawFlowOpen(false);
-        setStyleOpen(true);
-      } else {
-        setStyleOpen(false);
-        setDrawFlowOpen(false);
-        setPropertiesTab("content");
-      }
+      setDrawFlowOpen(false);
+      setPropertiesTab(result.surface === "appearance" ? "appearance" : "content");
     },
     [beginSelectedTitle, editor, placeFlowSurface, placeSurface, selectedFlowId],
   );
@@ -312,6 +362,20 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       }
     };
     requestAnimationFrame(() => focus(true));
+  }, []);
+
+  const focusNewModuleTitle = useCallback(() => {
+    const focus = (retry: boolean) => {
+      const input = document.querySelector<HTMLInputElement>("input.inline-field");
+      if (input) {
+        input.focus();
+        input.select();
+      } else if (retry) {
+        window.setTimeout(() => focus(false), 60);
+      }
+    };
+    requestAnimationFrame(() => focus(true));
+    window.setTimeout(() => focus(false), 90);
   }, []);
 
   const selectFlow = useCallback(
@@ -388,6 +452,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
         source,
         target,
         () => `flow-${crypto.randomUUID()}`,
+        cadenceForNewRelationship(cadenceFilter),
       );
       const created = next.flows.find(({ id }) => !previousIds.has(id));
       if (!created) return;
@@ -397,7 +462,63 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       setDrawFlowOpen(false);
       setActiveFlowId(created.id);
     },
-    [editor],
+    [cadenceFilter, editor],
+  );
+
+  const createObject = useCallback(
+    (primitive: PrimitiveStyle) => {
+      const previousIds = new Set(editor.document.modules.map(({ id }) => id));
+      const next = createModule(
+        editor.document,
+        primitive,
+        visibleCanvasPlacement(editor.document),
+        (kind) => `${kind}-${crypto.randomUUID()}`,
+        lastModuleStyle.current ?? undefined,
+      );
+      const created = next.modules.find(({ id }) => !previousIds.has(id));
+      if (!created) return;
+      editor.applyDocument(next, `${created.title} added.`, "add module");
+      editor.setSelection({ moduleIds: [created.id], flowIds: [] });
+      lastModuleStyle.current = carriedStyle(created);
+      setAddOpen(false);
+      setActiveInlineField({ moduleId: created.id, field: "title", original: created.title });
+      focusNewModuleTitle();
+    },
+    [editor, focusNewModuleTitle],
+  );
+
+  const quickCreateConnection = useCallback(
+    (sourceId: string, point: Point) => {
+      const source = editor.document.modules.find(({ id }) => id === sourceId);
+      if (!source) return;
+      const previousIds = new Set(editor.document.modules.map(({ id }) => id));
+      const withModule = createModule(
+        editor.document,
+        source.primitive,
+        { x: point.x - source.width / 2, y: point.y - source.height / 2 },
+        (kind) => `${kind}-${crypto.randomUUID()}`,
+        carriedStyle(source),
+      );
+      const created = withModule.modules.find(({ id }) => !previousIds.has(id));
+      if (!created) return;
+      const next = createRelationship(
+        withModule,
+        sourceId,
+        created.id,
+        () => `flow-${crypto.randomUUID()}`,
+        cadenceForNewRelationship(cadenceFilter),
+      );
+      editor.applyDocument(
+        next,
+        `${created.title} added and connected.`,
+        "quick create connected module",
+      );
+      editor.setSelection({ moduleIds: [created.id], flowIds: [] });
+      lastModuleStyle.current = carriedStyle(created);
+      setActiveInlineField({ moduleId: created.id, field: "title", original: created.title });
+      focusNewModuleTitle();
+    },
+    [cadenceFilter, editor, focusNewModuleTitle],
   );
 
   const changeCadenceFilter = useCallback(
@@ -408,8 +529,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor.setAnnouncement],
   );
   const openPalette = useCallback((invoker: HTMLElement) => {
+    setAddOpen(false);
     setPropertiesTab(null);
-    setStyleOpen(false);
     setDrawFlowOpen(false);
     setRelationshipOpen(false);
     setActiveFlowId(null);
@@ -421,6 +542,20 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setPaletteInvoker(null);
     requestAnimationFrame(() => invoker?.focus());
   }, [paletteInvoker]);
+
+  const openAdd = useCallback(() => {
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setDrawFlowOpen(false);
+    setRelationshipOpen(false);
+    setActiveFlowId(null);
+    setAddOpen(true);
+  }, []);
+
+  const closeAdd = useCallback(() => {
+    setAddOpen(false);
+    requestAnimationFrame(() => addRef.current?.focus());
+  }, []);
 
   const focusSelectedModule = useCallback(() => {
     if (!selectedModuleId) return;
@@ -442,11 +577,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     focusSelectedModule();
   }, [focusSelectedModule]);
 
-  const closeStyle = useCallback(() => {
-    setStyleOpen(false);
-    focusSelectedModule();
-  }, [focusSelectedModule]);
-
   const closeDrawFlow = useCallback(() => {
     setDrawFlowOpen(false);
     focusSelectedModule();
@@ -463,14 +593,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setRelationshipOpen(false);
     setPaletteInvoker(null);
     setPropertiesTab(null);
-    setStyleOpen(false);
     setDrawFlowOpen(false);
+    setAddOpen(false);
     setPresenting(true);
   }, []);
-
-  useEffect(() => {
-    if (styleOpen) styleRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
-  }, [styleOpen]);
 
   const interaction = useMemo<EditorInteraction>(
     () => ({
@@ -495,6 +621,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       commitModuleSize,
       commitModuleMove,
       createConnection,
+      quickCreateConnection,
       reconnectRelationship,
     }),
     [
@@ -510,6 +637,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       commitModuleMove,
       commitModuleSize,
       createConnection,
+      quickCreateConnection,
       editor.announcement,
       editor.selection.flowIds.length,
       editor.selection.moduleIds,
@@ -598,6 +726,16 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               <span>{"Synthetic demo \u00b7 advisor-entered values"}</span>
             </div>
             <button
+              aria-expanded={addOpen}
+              className="add-button"
+              disabled={!supported}
+              onClick={openAdd}
+              ref={addRef}
+              type="button"
+            >
+              + Add
+            </button>
+            <button
               className="present-button"
               onClick={enterPresentation}
               ref={presentRef}
@@ -643,44 +781,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           </section>
         )}
 
-        {styleOpen && selectedModuleId ? (
-          <aside
-            aria-label="Choose module style"
-            className="primitive-menu"
-            onKeyDown={(event) => {
-              if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
-              event.preventDefault();
-              closeStyle();
-            }}
-            ref={styleRef}
-            style={
-              surfacePosition
-                ? { left: surfacePosition.left, right: "auto", top: surfacePosition.top }
-                : undefined
-            }
-          >
-            <header>
-              <strong>Module style</strong>
-              <button type="button" onClick={closeStyle}>
-                Close
-              </button>
-            </header>
-            <div>
-              {primitiveCommands.map((command) => (
-                <button
-                  key={command.id}
-                  type="button"
-                  onClick={() => {
-                    executeCommand(command.id);
-                    closeStyle();
-                  }}
-                >
-                  {command.label}
-                </button>
-              ))}
-            </div>
-          </aside>
-        ) : null}
+        {addOpen ? <AddMenu onChoose={createObject} onClose={closeAdd} /> : null}
 
         {drawFlowOpen && selectedModuleId ? (
           <FlowTargetPicker

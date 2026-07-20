@@ -24,6 +24,7 @@ export type RouteKind = "straight" | "orthogonal" | "curved";
 export type LabelTreatment = "plain" | "plate" | "filled";
 
 export type CadenceKind = "monthly" | "annual" | "one-time" | "as-needed" | "custom";
+export type CadenceView = "all" | "monthly" | "annual" | "other";
 
 export interface Point {
   x: number;
@@ -94,6 +95,7 @@ export interface MoneyMapDocument {
   title: string;
   asOf: string;
   style: CanvasStyleId;
+  defaultCadence: CadenceView;
   modules: MoneyMapModule[];
   flows: MoneyMapFlow[];
   presentation: PresentationStep[];

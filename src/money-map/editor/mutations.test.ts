@@ -241,4 +241,16 @@ describe("relationship mutations", () => {
     });
     expect(created.modules).toBe(document.modules);
   });
+
+  it("uses the active authored cadence when one is supplied", () => {
+    const document = createTestDocument();
+    const created = createRelationship(
+      document,
+      "source-account",
+      "monthly-need",
+      () => "monthly-flow",
+      { kind: "monthly", label: "Monthly" },
+    );
+    expect(created.flows.at(-1)?.cadence).toEqual({ kind: "monthly", label: "Monthly" });
+  });
 });

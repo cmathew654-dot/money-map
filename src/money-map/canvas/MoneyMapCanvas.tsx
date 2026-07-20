@@ -19,6 +19,7 @@ import {
   type OnEdgesChange,
   type OnNodesChange,
   type OnNodeDrag,
+  type OnConnectEnd,
   type OnReconnect,
   type OnSelectionChangeFunc,
   useReactFlow,
@@ -246,6 +247,12 @@ function MoneyMapCanvasInner({
   }, [flow]);
 
   useEffect(() => {
+    if (presenting) return;
+    const frame = requestAnimationFrame(fitMap);
+    return () => cancelAnimationFrame(frame);
+  }, [document.id, fitMap, presenting]);
+
+  useEffect(() => {
     if (!presenting) return;
     const fitPresentation = () => {
       void flow.fitView({ padding: 0.08, duration: cameraDuration(220) });
@@ -380,6 +387,22 @@ function MoneyMapCanvasInner({
     [editor],
   );
 
+  const handleConnectEnd = useCallback<OnConnectEnd>(
+    (event, connectionState) => {
+      if (connectionState.isValid || connectionState.toNode || !connectionState.fromNode) return;
+      const touch = "changedTouches" in event ? event.changedTouches[0] : null;
+      const clientPoint = {
+        x: touch?.clientX ?? ("clientX" in event ? event.clientX : 0),
+        y: touch?.clientY ?? ("clientY" in event ? event.clientY : 0),
+      };
+      editor?.quickCreateConnection(
+        connectionState.fromNode.id,
+        screenToFlowPosition ? screenToFlowPosition(clientPoint) : clientPoint,
+      );
+    },
+    [editor, screenToFlowPosition],
+  );
+
   const handleReconnect = useCallback<OnReconnect<MoneyMapCanvasEdge>>(
     (edge, connection) => {
       if (connection.source && connection.target) {
@@ -493,6 +516,7 @@ function MoneyMapCanvasInner({
         onSelectionChange={presenting ? undefined : handleFlowSelectionChange}
         onNodeDragStop={presenting ? undefined : handleNodeDragStop}
         onConnect={presenting ? undefined : handleConnect}
+        onConnectEnd={presenting ? undefined : handleConnectEnd}
         onReconnect={presenting ? undefined : handleReconnect}
         onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
         minZoom={0.3}

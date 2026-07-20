@@ -1,16 +1,26 @@
 import { CommandRegistry } from "../commands/registry";
 import type { CommandDefinition, EditorMutation } from "../commands/types";
-import { duplicateSelection, removeSelection, updateFlow, updateModule } from "../model/document";
+import {
+  duplicateSelection,
+  moveModules,
+  removeSelection,
+  updateFlow,
+  updateModule,
+} from "../model/document";
 import { resetFlowLabel } from "./mutations";
 import type {
   CadenceKind,
   LabelTreatment,
+  ModulePriority,
   MoneyMapDocument,
+  ContentDensity,
   PrimitiveStyle,
   RelationshipKind,
   RouteKind,
   Selection,
+  ThemeSwatch,
 } from "../model/types";
+import { clampModuleSize } from "../model/moduleSizing";
 
 export interface WorkspaceCommandContext {
   document: MoneyMapDocument;
@@ -20,7 +30,7 @@ export interface WorkspaceCommandContext {
 }
 
 export type WorkspaceSurface =
-  "inline" | "style" | "properties" | "draw-flow" | "flow-inline" | "flow-properties";
+  "inline" | "appearance" | "properties" | "draw-flow" | "flow-inline" | "flow-properties";
 
 export type WorkspaceCommandResult =
   | { kind: "mutation"; mutation: EditorMutation; nextSelection?: Selection }
@@ -43,6 +53,16 @@ const primitives: PrimitiveStyle[] = [
   "cylinder",
   "text",
 ];
+const primitiveLabels: Record<PrimitiveStyle, string> = {
+  ledger: "Income ledger",
+  plate: "Account plate",
+  tray: "Liquidity tray",
+  band: "Statement band",
+  roundel: "Target roundel",
+  frame: "Planning frame",
+  cylinder: "Portfolio cylinder",
+  text: "Text note",
+};
 const widths = [
   { id: "small", label: "Small", width: 240 },
   { id: "standard", label: "Standard", width: 320 },
@@ -60,6 +80,10 @@ function hasModules(context: WorkspaceCommandContext): boolean {
 
 function hasSingleModule(context: WorkspaceCommandContext): boolean {
   return selectedModules(context).length === 1 && context.selection.flowIds.length === 0;
+}
+
+function hasAtLeastModules(count: number) {
+  return (context: WorkspaceCommandContext) => selectedModules(context).length >= count;
 }
 
 function selectedFlows(context: WorkspaceCommandContext) {
@@ -98,6 +122,70 @@ function mutation(document: MoneyMapDocument, announcement: string): WorkspaceCo
   return { kind: "mutation", mutation: { document, announcement } };
 }
 
+function alignSelection(
+  context: WorkspaceCommandContext,
+  axis: "x" | "y",
+  edge: "start" | "center" | "end",
+): MoneyMapDocument {
+  const modules = selectedModules(context);
+  if (modules.length < 2) return context.document;
+  const starts = modules.map((module) => module.position[axis]);
+  const ends = modules.map(
+    (module) => module.position[axis] + (axis === "x" ? module.width : module.height),
+  );
+  const target =
+    edge === "start"
+      ? Math.min(...starts)
+      : edge === "end"
+        ? Math.max(...ends)
+        : (Math.min(...starts) + Math.max(...ends)) / 2;
+  return moveModules(
+    context.document,
+    new Map(
+      modules.map((module) => {
+        const size = axis === "x" ? module.width : module.height;
+        const coordinate =
+          edge === "start" ? target : edge === "end" ? target - size : target - size / 2;
+        return [
+          module.id,
+          axis === "x"
+            ? { x: coordinate, y: module.position.y }
+            : { x: module.position.x, y: coordinate },
+        ];
+      }),
+    ),
+  );
+}
+
+function distributeSelection(context: WorkspaceCommandContext, axis: "x" | "y"): MoneyMapDocument {
+  const modules = selectedModules(context).sort((first, second) => {
+    const firstCenter = first.position[axis] + (axis === "x" ? first.width : first.height) / 2;
+    const secondCenter = second.position[axis] + (axis === "x" ? second.width : second.height) / 2;
+    return firstCenter - secondCenter;
+  });
+  if (modules.length < 3) return context.document;
+  const firstCenter =
+    modules[0].position[axis] + (axis === "x" ? modules[0].width : modules[0].height) / 2;
+  const last = modules.at(-1)!;
+  const lastCenter = last.position[axis] + (axis === "x" ? last.width : last.height) / 2;
+  const interval = (lastCenter - firstCenter) / (modules.length - 1);
+  return moveModules(
+    context.document,
+    new Map(
+      modules.map((module, index) => {
+        const size = axis === "x" ? module.width : module.height;
+        const coordinate = firstCenter + interval * index - size / 2;
+        return [
+          module.id,
+          axis === "x"
+            ? { x: coordinate, y: module.position.y }
+            : { x: module.position.x, y: coordinate },
+        ];
+      }),
+    ),
+  );
+}
+
 export function createWorkspaceCommands(
   createId: (kind: string) => string,
 ): CommandRegistry<WorkspaceCommandContext, WorkspaceCommandResult> {
@@ -105,7 +193,7 @@ export function createWorkspaceCommands(
 
   for (const [id, label, surface] of [
     ["module.edit", "Edit module", "inline"],
-    ["module.style", "Style module", "style"],
+    ["module.style", "Style module", "appearance"],
     ["module.draw-flow", "Draw flow", "draw-flow"],
     ["module.properties", "More properties", "properties"],
   ] as const) {
@@ -136,6 +224,56 @@ export function createWorkspaceCommands(
       };
     },
   });
+
+  for (const [id, label, axis, edge] of [
+    ["selection.align.left", "Align left", "x", "start"],
+    ["selection.align.center", "Align centers", "x", "center"],
+    ["selection.align.right", "Align right", "x", "end"],
+    ["selection.align.top", "Align top", "y", "start"],
+    ["selection.align.middle", "Align middles", "y", "center"],
+    ["selection.align.bottom", "Align bottom", "y", "end"],
+  ] as const) {
+    registry.register({
+      id,
+      label,
+      keywords: ["arrange", "position", "line up"],
+      isAvailable: hasAtLeastModules(2),
+      execute: (context) => mutation(alignSelection(context, axis, edge), `${label}.`),
+    });
+  }
+
+  for (const [id, label, axis] of [
+    ["selection.distribute.horizontal", "Distribute horizontally", "x"],
+    ["selection.distribute.vertical", "Distribute vertically", "y"],
+  ] as const) {
+    registry.register({
+      id,
+      label,
+      keywords: ["arrange", "space evenly"],
+      isAvailable: hasAtLeastModules(3),
+      execute: (context) => mutation(distributeSelection(context, axis), `${label}.`),
+    });
+  }
+
+  for (const [id, label, delta] of [
+    ["module.order.forward", "Bring forward", 1],
+    ["module.order.back", "Send back", -1],
+  ] as const) {
+    registry.register({
+      id,
+      label,
+      keywords: ["arrange", "layer", "z order"],
+      isAvailable: hasModules,
+      execute: (context) =>
+        mutation(
+          updateSelectedModules(context, (module) => ({
+            ...module,
+            zIndex: module.zIndex + delta,
+          })),
+          `${label}.`,
+        ),
+    });
+  }
 
   registry.register({
     id: "selection.remove",
@@ -189,7 +327,12 @@ export function createWorkspaceCommands(
       execute: (context) =>
         mutation(
           updateSelectedModules(context, (module) =>
-            module.width === preset.width ? module : { ...module, width: preset.width },
+            module.width === preset.width
+              ? module
+              : {
+                  ...module,
+                  ...clampModuleSize(module, { width: preset.width, height: module.height }),
+                },
           ),
           `${preset.label} width applied.`,
         ),
@@ -199,15 +342,70 @@ export function createWorkspaceCommands(
   for (const primitive of primitives) {
     registry.register({
       id: `module.primitive.${primitive}`,
-      label: `${primitive[0].toLocaleUpperCase()}${primitive.slice(1)} style`,
+      label: primitiveLabels[primitive],
       keywords: ["primitive", "appearance", "style"],
       isAvailable: hasSingleModule,
       execute: (context) =>
         mutation(
           updateSelectedModules(context, (module) =>
-            module.primitive === primitive ? module : { ...module, primitive },
+            module.primitive === primitive
+              ? module
+              : (() => {
+                  const next = { ...module, primitive };
+                  return { ...next, ...clampModuleSize(next, next) };
+                })(),
           ),
           `${primitive} style applied.`,
+        ),
+    });
+  }
+
+  for (const priority of ["quiet", "standard", "spotlight"] as ModulePriority[]) {
+    registry.register({
+      id: `module.priority.${priority}`,
+      label: `${priority[0].toLocaleUpperCase()}${priority.slice(1)} priority`,
+      keywords: ["appearance", "hierarchy", "emphasis"],
+      isAvailable: hasModules,
+      execute: (context) =>
+        mutation(
+          updateSelectedModules(context, (module) =>
+            module.priority === priority ? module : { ...module, priority },
+          ),
+          `${priority} priority applied.`,
+        ),
+    });
+  }
+
+  for (const density of ["essential", "standard", "full"] as ContentDensity[]) {
+    registry.register({
+      id: `module.density.${density}`,
+      label: `${density[0].toLocaleUpperCase()}${density.slice(1)} detail`,
+      keywords: ["appearance", "content", "density"],
+      isAvailable: hasModules,
+      execute: (context) =>
+        mutation(
+          updateSelectedModules(context, (module) => {
+            if (module.density === density) return module;
+            const next = { ...module, density };
+            return { ...next, ...clampModuleSize(next, next) };
+          }),
+          `${density} detail applied.`,
+        ),
+    });
+  }
+
+  for (const swatch of ["base", "muted", "accent", "contrast"] as ThemeSwatch[]) {
+    registry.register({
+      id: `module.swatch.${swatch}`,
+      label: `${swatch[0].toLocaleUpperCase()}${swatch.slice(1)} color`,
+      keywords: ["appearance", "color", "palette"],
+      isAvailable: hasModules,
+      execute: (context) =>
+        mutation(
+          updateSelectedModules(context, (module) =>
+            module.swatch === swatch ? module : { ...module, swatch },
+          ),
+          `${swatch} color applied.`,
         ),
     });
   }

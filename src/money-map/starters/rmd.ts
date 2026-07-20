@@ -14,6 +14,7 @@ export const rmdStarter = {
     title: "RMD & Withholding",
     asOf: "As of July 2026",
     style: "distribution-registry",
+    defaultCadence: "annual",
     modules: [
       {
         id: "rmd-source",

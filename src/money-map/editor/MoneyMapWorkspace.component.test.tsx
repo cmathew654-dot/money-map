@@ -127,14 +127,29 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     expect(screen.queryByLabelText("Draw flow")).toBeNull();
   });
 
-  it("closes the module style menu with Escape from its controls", () => {
+  it("opens Style directly in Appearance and closes it with Escape", () => {
     render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
     openCommand("style module");
-    const menu = screen.getByLabelText("Choose module style");
+    expect(screen.getByLabelText("Advanced properties")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Appearance" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
 
-    fireEvent.keyDown(menu.querySelector("button") as HTMLButtonElement, { key: "Escape" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Appearance" }), { key: "Escape" });
 
-    expect(screen.queryByLabelText("Choose module style")).toBeNull();
+    expect(screen.queryByLabelText("Advanced properties")).toBeNull();
+  });
+
+  it("opens one Add surface and restores focus when Escape cancels it", async () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const add = screen.getByRole("button", { name: "+ Add" });
+    fireEvent.click(add);
+    const menu = screen.getByLabelText("Add to money map");
+    expect(screen.getByRole("button", { name: /Income ledger/ })).toBeTruthy();
+
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.queryByLabelText("Add to money map")).toBeNull();
+    await waitFor(() => expect(globalThis.document.activeElement).toBe(add));
   });
 
   it("clears a selected relationship and its panel when a cadence edit hides it", () => {
@@ -218,7 +233,7 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     {
       surface: "style module",
       invalid: { moduleIds: [], flowIds: [] },
-      label: "Choose module style",
+      label: "Advanced properties",
     },
   ])(
     "clears $surface for an invalid selection and does not reopen it for a later single module",

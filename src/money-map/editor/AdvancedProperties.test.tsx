@@ -17,7 +17,16 @@ const context: WorkspaceCommandContext = {
 function appearanceCommands() {
   return createWorkspaceCommands(() => "copy")
     .available(context)
-    .filter(({ id }) => id.startsWith("module.primitive.") || id.startsWith("module.width."));
+    .filter(({ id }) =>
+      [
+        "module.primitive.",
+        "module.width.",
+        "module.priority.",
+        "module.density.",
+        "module.swatch.",
+        "module.order.",
+      ].some((prefix) => id.startsWith(prefix)),
+    );
 }
 
 describe("AdvancedProperties", () => {
@@ -195,6 +204,15 @@ describe("AdvancedProperties", () => {
     expect(execute).toHaveBeenCalledWith("module.primitive.ledger");
     expect(screen.queryByRole("button", { name: /wide width/i })).toBeNull();
     expect(screen.getByRole("tab", { name: "Appearance" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "Standard priority" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("button", { name: "Standard detail" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(screen.getByRole("button", { name: "Base color" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
   });

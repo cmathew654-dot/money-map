@@ -1,8 +1,11 @@
 import { MarkerType, Position, type Edge, type Node } from "@xyflow/react";
 
 import { moveModules, updateModule } from "../model/document";
+import { clampModuleSize } from "../model/moduleSizing";
+export { clampModuleSize, MAX_MODULE_SIZE, minimumModuleSize } from "../model/moduleSizing";
 import type {
   MoneyMapDocument,
+  CadenceView,
   MoneyMapFlow,
   MoneyMapModule,
   Point,
@@ -10,7 +13,7 @@ import type {
   Selection,
 } from "../model/types";
 
-export type CadenceFilter = "all" | "monthly" | "annual" | "other";
+export type CadenceFilter = CadenceView;
 
 export interface MoneyMapEdgeHandlers {
   beginEdit(): void;
@@ -51,17 +54,18 @@ function moduleCenter(module: MoneyMapModule): Point {
   };
 }
 
-function handleToward(
-  module: MoneyMapModule,
-  point: Point,
-  kind: "source" | "target",
-): string {
+function handleToward(module: MoneyMapModule, point: Point, kind: "source" | "target"): string {
   const center = moduleCenter(module);
   const deltaX = point.x - center.x;
   const deltaY = point.y - center.y;
-  const position = Math.abs(deltaX) >= Math.abs(deltaY)
-    ? deltaX >= 0 ? Position.Right : Position.Left
-    : deltaY >= 0 ? Position.Bottom : Position.Top;
+  const position =
+    Math.abs(deltaX) >= Math.abs(deltaY)
+      ? deltaX >= 0
+        ? Position.Right
+        : Position.Left
+      : deltaY >= 0
+        ? Position.Bottom
+        : Position.Top;
   return kind + "-" + position;
 }
 
@@ -73,16 +77,8 @@ function relationshipHandles(
   const target = document.modules.find((module) => module.id === flow.target);
   if (!source || !target) return {};
   return {
-    sourceHandle: handleToward(
-      source,
-      flow.waypoints[0] ?? moduleCenter(target),
-      "source",
-    ),
-    targetHandle: handleToward(
-      target,
-      flow.waypoints.at(-1) ?? moduleCenter(source),
-      "target",
-    ),
+    sourceHandle: handleToward(source, flow.waypoints[0] ?? moduleCenter(target), "source"),
+    targetHandle: handleToward(target, flow.waypoints.at(-1) ?? moduleCenter(source), "target"),
   };
 }
 
@@ -195,32 +191,6 @@ export function moveModule(
 ): MoneyMapDocument {
   return moveModules(document, new Map([[moduleId, position]]));
 }
-export const MAX_MODULE_SIZE = 520;
-
-export function minimumModuleSize(module: MoneyMapModule): Point {
-  if (module.primitive === "text") {
-    return module.density === "essential"
-      ? { x: 160, y: 60 }
-      : module.density === "standard"
-        ? { x: 200, y: 90 }
-        : { x: 240, y: 120 };
-  }
-  if (module.density === "essential") return { x: 180, y: 112 };
-  if (module.density === "full") return { x: 260, y: 196 };
-  return { x: 220, y: 152 };
-}
-
-export function clampModuleSize(
-  module: MoneyMapModule,
-  size: { width: number; height: number },
-): { width: number; height: number } {
-  const minimum = minimumModuleSize(module);
-  return {
-    width: Math.min(MAX_MODULE_SIZE, Math.max(minimum.x, size.width)),
-    height: Math.min(MAX_MODULE_SIZE, Math.max(minimum.y, size.height)),
-  };
-}
-
 export function resizeModule(
   document: MoneyMapDocument,
   moduleId: string,

@@ -257,6 +257,7 @@ export const rothStarter = {
     title: "Roth Conversion",
     asOf: "As of July 2026",
     style: "conversion-path",
+    defaultCadence: "annual",
     modules: [...modules],
     flows: [...flows],
     presentation: [

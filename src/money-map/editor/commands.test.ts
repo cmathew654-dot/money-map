@@ -30,6 +30,8 @@ describe("workspace command registry", () => {
       "module.draw-flow",
       "module.properties",
       "selection.duplicate",
+      "module.order.forward",
+      "module.order.back",
       "selection.remove",
       "history.undo",
       "document.reset",
@@ -44,6 +46,16 @@ describe("workspace command registry", () => {
       "module.primitive.frame",
       "module.primitive.cylinder",
       "module.primitive.text",
+      "module.priority.quiet",
+      "module.priority.standard",
+      "module.priority.spotlight",
+      "module.density.essential",
+      "module.density.standard",
+      "module.density.full",
+      "module.swatch.base",
+      "module.swatch.muted",
+      "module.swatch.accent",
+      "module.swatch.contrast",
     ]);
   });
 
@@ -99,6 +111,33 @@ describe("workspace command registry", () => {
       kind: "mutation",
       nextSelection: { moduleIds: [], flowIds: [] },
     });
+  });
+
+  it("aligns, distributes, layers, and styles through canonical literal-safe commands", () => {
+    const registry = createWorkspaceCommands(() => "unused");
+    const three = context(["source-account", "annuity-policy", "monthly-need"]);
+    const aligned = registry.get("selection.align.top")?.execute(three);
+    const distributed = registry.get("selection.distribute.horizontal")?.execute(three);
+    const spotlight = registry.get("module.priority.spotlight")?.execute(three);
+    const accent = registry.get("module.swatch.accent")?.execute(three);
+    const forward = registry.get("module.order.forward")?.execute(three);
+    for (const result of [aligned, distributed, spotlight, accent, forward]) {
+      if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
+    }
+    if (!aligned || aligned.kind !== "mutation") return;
+    expect(new Set(aligned.mutation.document.modules.map(({ position }) => position.y))).toEqual(
+      new Set([80]),
+    );
+    if (!spotlight || spotlight.kind !== "mutation") return;
+    expect(
+      spotlight.mutation.document.modules.every(({ priority }) => priority === "spotlight"),
+    ).toBe(true);
+    if (!accent || accent.kind !== "mutation") return;
+    expect(accent.mutation.document.modules.every(({ swatch }) => swatch === "accent")).toBe(true);
+    if (!forward || forward.kind !== "mutation") return;
+    expect(forward.mutation.document.modules.map(({ zIndex }) => zIndex)).toEqual([1, 2, 3]);
+    expect(forward.mutation.document.modules[0].rows[0].value).toBe("$250,000");
+    expect(three.document.modules[1].total?.value).toBe("$300,000");
   });
 
   it("treats one module plus one relationship as a group context", () => {

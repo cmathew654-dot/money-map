@@ -9,8 +9,14 @@ function midpoint(source: { x: number; y: number }, target: { x: number; y: numb
 describe("relationship geometry", () => {
   it("does not manufacture a dogleg between aligned endpoints", () => {
     for (const [source, target] of [
-      [{ x: 20, y: 80 }, { x: 260, y: 80 }],
-      [{ x: 120, y: 20 }, { x: 120, y: 260 }],
+      [
+        { x: 20, y: 80 },
+        { x: 260, y: 80 },
+      ],
+      [
+        { x: 120, y: 20 },
+        { x: 120, y: 260 },
+      ],
     ]) {
       const straight = relationshipGeometry("straight", source, target, []);
       const orthogonal = relationshipGeometry("orthogonal", source, target, []);
@@ -20,16 +26,16 @@ describe("relationship geometry", () => {
   });
 
   it("keeps the three routes visibly distinct for diagonal endpoints", () => {
-      const { source, target } = endpoints;
-      const straight = relationshipGeometry("straight", source, target, []);
-      const orthogonal = relationshipGeometry("orthogonal", source, target, []);
-      const curved = relationshipGeometry("curved", source, target, []);
+    const { source, target } = endpoints;
+    const straight = relationshipGeometry("straight", source, target, []);
+    const orthogonal = relationshipGeometry("orthogonal", source, target, []);
+    const curved = relationshipGeometry("curved", source, target, []);
 
-      expect(new Set([straight.path, orthogonal.path, curved.path]).size).toBe(3);
-      expect(straight.label).toEqual(midpoint(source, target));
-      expect(curved.label).not.toEqual(straight.label);
-      expect(orthogonal.path).toContain(`L ${orthogonal.label.x} ${orthogonal.label.y}`);
-      expect(curved.path).toContain("C");
+    expect(new Set([straight.path, orthogonal.path, curved.path]).size).toBe(3);
+    expect(straight.label).toEqual(midpoint(source, target));
+    expect(curved.label).not.toEqual(straight.label);
+    expect(orthogonal.path).toContain(`L ${orthogonal.label.x} ${orthogonal.label.y}`);
+    expect(curved.path).toContain("C");
   });
 
   it.each(["straight", "orthogonal", "curved"] as const)(

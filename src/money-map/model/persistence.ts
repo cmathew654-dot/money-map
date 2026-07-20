@@ -227,6 +227,7 @@ function isDocument(value: unknown, starterId: StarterId): value is MoneyMapDocu
       "title",
       "asOf",
       "style",
+      "defaultCadence",
       "modules",
       "flows",
       "presentation",
@@ -242,6 +243,7 @@ function isDocument(value: unknown, starterId: StarterId): value is MoneyMapDocu
       "foundation",
       "conversion-path",
     ]) &&
+    isOneOf(value.defaultCadence, ["all", "monthly", "annual", "other"]) &&
     Array.isArray(value.modules) &&
     value.modules.every(isModule) &&
     Array.isArray(value.flows) &&

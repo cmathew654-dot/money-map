@@ -13,6 +13,7 @@ export const annuityStarter = {
     title: "Annuity Income Floor",
     asOf: "As of July 2026",
     style: "foundation",
+    defaultCadence: "monthly",
     modules: [
       {
         id: "annuity-income",

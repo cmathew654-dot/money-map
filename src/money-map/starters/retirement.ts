@@ -213,7 +213,7 @@ const modules = [
 
 const flows = [
   {
-  id: "retirement-income-flow",
+    id: "retirement-income-flow",
     source: "retirement-income",
     target: "retirement-need",
     relationship: "income" as const,
@@ -225,7 +225,7 @@ const flows = [
     waypoints: [{ x: 165, y: 400 }],
   },
   {
-  id: "retirement-reserve-flow",
+    id: "retirement-reserve-flow",
     source: "retirement-reserve",
     target: "retirement-need",
     relationship: "transfer" as const,
@@ -237,7 +237,7 @@ const flows = [
     waypoints: [{ x: 345, y: 430 }],
   },
   {
-  id: "retirement-refill-flow",
+    id: "retirement-refill-flow",
     source: "retirement-joint",
     target: "retirement-reserve",
     relationship: "replenishment" as const,
@@ -249,7 +249,7 @@ const flows = [
     waypoints: [{ x: 515, y: 370 }],
   },
   {
-  id: "retirement-rmd-flow",
+    id: "retirement-rmd-flow",
     source: "retirement-ira",
     target: "retirement-need",
     relationship: "transfer" as const,
@@ -266,7 +266,7 @@ const flows = [
     ],
   },
   {
-  id: "retirement-annuity-flow",
+    id: "retirement-annuity-flow",
     source: "retirement-annuity",
     target: "retirement-need",
     relationship: "income" as const,
@@ -294,7 +294,7 @@ const flows = [
     waypoints: [{ x: 820, y: 350 }],
   },
   {
-  id: "retirement-legacy-flow",
+    id: "retirement-legacy-flow",
     source: "retirement-trust",
     target: "retirement-need",
     relationship: "planned" as const,
@@ -324,6 +324,7 @@ export const retirementStarter = {
     title: "Retirement Income",
     asOf: "As of July 2026",
     style: "private-ledger",
+    defaultCadence: "monthly",
     modules,
     flows,
     presentation: [

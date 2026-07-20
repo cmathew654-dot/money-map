@@ -90,6 +90,10 @@ export function AdvancedProperties({
   const module = document.modules.find(({ id }) => id === moduleId);
   const primitiveCommands = commands.filter(({ id }) => id.startsWith("module.primitive."));
   const widthCommands = commands.filter(({ id }) => id.startsWith("module.width."));
+  const priorityCommands = commands.filter(({ id }) => id.startsWith("module.priority."));
+  const densityCommands = commands.filter(({ id }) => id.startsWith("module.density."));
+  const swatchCommands = commands.filter(({ id }) => id.startsWith("module.swatch."));
+  const orderCommands = commands.filter(({ id }) => id.startsWith("module.order."));
 
   useEffect(() => {
     setTab(initialTab);
@@ -216,7 +220,7 @@ export function AdvancedProperties({
       {tab === "appearance" ? (
         <div aria-labelledby="properties-tab-appearance" id="properties-appearance" role="tabpanel">
           <fieldset>
-            <legend>Primitive</legend>
+            <legend>Shape</legend>
             {primitiveCommands.map((command) => (
               <button
                 aria-pressed={command.id === `module.primitive.${module.primitive}`}
@@ -229,8 +233,55 @@ export function AdvancedProperties({
             ))}
           </fieldset>
           <fieldset>
-            <legend>Width</legend>
+            <legend>Priority</legend>
+            {priorityCommands.map((command) => (
+              <button
+                aria-pressed={command.id === `module.priority.${module.priority}`}
+                key={command.id}
+                onClick={() => onExecute(command.id)}
+                type="button"
+              >
+                {command.label}
+              </button>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Detail</legend>
+            {densityCommands.map((command) => (
+              <button
+                aria-pressed={command.id === `module.density.${module.density}`}
+                key={command.id}
+                onClick={() => onExecute(command.id)}
+                type="button"
+              >
+                {command.label}
+              </button>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Color</legend>
+            {swatchCommands.map((command) => (
+              <button
+                aria-pressed={command.id === `module.swatch.${module.swatch}`}
+                key={command.id}
+                onClick={() => onExecute(command.id)}
+                type="button"
+              >
+                {command.label}
+              </button>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Size</legend>
             {widthCommands.map((command) => (
+              <button key={command.id} onClick={() => onExecute(command.id)} type="button">
+                {command.label}
+              </button>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Layer</legend>
+            {orderCommands.map((command) => (
               <button key={command.id} onClick={() => onExecute(command.id)} type="button">
                 {command.label}
               </button>

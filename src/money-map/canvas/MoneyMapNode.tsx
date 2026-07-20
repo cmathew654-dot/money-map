@@ -28,7 +28,8 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
   const beginTitle = () =>
     editor?.beginInlineEdit({ moduleId: module.id, field: "title", original: module.title });
   const editing = (field: string, rowId?: string) =>
-    active?.moduleId === module.id && active.field === field &&
+    active?.moduleId === module.id &&
+    active.field === field &&
     (!("rowId" in active) || active.rowId === rowId);
 
   return (
@@ -126,7 +127,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
                   onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                   onCommit={editor?.commitInlineEdit ?? (() => undefined)}
                 />
-              ) : module.eyebrow}
+              ) : (
+                module.eyebrow
+              )}
             </p>
           ) : null}
           <h2 onDoubleClick={beginTitle}>
@@ -159,7 +162,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
                   onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                   onCommit={editor?.commitInlineEdit ?? (() => undefined)}
                 />
-              ) : module.subtitle}
+              ) : (
+                module.subtitle
+              )}
             </p>
           ) : null}
         </header>
@@ -190,7 +195,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
                         onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                         onCommit={editor?.commitInlineEdit ?? (() => undefined)}
                       />
-                    ) : row.label}
+                    ) : (
+                      row.label
+                    )}
                   </dt>
                   <dd
                     onDoubleClick={() =>
@@ -238,7 +245,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
                     onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                     onCommit={editor?.commitInlineEdit ?? (() => undefined)}
                   />
-                ) : module.total.label}
+                ) : (
+                  module.total.label
+                )}
               </dt>
               <dd
                 onDoubleClick={() =>
@@ -283,7 +292,9 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
                 onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                 onCommit={editor?.commitInlineEdit ?? (() => undefined)}
               />
-            ) : module.note}
+            ) : (
+              module.note
+            )}
           </p>
         ) : null}
       </article>

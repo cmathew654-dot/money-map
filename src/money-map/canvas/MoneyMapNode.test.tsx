@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { ReactFlowProvider, type NodeProps } from "@xyflow/react";
 
 import { createTestDocument } from "../model/test-fixtures";
-import { EditorInteractionContext, type EditorInteraction } from "../editor/EditorInteractionContext";
+import {
+  EditorInteractionContext,
+  type EditorInteraction,
+} from "../editor/EditorInteractionContext";
 import { MoneyMapNode, type MoneyMapCanvasNode } from "./MoneyMapNode";
 
 describe("MoneyMapNode", () => {
@@ -63,7 +66,11 @@ describe("MoneyMapNode", () => {
       type: "moneyMapModule",
     } as NodeProps<MoneyMapCanvasNode>;
 
-    render(<ReactFlowProvider><MoneyMapNode {...props} /></ReactFlowProvider>);
+    render(
+      <ReactFlowProvider>
+        <MoneyMapNode {...props} />
+      </ReactFlowProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: module.title })).toBeTruthy();
     expect(screen.getByText(module.total!.value)).toBeTruthy();
@@ -101,7 +108,9 @@ describe("MoneyMapNode", () => {
 
     const { container } = render(
       <EditorInteractionContext.Provider value={editor}>
-        <ReactFlowProvider><MoneyMapNode {...props} /></ReactFlowProvider>
+        <ReactFlowProvider>
+          <MoneyMapNode {...props} />
+        </ReactFlowProvider>
       </EditorInteractionContext.Provider>,
     );
     for (const selector of [

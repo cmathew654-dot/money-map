@@ -63,15 +63,7 @@ const expectedFlows = [
     "Alongside each conversion",
     "custom",
   ],
-  [
-    "roth-2026",
-    "roth-guardrails",
-    "planned",
-    "straight",
-    "plain",
-    "Advisor tax review",
-    "custom",
-  ],
+  ["roth-2026", "roth-guardrails", "planned", "straight", "plain", "Advisor tax review", "custom"],
   ["roth-source", "roth-2027", "planned", "straight", "plate", "Annual", "annual"],
   ["roth-2027", "roth-destination", "transfer", "curved", "filled", "One-time", "one-time"],
   [

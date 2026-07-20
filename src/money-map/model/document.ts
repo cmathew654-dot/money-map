@@ -1,4 +1,12 @@
-import type { MoneyMapDocument, MoneyMapFlow, MoneyMapModule, Point, Selection } from "./types";
+import type {
+  MoneyMapDocument,
+  MoneyMapFlow,
+  MoneyMapModule,
+  Point,
+  PrimitiveStyle,
+  Selection,
+} from "./types";
+import { clampModuleSize } from "./moduleSizing";
 
 type CreateId = (kind: string) => string;
 
@@ -229,6 +237,110 @@ export function duplicateSelection(
     modules: [...document.modules, ...duplicatedModules],
     flows: [...document.flows, ...duplicatedFlows],
   };
+}
+
+export type NewModuleStyle = Pick<
+  MoneyMapModule,
+  "primitive" | "kind" | "priority" | "density" | "colorRole" | "swatch" | "width" | "height"
+>;
+
+const newModuleDefaults: Record<
+  PrimitiveStyle,
+  Pick<MoneyMapModule, "kind" | "eyebrow" | "title" | "width" | "height"> & {
+    row?: { label: string; value: string };
+  }
+> = {
+  ledger: {
+    kind: "income",
+    eyebrow: "Income sources",
+    title: "New income source",
+    width: 280,
+    height: 190,
+    row: { label: "Amount", value: "$_____" },
+  },
+  plate: {
+    kind: "account",
+    eyebrow: "Account",
+    title: "New account",
+    width: 300,
+    height: 190,
+    row: { label: "Balance", value: "$_____" },
+  },
+  tray: {
+    kind: "reserve",
+    eyebrow: "Liquidity",
+    title: "New reserve",
+    width: 300,
+    height: 180,
+    row: { label: "Available", value: "$_____" },
+  },
+  band: {
+    kind: "specialty",
+    eyebrow: "Specialty asset",
+    title: "New specialty asset",
+    width: 320,
+    height: 180,
+    row: { label: "Value", value: "$_____" },
+  },
+  roundel: {
+    kind: "need",
+    eyebrow: "Household target",
+    title: "New target",
+    width: 260,
+    height: 180,
+    row: { label: "Target", value: "$_____" },
+  },
+  frame: {
+    kind: "note",
+    eyebrow: "Planning note",
+    title: "New planning note",
+    width: 280,
+    height: 152,
+  },
+  cylinder: {
+    kind: "account",
+    eyebrow: "Portfolio",
+    title: "New portfolio",
+    width: 280,
+    height: 196,
+    row: { label: "Balance", value: "$_____" },
+  },
+  text: { kind: "note", eyebrow: "Annotation", title: "New annotation", width: 240, height: 90 },
+};
+
+export function createModule(
+  document: MoneyMapDocument,
+  primitive: PrimitiveStyle,
+  position: Point,
+  createId: CreateId,
+  style?: NewModuleStyle,
+): MoneyMapDocument {
+  const defaults = newModuleDefaults[primitive];
+  const compatible = style?.primitive === primitive;
+  const kind = compatible ? style.kind : defaults.kind;
+  const id = createId("module");
+  const row = defaults.row
+    ? [{ id: createId("row"), label: defaults.row.label, value: defaults.row.value }]
+    : [];
+  const module: MoneyMapModule = {
+    id,
+    kind,
+    primitive,
+    position: { x: position.x, y: position.y },
+    width: compatible ? style.width : defaults.width,
+    height: compatible ? style.height : defaults.height,
+    rotation: 0,
+    priority: style?.priority ?? "standard",
+    density: style?.density ?? "standard",
+    colorRole: compatible ? style.colorRole : kind,
+    swatch: style?.swatch ?? "base",
+    zIndex: Math.max(-1, ...document.modules.map(({ zIndex }) => zIndex)) + 1,
+    eyebrow: defaults.eyebrow,
+    title: defaults.title,
+    rows: row,
+  };
+  const size = clampModuleSize(module, module);
+  return { ...document, modules: [...document.modules, { ...module, ...size }] };
 }
 
 export function documentGeometry(document: MoneyMapDocument) {

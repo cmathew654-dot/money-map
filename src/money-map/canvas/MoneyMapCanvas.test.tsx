@@ -507,6 +507,7 @@ describe("MoneyMapCanvas command shortcuts", () => {
       commitFlowLabelPosition: vi.fn(),
       commitFlowWaypoint: vi.fn(),
       createConnection: vi.fn(),
+      quickCreateConnection: vi.fn(),
       reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
@@ -590,7 +591,7 @@ describe("MoneyMapCanvas movement and camera", () => {
     renderCanvas();
 
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
-    fireEvent.click(screen.getByRole("button", { name: "Fit map" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fit story" }));
 
     expect(flowMock.zoomIn).toHaveBeenCalledWith({ duration: 0 });
     expect(flowMock.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }));
@@ -643,6 +644,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
   it("routes one connect and one endpoint reconnect through the editor interaction", () => {
     const mapDocument = createTestDocument();
     const createConnection = vi.fn();
+    const quickCreateConnection = vi.fn();
     const reconnectRelationship = vi.fn();
     const interaction: EditorInteraction = {
       selectionCount: 0,
@@ -658,6 +660,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       commitFlowLabelPosition: vi.fn(),
       commitFlowWaypoint: vi.fn(),
       createConnection,
+      quickCreateConnection,
       reconnectRelationship,
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
@@ -689,6 +692,20 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     expect(createConnection).toHaveBeenCalledTimes(1);
     expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
 
+    act(() => {
+      (
+        flowMock.props.onConnectEnd as (
+          event: MouseEvent,
+          state: { isValid: null; toNode: null; fromNode: { id: string } },
+        ) => void
+      )(new MouseEvent("pointerup", { clientX: 640, clientY: 420 }), {
+        isValid: null,
+        toNode: null,
+        fromNode: { id: "source-account" },
+      });
+    });
+    expect(quickCreateConnection).toHaveBeenCalledWith("source-account", { x: 640, y: 420 });
+
     const reconnectInteraction = interaction;
     view.rerender(
       <EditorInteractionContext.Provider value={reconnectInteraction}>
@@ -702,9 +719,9 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     );
     expect(flowMock.props.nodesConnectable).toBe(true);
     expect(
-      (
-        flowMock.props.nodes as Array<{ data: { reconnectMode: boolean } }>
-      ).every(({ data }) => data.reconnectMode),
+      (flowMock.props.nodes as Array<{ data: { reconnectMode: boolean } }>).every(
+        ({ data }) => data.reconnectMode,
+      ),
     ).toBe(true);
     expect(
       (flowMock.props.edges as Array<{ id: string; reconnectable: boolean }>).filter(

@@ -52,10 +52,10 @@ export function CanvasControls({ controller, zoomPercentage }: CanvasControlsPro
       <button
         {...toolbar.itemProps(3)}
         type="button"
-        aria-label="Fit map"
+        aria-label="Fit story"
         onClick={controller.fitMap}
       >
-        Fit map
+        Fit story
       </button>
       <button
         {...toolbar.itemProps(4)}

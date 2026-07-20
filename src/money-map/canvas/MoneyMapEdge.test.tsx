@@ -1,13 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ReactFlowProvider, type EdgeProps } from "@xyflow/react";
 import type * as ReactFlowExports from "@xyflow/react";
+import type * as ReactExports from "react";
 import { vi } from "vitest";
-import type { ReactNode } from "react";
 
 const useRefCalls = vi.hoisted(() => vi.fn());
 
 vi.mock("react", async (importOriginal) => {
-  const original = await importOriginal<typeof import("react")>();
+  const original = await importOriginal<typeof ReactExports>();
   return {
     ...original,
     useRef: <T,>(initialValue: T) => {
@@ -21,7 +21,7 @@ vi.mock("@xyflow/react", async (importOriginal) => {
   const original = await importOriginal<typeof ReactFlowExports>();
   return {
     ...original,
-    EdgeLabelRenderer: ({ children }: { children: ReactNode }) => <>{children}</>,
+    EdgeLabelRenderer: ({ children }: { children: ReactExports.ReactNode }) => <>{children}</>,
   };
 });
 

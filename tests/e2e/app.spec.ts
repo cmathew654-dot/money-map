@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const stories = [
   "Retirement Income",
@@ -6,11 +6,23 @@ const stories = [
   "Annuity Income Floor",
   "Roth Conversion",
 ] as const;
+const starterCadence = {
+  "Retirement Income": "Monthly",
+  "RMD & Withholding": "Annual",
+  "Annuity Income Floor": "Monthly",
+  "Roth Conversion": "Annual",
+} as const;
 
 async function readPercentage(readout: Locator): Promise<number> {
   const text = await readout.textContent();
   if (!text) throw new Error("Expected camera percentage text");
   return Number(text.replace("%", ""));
+}
+
+async function showAllRelationships(page: Page): Promise<void> {
+  const all = page.getByRole("button", { name: "All", exact: true });
+  await all.click();
+  await expect(all).toHaveAttribute("aria-pressed", "true");
 }
 
 test("opens every starter from the equal-weight chooser", async ({ page }) => {
@@ -25,6 +37,9 @@ test("opens every starter from the equal-weight chooser", async ({ page }) => {
     await expect(page.getByText("Synthetic demo \u00b7 advisor-entered values")).toBeVisible();
     await expect(page.locator(".money-map-module").first()).toBeVisible();
     await expect(page.getByRole("toolbar", { name: "Canvas camera" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: starterCadence[story], exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Back to stories" }).click();
   }
 });
@@ -41,6 +56,7 @@ test("selects a module, clears with Escape, and proves every camera command", as
 
   const readout = page.getByRole("button", { name: "Reset zoom to 100%" });
   const viewport = page.locator(".react-flow__viewport");
+  await readout.click();
   await expect(readout).toHaveText("100%");
 
   const initialPercentage = await readPercentage(readout);
@@ -64,7 +80,7 @@ test("selects a module, clears with Escape, and proves every camera command", as
   await page.getByRole("button", { name: "Zoom in" }).click();
   const alteredMapTransform = await viewport.getAttribute("style");
   const alteredMapPercentage = await readPercentage(readout);
-  await page.getByRole("button", { name: "Fit map" }).click();
+  await page.getByRole("button", { name: "Fit story" }).click();
   await expect.poll(() => viewport.getAttribute("style")).not.toBe(alteredMapTransform);
   await expect.poll(() => readPercentage(readout)).not.toBe(alteredMapPercentage);
 
@@ -177,18 +193,18 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
     .locator("h2")
     .evaluate((element) => getComputedStyle(element).fontSize);
   await page.getByRole("button", { name: "Style module" }).click();
-  await page.getByRole("button", { name: "Frame style" }).click();
+  await page.getByRole("button", { name: "Planning frame" }).click();
   await expect(module).toHaveAttribute("data-primitive", "frame");
 
   await page.keyboard.press("Control+k");
-  await page.getByRole("combobox", { name: "Search actions" }).fill("ledger style");
-  await page.getByRole("option", { name: /Ledger style/ }).click();
+  await page.getByRole("combobox", { name: "Search actions" }).fill("income ledger");
+  await page.getByRole("option", { name: "Income ledger", exact: true }).click();
   await expect(module).toHaveAttribute("data-primitive", "ledger");
 
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox", { name: "Search actions" }).fill("standard width");
   await page.getByRole("option", { name: /Standard width/ }).click();
-  await expect.poll(async () => (await module.boundingBox())?.width).toBeCloseTo(320, 0);
+  await expect.poll(() => module.evaluate((element) => element.parentElement?.clientWidth)).toBe(320);
   await expect
     .poll(() => module.locator("h2").evaluate((element) => getComputedStyle(element).fontSize))
     .toBe(fontSize);
@@ -236,6 +252,91 @@ test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow
   await expect(
     page.locator(".money-map-flow-label").filter({ hasText: /Advisor-authored relationship/ }),
   ).toBeFocused();
+});
+
+test("adds one purposeful shape with carried style and immediate literal title editing", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/i }).click();
+
+  const account = page.locator(".money-map-module").filter({ hasText: "Joint After-Tax Account" });
+  await account.click();
+  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Spotlight priority" }).click();
+  await page.getByRole("button", { name: "Accent color" }).click();
+  await page.getByRole("button", { name: "Close properties" }).click();
+
+  await page.getByRole("button", { name: "+ Add" }).click();
+  await expect(page.getByLabel("Add to money map")).toBeVisible();
+  await page.getByRole("button", { name: /Account plate/ }).click();
+  const title = page.getByRole("textbox", { name: "Edit module title" });
+  await expect(title).toBeFocused();
+  await title.fill("Advisor-owned account — exact");
+  await title.press("Enter");
+
+  const created = page.locator(".money-map-module").filter({
+    hasText: "Advisor-owned account — exact",
+  });
+  await expect(created).toHaveAttribute("data-primitive", "plate");
+  await expect(created).toHaveAttribute("data-priority", "spotlight");
+  await expect(created).toHaveAttribute("data-swatch", "accent");
+  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Full detail" }).click();
+  await page.getByRole("button", { name: "Close properties" }).click();
+  await expect(created).toHaveAttribute("data-density", "full");
+  const noClip = await created.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return [...element.children]
+      .filter((child) => !child.classList.contains("money-map-handle"))
+      .every((child) => {
+        const content = child.getBoundingClientRect();
+        return (
+          content.top >= bounds.top - 1 &&
+          content.right <= bounds.right + 1 &&
+          content.bottom <= bounds.bottom + 1 &&
+          content.left >= bounds.left - 1
+        );
+      });
+  });
+  expect(noClip).toBe(true);
+  await page.keyboard.press("Control+z");
+  await page.keyboard.press("Control+z");
+  await expect(created).toHaveCount(0);
+});
+
+test("quick-creates a connected object by dropping a visible port on empty canvas", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
+  await source.hover();
+  const handle = source.locator(".react-flow__handle.source.react-flow__handle-right").last();
+  const handleBox = await handle.boundingBox();
+  const paneBox = await page.locator(".react-flow__pane").boundingBox();
+  if (!handleBox || !paneBox) throw new Error("Expected quick-create geometry");
+  const drop = { x: paneBox.x + paneBox.width * 0.56, y: paneBox.y + paneBox.height * 0.83 };
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(drop.x, drop.y, { steps: 8 });
+  await page.mouse.up();
+
+  const title = page.getByRole("textbox", { name: "Edit module title" });
+  await expect(title).toBeFocused();
+  await title.fill("Connected advisor account");
+  await title.press("Enter");
+  const created = page
+    .locator(".money-map-module")
+    .filter({ hasText: "Connected advisor account" });
+  await expect(created).toHaveAttribute("data-primitive", "plate");
+  await page.keyboard.press("Control+z");
+  await expect(created).toHaveCount(0);
 });
 
 test("persists committed edits only for one starter and Reset restores its scaffold", async ({
@@ -289,6 +390,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
   const module = page.locator(".money-map-module").nth(1);
   await page.getByRole("button", { name: /planned relationship from annuity-source/i }).click();
   await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
@@ -362,13 +464,16 @@ test("keeps properties fresh and makes Draw flow, style, and properties exclusiv
   await page.getByRole("button", { name: "Cancel draw flow" }).click();
 
   await page.getByRole("button", { name: "Style module" }).click();
-  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
-  await expect(page.getByLabel("Choose module style")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close", exact: true })).toBeFocused();
-
-  await page.getByRole("button", { name: "More properties" }).click();
-  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
   await expect(page.getByLabel("Advanced properties")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Appearance" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("tab", { name: "Appearance" })).toBeFocused();
+
+  await page.getByRole("tab", { name: "Content" }).click();
+  await expect(page.getByLabel("Advanced properties")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Content" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "Close properties" }).click();
   await expect(source.locator("..")).toBeFocused();
 });
@@ -408,6 +513,7 @@ test("invalid selections close editing surfaces and later singles do not reopen 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
 
   const annuity = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
   const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
@@ -429,15 +535,16 @@ test("invalid selections close editing surfaces and later singles do not reopen 
 
   await page.getByRole("button", { name: "Style module" }).click();
   await annuity.click({ modifiers: ["Shift"] });
-  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
   await source.click();
-  await expect(page.getByLabel("Choose module style")).toHaveCount(0);
+  await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
 });
 test("edits exact relationship text and appearance with undo and redo", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-plan-contract"]');
   const originalPath = await page
@@ -482,6 +589,7 @@ test("routes a relationship label by pointer and keyboard, then resets and undoe
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-contract-need"]');
   const label = labelWrap.getByRole("button");
@@ -518,6 +626,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-contract-need"]');
   const labelButton = labelWrap.getByRole("button");
@@ -546,6 +655,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
 
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await page.getByRole("button", { name: "Other", exact: true }).click();
   const restored = page.locator('[data-flow-label-id="annuity-contract-need"]');
   await expect(restored).toContainText(cadence);
   await expect(restored.getByRole("button")).toHaveAccessibleName(
@@ -595,6 +705,7 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await showAllRelationships(page);
 
   let relationshipLabel = page.getByRole("button", {
     name: /planned relationship from annuity-source to annuity-plan/i,

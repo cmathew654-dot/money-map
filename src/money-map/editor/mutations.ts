@@ -4,6 +4,7 @@ import type {
   ColorRole,
   ContentDensity,
   ModulePriority,
+  MoneyMapCadence,
   MoneyMapDocument,
   Point,
   PrimitiveStyle,
@@ -234,6 +235,7 @@ export function createRelationship(
   source: string,
   target: string,
   createId: (kind: string) => string,
+  cadence: MoneyMapCadence = { kind: "as-needed", label: "As needed" },
 ): MoneyMapDocument {
   const moduleById = new Map(document.modules.map((module) => [module.id, module]));
   const moduleIds = new Set(moduleById.keys());
@@ -251,7 +253,7 @@ export function createRelationship(
         route: "curved",
         labelTreatment: "plate",
         label: "New transfer",
-        cadence: { kind: "as-needed", label: "As needed" },
+        cadence: { ...cadence },
         labelPosition,
         waypoints: [],
       },

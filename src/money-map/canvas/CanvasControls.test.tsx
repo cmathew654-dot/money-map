@@ -20,7 +20,7 @@ describe("CanvasControls", () => {
     await user.click(screen.getByRole("button", { name: "Zoom out" }));
     await user.click(screen.getByRole("button", { name: "Reset zoom to 100%" }));
     await user.click(screen.getByRole("button", { name: "Zoom in" }));
-    await user.click(screen.getByRole("button", { name: "Fit map" }));
+    await user.click(screen.getByRole("button", { name: "Fit story" }));
     await user.click(screen.getByRole("button", { name: "Fit selection" }));
 
     expect(screen.getByText("125%")).toBeTruthy();

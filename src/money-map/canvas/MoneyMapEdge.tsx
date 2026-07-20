@@ -119,10 +119,10 @@ export function MoneyMapEdge({
             onPointerMove={(event) => {
               event.stopPropagation();
               if (!routePointerStart.current) return;
-              routePointerDragged.current = pointerMovedBeyondThreshold(
-                routePointerStart.current,
-                { x: event.clientX, y: event.clientY },
-              );
+              routePointerDragged.current = pointerMovedBeyondThreshold(routePointerStart.current, {
+                x: event.clientX,
+                y: event.clientY,
+              });
             }}
             onPointerUp={(event) => {
               event.stopPropagation();

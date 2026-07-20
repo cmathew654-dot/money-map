@@ -30,6 +30,7 @@ export interface EditorInteraction {
   commitModuleSize(moduleId: string, size: { width: number; height: number }): void;
   commitModuleMove(moduleId: string, position: Point): void;
   createConnection(source: string, target: string): void;
+  quickCreateConnection(source: string, position: Point): void;
   reconnectRelationship(flowId: string, connection: { source: string; target: string }): void;
 }
 

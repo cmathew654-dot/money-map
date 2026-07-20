@@ -57,9 +57,7 @@ test("presentation focus, tab order, direct navigation, and Escape stay presenta
   await expect(page.getByRole("button", { name: "Back to stories" })).toHaveCount(0);
   await expect(page.getByRole("toolbar", { name: "Canvas camera" })).toHaveCount(0);
   await expect(page.getByRole("toolbar", { name: /cadence/i })).toHaveCount(0);
-  await expect(page.locator(".selection-halo, .advanced-properties, .primitive-menu")).toHaveCount(
-    0,
-  );
+  await expect(page.locator(".selection-halo, .advanced-properties, .add-menu")).toHaveCount(0);
 
   const tabbableLabels = await page
     .locator(".money-map-presentation")
