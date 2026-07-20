@@ -19,7 +19,7 @@ Work only from this repository root. Do not run project commands from the user h
 - Use test-driven development for behavior changes: failing test, minimal implementation, passing test, refactor.
 - Keep shared state and commands centralized. Do not create starter-specific behavior forks.
 - Keep one object model, one flow model, one selection model, and one command registry. Toolbar, halo, palette, shortcuts, and inspector must invoke the same commands.
-- Every checkpoint must remove obsolete controls and terminology and stay within the current plan’s dependency and bundle budgets. Fresh independent implementation and bloat reviews are required at gates R1, R2, R5, and R7.
+- Every checkpoint must remove obsolete controls and terminology and stay within the current plan’s dependency and bundle budgets. Implement directly; use subagents only for genuinely parallel read-only work. Do not create subtask briefs, reports, or review loops. Run focused checks during development and the full gate only after a complete user-visible checkpoint.
 - Do not expose implementation concepts such as handles, edges, nodes, or connection mode in user-facing language.
 - Update `PROJECT.md` before every checkpoint commit and whenever work pauses. Rewrite it as a snapshot; do not append a diary.
 - Do not push, merge, deploy, tag a release, or delete archival worktrees without explicit user approval.

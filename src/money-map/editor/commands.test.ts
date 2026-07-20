@@ -42,6 +42,8 @@ describe("workspace command registry", () => {
       "module.primitive.band",
       "module.primitive.roundel",
       "module.primitive.frame",
+      "module.primitive.cylinder",
+      "module.primitive.text",
     ]);
   });
 
@@ -62,21 +64,27 @@ describe("workspace command registry", () => {
     expect(module.rows).toBe(document.modules[1].rows);
   });
 
-  it.each<PrimitiveStyle>(["ledger", "plate", "tray", "band", "roundel", "frame"])(
-    "changes primitive only to %s",
-    (primitive) => {
-      const commandContext = context();
-      const document = commandContext.document;
-      const result = createWorkspaceCommands(() => "unused")
-        .get(`module.primitive.${primitive}`)
-        ?.execute(commandContext);
-      if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
-      const module = result.mutation.document.modules[1];
-      expect(module.primitive).toBe(primitive);
-      expect(module.width).toBe(document.modules[1].width);
-      expect(module.rows).toBe(document.modules[1].rows);
-    },
-  );
+  it.each<PrimitiveStyle>([
+    "ledger",
+    "plate",
+    "tray",
+    "band",
+    "roundel",
+    "frame",
+    "cylinder",
+    "text",
+  ])("changes primitive only to %s", (primitive) => {
+    const commandContext = context();
+    const document = commandContext.document;
+    const result = createWorkspaceCommands(() => "unused")
+      .get(`module.primitive.${primitive}`)
+      ?.execute(commandContext);
+    if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
+    const module = result.mutation.document.modules[1];
+    expect(module.primitive).toBe(primitive);
+    expect(module.width).toBe(document.modules[1].width);
+    expect(module.rows).toBe(document.modules[1].rows);
+  });
 
   it("duplicates with injected IDs and returns the new selection; remove clears selection", () => {
     const ids = ["module-copy", "row-1", "row-2", "row-3", "flow-copy"];
@@ -134,7 +142,7 @@ describe("workspace command registry", () => {
         "flow.cadence.one-time",
         "flow.cadence.as-needed",
         "flow.cadence.custom",
-        "flow.waypoint.reset",
+        "flow.label-position.reset",
       ]),
     );
     expect(registry.get("flow.route.curved")).toBe(registry.search("curved", flowContext)[0]);

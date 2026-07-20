@@ -54,6 +54,7 @@ describe("starter registry", () => {
       const definition = getStarterDefinition(id);
       expect(definition.id).toBe(id);
       expect(definition.document.id).toBe(id);
+      expect(definition.document.schemaVersion).toBe(2);
       expect(definition.document.style).toBe(expectedStyles[id]);
       expect(definition.chooser.eyebrow).not.toBe("");
       expect(definition.chooser.description).not.toBe("");
@@ -122,14 +123,31 @@ describe("starter registry", () => {
     for (const id of STARTER_IDS) {
       const document = createStarterDocument(id);
       for (const module of document.modules) {
+        expect(module.rotation % 15).toBe(0);
+        expect(["quiet", "standard", "spotlight"]).toContain(module.priority);
+        expect(["essential", "standard", "full"]).toContain(module.density);
+        expect(module.colorRole).toBe(module.kind);
+        expect(["base", "muted", "accent", "contrast"]).toContain(module.swatch);
+        expect(Number.isFinite(module.height)).toBe(true);
+        expect(Number.isFinite(module.zIndex)).toBe(true);
         expect(module.width).toBeGreaterThanOrEqual(220);
         expect(module.width).toBeLessThanOrEqual(480);
         expect(module.position.x).toBeGreaterThanOrEqual(STARTER_ARTBOARD.x);
         expect(module.position.y).toBeGreaterThanOrEqual(STARTER_ARTBOARD.y);
         expect(module.position.x + module.width).toBeLessThanOrEqual(STARTER_ARTBOARD.width);
         expect(module.position.y).toBeLessThanOrEqual(STARTER_ARTBOARD.height);
+        expect(module.position.y + module.height).toBeLessThanOrEqual(STARTER_ARTBOARD.height);
       }
+      expect(document.modules.map(({ zIndex }) => zIndex)).toEqual(
+        document.modules.map((_module, index) => index),
+      );
       for (const flow of document.flows) {
+        expect(Number.isFinite(flow.labelPosition.x)).toBe(true);
+        expect(Number.isFinite(flow.labelPosition.y)).toBe(true);
+        expect(flow.labelPosition.x).toBeGreaterThanOrEqual(STARTER_ARTBOARD.x);
+        expect(flow.labelPosition.x).toBeLessThanOrEqual(STARTER_ARTBOARD.width);
+        expect(flow.labelPosition.y).toBeGreaterThanOrEqual(STARTER_ARTBOARD.y);
+        expect(flow.labelPosition.y).toBeLessThanOrEqual(STARTER_ARTBOARD.height);
         for (const point of flow.waypoints) {
           expect(point.x).toBeGreaterThanOrEqual(STARTER_ARTBOARD.x);
           expect(point.x).toBeLessThanOrEqual(STARTER_ARTBOARD.width);

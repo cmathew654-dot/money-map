@@ -25,6 +25,7 @@ describe("Retirement Income — Private Ledger", () => {
       "retirement-ira",
       "retirement-roth",
       "retirement-trust",
+      "retirement-installment-note",
     ]);
     expect(document.flows).toHaveLength(7);
     expect(JSON.stringify(document)).toContain("~$11,800/mo");
@@ -38,7 +39,7 @@ describe("Retirement Income — Private Ledger", () => {
   it("uses the full visual and relationship vocabulary without encoding magnitude", () => {
     const { document } = retirementStarter;
     expect(new Set(document.modules.map(({ primitive }) => primitive))).toEqual(
-      new Set(["ledger", "plate", "tray", "band", "roundel", "frame"]),
+      new Set(["ledger", "plate", "tray", "band", "roundel", "frame", "text"]),
     );
     expect(new Set(document.flows.map(({ route }) => route))).toEqual(
       new Set(["straight", "orthogonal", "curved"]),
@@ -112,6 +113,7 @@ describe("Retirement Income — Private Ledger", () => {
       "retirement-ira": { x: 1100, y: 20 },
       "retirement-roth": { x: 1110, y: 350 },
       "retirement-trust": { x: 1040, y: 560 },
+      "retirement-installment-note": { x: 690, y: 380 },
     });
 
     const authoredLanes = Object.fromEntries(

@@ -505,7 +505,7 @@ describe("MoneyMapCanvas command shortcuts", () => {
       cancelFlowEdit: vi.fn(),
       commitFlowEdit: vi.fn(),
       selectFlow: vi.fn(),
-      commitFlowWaypoint: vi.fn(),
+      commitFlowLabelPosition: vi.fn(),
       createConnection: vi.fn(),
       reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
@@ -514,7 +514,7 @@ describe("MoneyMapCanvas command shortcuts", () => {
       executeCommand,
       openPalette: vi.fn(),
       nudgeSelected: vi.fn(),
-      commitModuleWidth: vi.fn(),
+      commitModuleSize: vi.fn(),
       commitModuleMove: vi.fn(),
     };
 
@@ -656,7 +656,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       cancelFlowEdit: vi.fn(),
       commitFlowEdit: vi.fn(),
       selectFlow: vi.fn(),
-      commitFlowWaypoint: vi.fn(),
+      commitFlowLabelPosition: vi.fn(),
       createConnection,
       reconnectRelationship,
       beginInlineEdit: vi.fn(),
@@ -665,7 +665,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       executeCommand: vi.fn(),
       openPalette: vi.fn(),
       nudgeSelected: vi.fn(),
-      commitModuleWidth: vi.fn(),
+      commitModuleSize: vi.fn(),
       commitModuleMove: vi.fn(),
     };
 

@@ -249,8 +249,8 @@ describe("annuity foundation starter", () => {
       "$_____",
     ]);
     expect(serialized).not.toMatch(/warning|debit|remainder|capacity|insufficient/i);
-    expect(Object.keys(source ?? {})).not.toContain("height");
-    expect(Object.keys(plan ?? {})).not.toContain("height");
+    expect(source?.height).toBe(190);
+    expect(plan?.height).toBe(250);
   });
 
   it("keeps Foundation art direction decorative and free of geometry or financial semantics", () => {

@@ -148,13 +148,13 @@ function MoneyMapCanvasInner({
               beginEdit: () => editor.beginFlowEdit(relationship.id),
               cancelEdit: editor.cancelFlowEdit,
               commitEdit: (literal: string) => editor.commitFlowEdit(relationship.id, literal),
-              moveWaypoint: (clientPoint: { x: number; y: number }) =>
-                editor.commitFlowWaypoint(
+              moveLabelPosition: (clientPoint: { x: number; y: number }) =>
+                editor.commitFlowLabelPosition(
                   relationship.id,
                   screenToFlowPosition ? screenToFlowPosition(clientPoint) : clientPoint,
                 ),
-              nudgeWaypoint: (point: { x: number; y: number }) =>
-                editor.commitFlowWaypoint(relationship.id, point),
+              nudgeLabelPosition: (point: { x: number; y: number }) =>
+                editor.commitFlowLabelPosition(relationship.id, point),
               select: () => editor.selectFlow(relationship.id),
             },
           },

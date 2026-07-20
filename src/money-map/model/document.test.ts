@@ -80,6 +80,7 @@ describe("literal-safe money map document", () => {
 
   it("does not let equal-length financial display text affect geometry", () => {
     const document = createTestDocument();
+    const geometryAndStyle = JSON.stringify(documentGeometry(document));
     const replaceDisplayText = (value: string) => "9".repeat(value.length);
     const replaced: MoneyMapDocument = {
       ...document,
@@ -97,7 +98,7 @@ describe("literal-safe money map document", () => {
       })),
     };
 
-    expect(documentGeometry(replaced)).toEqual(documentGeometry(document));
+    expect(JSON.stringify(documentGeometry(replaced))).toBe(geometryAndStyle);
   });
 
   it("removes selected modules, selected flows, and attached flows in one undoable change", () => {
@@ -175,6 +176,10 @@ describe("literal-safe money map document", () => {
       id: "copy-flow",
       source: "copy-source",
       target: "copy-annuity",
+      labelPosition: {
+        x: document.flows[0].labelPosition.x + 32,
+        y: document.flows[0].labelPosition.y + 32,
+      },
     });
     expect(duplicated.flows).toHaveLength(3);
     expect(duplicated.modules.at(-2)?.rows.map(({ id }) => id)).toEqual([

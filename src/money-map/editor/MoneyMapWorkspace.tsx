@@ -22,7 +22,7 @@ import {
   createRelationship,
   editFlowField,
   editModuleField,
-  moveFlowWaypoint,
+  moveFlowLabel,
   nudgeSelection,
   reconnectFlow,
   type FlowField,
@@ -249,8 +249,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     (literal: string) => {
       if (!activeInlineField) return;
       const target =
-        activeInlineField.field === "row-value"
-          ? { field: "row-value" as const, rowId: activeInlineField.rowId }
+        activeInlineField.field === "row-label" || activeInlineField.field === "row-value"
+          ? { field: activeInlineField.field, rowId: activeInlineField.rowId }
           : { field: activeInlineField.field };
       const next = editModuleField(editor.document, activeInlineField.moduleId, target, literal);
       editor.applyDocument(next, "Inline edit committed.", `edit ${activeInlineField.field}`);
@@ -267,10 +267,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor],
   );
 
-  const commitModuleWidth = useCallback(
-    (moduleId: string, width: number) => {
-      const next = resizeModule(editor.document, moduleId, width);
-      editor.applyDocument(next, "Module width updated.", "resize module");
+  const commitModuleSize = useCallback(
+    (moduleId: string, size: { width: number; height: number }) => {
+      const next = resizeModule(editor.document, moduleId, size);
+      editor.applyDocument(next, "Module resized.", "resize module");
     },
     [editor],
   );
@@ -342,10 +342,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor, selectedFlowId],
   );
 
-  const commitFlowWaypoint = useCallback(
+  const commitFlowLabelPosition = useCallback(
     (flowId: string, point: Point) => {
-      const next = moveFlowWaypoint(editor.document, flowId, point);
-      editor.applyDocument(next, "Relationship route updated.", "move relationship label");
+      const next = moveFlowLabel(editor.document, flowId, point);
+      editor.applyDocument(next, "Relationship label position updated.", "move relationship label");
       focusFlowLabel(flowId);
     },
     [editor, focusFlowLabel],
@@ -460,11 +460,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       cancelFlowEdit,
       commitFlowEdit,
       selectFlow,
-      commitFlowWaypoint,
+      commitFlowLabelPosition,
       executeCommand,
       openPalette,
       nudgeSelected,
-      commitModuleWidth,
+      commitModuleSize,
       commitModuleMove,
       createConnection,
       reconnectRelationship,
@@ -476,10 +476,10 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       beginFlowEdit,
       cancelFlowEdit,
       commitFlowEdit,
-      commitFlowWaypoint,
+      commitFlowLabelPosition,
       commitInlineEdit,
       commitModuleMove,
-      commitModuleWidth,
+      commitModuleSize,
       connectMode,
       createConnection,
       editor.announcement,

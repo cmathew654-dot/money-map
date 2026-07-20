@@ -51,9 +51,11 @@
 }
 
 .money-map-module {
+  box-sizing: border-box;
   position: relative;
   width: 100%;
-  min-height: 152px;
+  height: 100%;
+  min-height: 0;
   padding: 20px;
   border: 1px solid var(--map-border);
   border-radius: 2px;
@@ -61,6 +63,43 @@
   background: var(--map-surface);
   box-shadow: none;
   cursor: grab;
+  transform-origin: center;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  --module-accent: var(--map-accent);
+}
+
+.money-map-module[data-color-role="income"] { --module-accent: #a45b19; }
+.money-map-module[data-color-role="account"] { --module-accent: #3d6170; }
+.money-map-module[data-color-role="reserve"] { --module-accent: #9a7137; }
+.money-map-module[data-color-role="need"] { --module-accent: #3d392f; }
+.money-map-module[data-color-role="specialty"] { --module-accent: #76536d; }
+.money-map-module[data-color-role="charitable"] { --module-accent: #496755; }
+.money-map-module[data-color-role="note"] { --module-accent: #726c61; }
+
+.money-map-module[data-priority="quiet"] {
+  border-color: color-mix(in srgb, var(--module-accent) 34%, var(--map-border));
+  box-shadow: 0 2px 5px rgba(65, 57, 43, 0.08);
+}
+
+.money-map-module[data-priority="spotlight"] {
+  border: 2px solid var(--module-accent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--module-accent) 12%, transparent),
+    0 14px 30px rgba(65, 57, 43, 0.2);
+}
+
+.money-map-module[data-swatch="muted"] {
+  background: color-mix(in srgb, var(--map-surface-alt) 80%, var(--module-accent) 20%);
+}
+
+.money-map-module[data-swatch="accent"] {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--map-surface) 84%, var(--module-accent) 16%);
+}
+
+.money-map-module[data-swatch="contrast"] {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--map-surface) 66%, var(--module-accent) 34%);
 }
 
 .money-map-module[data-primitive="ledger"] {
@@ -83,7 +122,20 @@
 }
 
 .money-map-module[data-primitive="roundel"] {
-  border-radius: 24px;
+  border-radius: 50% / 40%;
+}
+
+.money-map-module[data-primitive="cylinder"] {
+  border-radius: 50% / 13%;
+}
+
+.money-map-module[data-primitive="text"] {
+  height: auto;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .money-map-module[data-primitive="frame"] {
@@ -415,28 +467,23 @@
 }
 
 .money-map-resize-control {
-  width: 24px !important;
-  height: 48px !important;
-  border: 0 !important;
-  background: transparent !important;
-}
-
-.money-map-resize-control.left {
-  left: -12px !important;
-}
-
-.money-map-resize-control.right {
-  right: -12px !important;
+  right: -11px !important;
+  bottom: -11px !important;
+  width: 26px !important;
+  height: 26px !important;
+  border: 2px solid var(--map-canvas) !important;
+  border-radius: 50% !important;
+  background: var(--map-accent) !important;
+  box-shadow: 0 2px 7px rgba(42, 36, 27, 0.24);
 }
 
 .money-map-resize-control span {
   display: block;
-  width: 4px;
-  height: 30px;
-  margin: 9px auto;
-  border-radius: 3px;
-  background: var(--map-accent);
-  box-shadow: 0 0 0 2px var(--map-canvas);
+  width: 8px;
+  height: 8px;
+  margin: 7px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
 }
 
 .inline-field {

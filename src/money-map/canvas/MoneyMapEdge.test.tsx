@@ -4,6 +4,19 @@ import type * as ReactFlowExports from "@xyflow/react";
 import { vi } from "vitest";
 import type { ReactNode } from "react";
 
+const useRefCalls = vi.hoisted(() => vi.fn());
+
+vi.mock("react", async (importOriginal) => {
+  const original = await importOriginal<typeof import("react")>();
+  return {
+    ...original,
+    useRef: <T,>(initialValue: T) => {
+      useRefCalls();
+      return original.useRef(initialValue);
+    },
+  };
+});
+
 vi.mock("@xyflow/react", async (importOriginal) => {
   const original = await importOriginal<typeof ReactFlowExports>();
   return {
@@ -22,8 +35,8 @@ function renderEdge(overrides: Partial<MoneyMapCanvasEdge["data"]> = {}) {
     beginEdit: vi.fn(),
     cancelEdit: vi.fn(),
     commitEdit: vi.fn(),
-    moveWaypoint: vi.fn(),
-    nudgeWaypoint: vi.fn(),
+    moveLabelPosition: vi.fn(),
+    nudgeLabelPosition: vi.fn(),
     select: vi.fn(),
   };
   const props = {
@@ -54,6 +67,49 @@ function renderEdge(overrides: Partial<MoneyMapCanvasEdge["data"]> = {}) {
 }
 
 describe("MoneyMapEdge", () => {
+  it("keeps hook ordering stable when edge data disappears and returns", () => {
+    const flow = createTestDocument().flows[0];
+    const props = {
+      id: flow.id,
+      source: flow.source,
+      target: flow.target,
+      sourceX: 20,
+      sourceY: 40,
+      targetX: 420,
+      targetY: 180,
+      sourcePosition: "right",
+      targetPosition: "left",
+      data: { flow },
+      selected: false,
+    } as unknown as EdgeProps<MoneyMapCanvasEdge>;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    useRefCalls.mockClear();
+    const view = render(
+      <ReactFlowProvider>
+        <MoneyMapEdge {...props} />
+      </ReactFlowProvider>,
+    );
+
+    expect(useRefCalls).toHaveBeenCalledTimes(3);
+
+    expect(() => {
+      view.rerender(
+        <ReactFlowProvider>
+          <MoneyMapEdge {...props} data={undefined} />
+        </ReactFlowProvider>,
+      );
+      expect(useRefCalls).toHaveBeenCalledTimes(6);
+      view.rerender(
+        <ReactFlowProvider>
+          <MoneyMapEdge {...props} />
+        </ReactFlowProvider>,
+      );
+      expect(useRefCalls).toHaveBeenCalledTimes(9);
+    }).not.toThrow();
+    expect(consoleError.mock.calls.flat().join(" ")).not.toMatch(/change in the order of Hooks/i);
+    consoleError.mockRestore();
+  });
+
   it("renders exact label, secondary label, cadence, semantics, and treatment", () => {
     const { flow } = renderEdge();
     const label = screen.getByRole("button", {
@@ -81,7 +137,7 @@ describe("MoneyMapEdge", () => {
     fireEvent.pointerMove(label, { clientX: 108, clientY: 100, pointerId: 1 });
     fireEvent.pointerUp(label, { clientX: 108, clientY: 100, pointerId: 1 });
     fireEvent.click(label);
-    expect(handlers.moveWaypoint).toHaveBeenCalledWith({ x: 108, y: 100 });
+    expect(handlers.moveLabelPosition).toHaveBeenCalledWith({ x: 108, y: 100 });
     expect(handlers.beginEdit).not.toHaveBeenCalled();
   });
 
@@ -95,7 +151,7 @@ describe("MoneyMapEdge", () => {
     rerender();
     fireEvent.click(screen.getByRole("button"));
 
-    expect(handlers.moveWaypoint).toHaveBeenCalledWith({ x: 108, y: 100 });
+    expect(handlers.moveLabelPosition).toHaveBeenCalledWith({ x: 108, y: 100 });
     expect(handlers.beginEdit).not.toHaveBeenCalled();
   });
 
@@ -110,13 +166,13 @@ describe("MoneyMapEdge", () => {
     document.removeEventListener("click", canvasClick);
   });
 
-  it("supports Enter and keyboard waypoint movement", () => {
+  it("supports Enter and keyboard label-position movement", () => {
     const { handlers } = renderEdge();
     const label = screen.getByRole("button");
     fireEvent.keyDown(label, { key: "Enter" });
     expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(label, { key: "ArrowRight", shiftKey: true });
-    expect(handlers.nudgeWaypoint).toHaveBeenCalledWith({ x: 392, y: 176 });
+    expect(handlers.nudgeLabelPosition).toHaveBeenCalledWith({ x: 392, y: 176 });
   });
 
   it("commits or restores an exact inline label", () => {

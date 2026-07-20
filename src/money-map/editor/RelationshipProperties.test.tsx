@@ -51,7 +51,7 @@ describe("RelationshipProperties", () => {
       "flow.relationship.association",
       "flow.label-treatment.filled",
       "flow.cadence.monthly",
-      "flow.waypoint.reset",
+      "flow.label-position.reset",
     ]);
   });
 

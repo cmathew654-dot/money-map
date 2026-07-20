@@ -6,7 +6,16 @@ export type CanvasStyleId =
 export type ModuleKind =
   "income" | "account" | "reserve" | "need" | "specialty" | "charitable" | "note";
 
-export type PrimitiveStyle = "ledger" | "plate" | "tray" | "band" | "roundel" | "frame";
+export type PrimitiveStyle =
+  "ledger" | "plate" | "tray" | "band" | "roundel" | "frame" | "cylinder" | "text";
+
+export type ModulePriority = "quiet" | "standard" | "spotlight";
+
+export type ContentDensity = "essential" | "standard" | "full";
+
+export type ColorRole = ModuleKind;
+
+export type ThemeSwatch = "base" | "muted" | "accent" | "contrast";
 
 export type RelationshipKind = "flow" | "association" | "planned";
 
@@ -38,6 +47,13 @@ export interface MoneyMapModule {
   primitive: PrimitiveStyle;
   position: Point;
   width: number;
+  height: number;
+  rotation: number;
+  priority: ModulePriority;
+  density: ContentDensity;
+  colorRole: ColorRole;
+  swatch: ThemeSwatch;
+  zIndex: number;
   eyebrow: string;
   title: string;
   subtitle?: string;
@@ -61,6 +77,7 @@ export interface MoneyMapFlow {
   label: string;
   secondaryLabel?: string;
   cadence: MoneyMapCadence;
+  labelPosition: Point;
   waypoints: Point[];
 }
 
@@ -72,7 +89,7 @@ export interface PresentationStep {
 }
 
 export interface MoneyMapDocument {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: StarterId;
   title: string;
   asOf: string;

@@ -34,6 +34,87 @@ export function updateFlow(
   return { ...document, flows };
 }
 
+function endpointMidpoint(
+  document: MoneyMapDocument,
+  sourceId: string,
+  targetId: string,
+): Point | null {
+  const source = document.modules.find(({ id }) => id === sourceId);
+  const target = document.modules.find(({ id }) => id === targetId);
+  if (!source || !target) return null;
+  return {
+    x: (source.position.x + source.width / 2 + target.position.x + target.width / 2) / 2,
+    y: (source.position.y + source.height / 2 + target.position.y + target.height / 2) / 2,
+  };
+}
+
+function translateLabelForEndpoints(
+  document: MoneyMapDocument,
+  flow: MoneyMapFlow,
+  source: string,
+  target: string,
+): Point {
+  const before = endpointMidpoint(document, flow.source, flow.target);
+  const after = endpointMidpoint(document, source, target);
+  if (!before || !after) return flow.labelPosition;
+  return {
+    x: flow.labelPosition.x + after.x - before.x,
+    y: flow.labelPosition.y + after.y - before.y,
+  };
+}
+
+export function moveModules(
+  document: MoneyMapDocument,
+  positions: ReadonlyMap<string, Point>,
+): MoneyMapDocument {
+  let modulesChanged = false;
+  const modules = document.modules.map((module) => {
+    const position = positions.get(module.id);
+    if (!position || (module.position.x === position.x && module.position.y === position.y)) {
+      return module;
+    }
+    modulesChanged = true;
+    return { ...module, position: { x: position.x, y: position.y } };
+  });
+  if (!modulesChanged) return document;
+
+  const movedDocument = { ...document, modules };
+  let flowsChanged = false;
+  const flows = document.flows.map((flow) => {
+    const before = endpointMidpoint(document, flow.source, flow.target);
+    const after = endpointMidpoint(movedDocument, flow.source, flow.target);
+    if (!before || !after || (before.x === after.x && before.y === after.y)) return flow;
+    flowsChanged = true;
+    return {
+      ...flow,
+      labelPosition: {
+        x: flow.labelPosition.x + after.x - before.x,
+        y: flow.labelPosition.y + after.y - before.y,
+      },
+    };
+  });
+
+  return { ...movedDocument, flows: flowsChanged ? flows : document.flows };
+}
+
+export function updateFlowEndpoints(
+  document: MoneyMapDocument,
+  flowId: string,
+  source: string,
+  target: string,
+): MoneyMapDocument {
+  return updateFlow(document, flowId, (flow) =>
+    flow.source === source && flow.target === target
+      ? flow
+      : {
+          ...flow,
+          source,
+          target,
+          labelPosition: translateLabelForEndpoints(document, flow, source, target),
+        },
+  );
+}
+
 export function removeSelection(
   document: MoneyMapDocument,
   selection: Selection,
@@ -114,6 +195,7 @@ export function duplicateSelection(
         source,
         target,
         cadence: { ...flow.cadence },
+        labelPosition: offsetPoint(flow.labelPosition),
         waypoints: flow.waypoints.map(offsetPoint),
       },
     ];
@@ -128,16 +210,39 @@ export function duplicateSelection(
 
 export function documentGeometry(document: MoneyMapDocument) {
   return {
-    modules: document.modules.map(({ id, position, width }) => ({
-      id,
-      position: { x: position.x, y: position.y },
-      width,
-    })),
-    flows: document.flows.map(({ id, source, target, route, waypoints }) => ({
+    modules: document.modules.map(
+      ({
+        id,
+        primitive,
+        position,
+        width,
+        height,
+        rotation,
+        priority,
+        density,
+        colorRole,
+        swatch,
+        zIndex,
+      }) => ({
+        id,
+        primitive,
+        position: { x: position.x, y: position.y },
+        width,
+        height,
+        rotation,
+        priority,
+        density,
+        colorRole,
+        swatch,
+        zIndex,
+      }),
+    ),
+    flows: document.flows.map(({ id, source, target, route, labelPosition, waypoints }) => ({
       id,
       source,
       target,
       route,
+      labelPosition: { x: labelPosition.x, y: labelPosition.y },
       waypoints: waypoints.map(({ x, y }) => ({ x, y })),
     })),
   };

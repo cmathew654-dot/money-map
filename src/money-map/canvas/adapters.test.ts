@@ -34,7 +34,7 @@ describe("canvas document adapters", () => {
       changedNodes.map(({ position, style }) => ({ position, style })),
     );
     expect(nodes[0].position).toEqual({ x: 40, y: 80 });
-    expect(nodes[0].style).toEqual({ width: 280 });
+    expect(nodes[0].style).toEqual({ width: 280, height: 190, zIndex: 0 });
     expect(nodes[0]).not.toHaveProperty("height");
     expect(nodes[0]).not.toHaveProperty("initialHeight");
     expect(nodes[0]).not.toHaveProperty("measured");
@@ -74,7 +74,7 @@ describe("canvas document adapters", () => {
     expect(label).toContain("1 outgoing relationship");
   });
 
-  it("moves only the target module and preserves literal text and references", () => {
+  it("moves one module and translates connected label anchors by the endpoint-midpoint delta", () => {
     const document = createTestDocument();
     const beforeGeometry = documentGeometry(document);
     const moved = moveModule(document, "annuity-policy", { x: 512, y: 248 });
@@ -85,7 +85,10 @@ describe("canvas document adapters", () => {
     expect(moved.modules[1].position).toEqual({ x: 512, y: 248 });
     expect(moved.modules[1].rows).toBe(document.modules[1].rows);
     expect(moved.modules[1].total).toBe(document.modules[1].total);
-    expect(moved.flows).toBe(document.flows);
+    expect(moved.flows[0].labelPosition).toEqual({ x: 406, y: 244 });
+    expect(moved.flows[1].labelPosition).toEqual({ x: 818, y: 278 });
+    expect(moved.flows[0].waypoints).toBe(document.flows[0].waypoints);
+    expect(moved.flows[1].waypoints).toBe(document.flows[1].waypoints);
     expect(beforeGeometry.modules[0]).toEqual(documentGeometry(moved).modules[0]);
     expect(moveModule(document, "missing", { x: 1, y: 2 })).toBe(document);
   });

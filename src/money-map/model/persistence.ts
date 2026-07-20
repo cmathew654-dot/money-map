@@ -13,7 +13,7 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-export const DRAFT_PREFIX = "money-map:v1:";
+export const DRAFT_PREFIX = "money-map:v2:";
 
 const FORBIDDEN_DOCUMENT_KEYS = new Set([
   "amount",
@@ -69,6 +69,10 @@ function isOneOf(value: unknown, allowed: readonly string[]): value is string {
   return typeof value === "string" && allowed.includes(value);
 }
 
+function isSnappedRotation(rotation: unknown): rotation is number {
+  return typeof rotation === "number" && Number.isFinite(rotation) && rotation % 15 === 0;
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
@@ -105,6 +109,13 @@ function isModule(value: unknown): value is MoneyMapModule {
       "primitive",
       "position",
       "width",
+      "height",
+      "rotation",
+      "priority",
+      "density",
+      "colorRole",
+      "swatch",
+      "zIndex",
       "eyebrow",
       "title",
       "subtitle",
@@ -122,10 +133,37 @@ function isModule(value: unknown): value is MoneyMapModule {
       "charitable",
       "note",
     ]) &&
-    isOneOf(value.primitive, ["ledger", "plate", "tray", "band", "roundel", "frame"]) &&
+    isOneOf(value.primitive, [
+      "ledger",
+      "plate",
+      "tray",
+      "band",
+      "roundel",
+      "frame",
+      "cylinder",
+      "text",
+    ]) &&
     isPoint(value.position) &&
     typeof value.width === "number" &&
     Number.isFinite(value.width) &&
+    typeof value.height === "number" &&
+    Number.isFinite(value.height) &&
+    value.height > 0 &&
+    isSnappedRotation(value.rotation) &&
+    isOneOf(value.priority, ["quiet", "standard", "spotlight"]) &&
+    isOneOf(value.density, ["essential", "standard", "full"]) &&
+    isOneOf(value.colorRole, [
+      "income",
+      "account",
+      "reserve",
+      "need",
+      "specialty",
+      "charitable",
+      "note",
+    ]) &&
+    isOneOf(value.swatch, ["base", "muted", "accent", "contrast"]) &&
+    typeof value.zIndex === "number" &&
+    Number.isFinite(value.zIndex) &&
     typeof value.eyebrow === "string" &&
     typeof value.title === "string" &&
     isOptionalString(value.subtitle) &&
@@ -148,6 +186,7 @@ function isFlow(value: unknown): value is MoneyMapFlow {
       "label",
       "secondaryLabel",
       "cadence",
+      "labelPosition",
       "waypoints",
     ]) &&
     typeof value.id === "string" &&
@@ -162,6 +201,7 @@ function isFlow(value: unknown): value is MoneyMapFlow {
     hasOnlyKeys(value.cadence, ["kind", "label"]) &&
     isOneOf(value.cadence.kind, ["monthly", "annual", "one-time", "as-needed", "custom"]) &&
     typeof value.cadence.label === "string" &&
+    isPoint(value.labelPosition) &&
     Array.isArray(value.waypoints) &&
     value.waypoints.every(isPoint)
   );
@@ -192,7 +232,7 @@ function isDocument(value: unknown, starterId: StarterId): value is MoneyMapDocu
       "presentation",
     ]) &&
     !containsForbiddenDocumentKey(value) &&
-    value.schemaVersion === 1 &&
+    value.schemaVersion === 2 &&
     value.id === starterId &&
     typeof value.title === "string" &&
     typeof value.asOf === "string" &&

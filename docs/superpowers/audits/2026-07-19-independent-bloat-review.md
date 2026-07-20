@@ -134,3 +134,7 @@ All P0–P2 findings must be fixed before the checkpoint commit. A P3 may be def
 ### Gates R1, R2, R5, and R7
 
 Add one section per gate using the same fields. Interior checkpoints use focused self-review and verification without expanding the standing evidence set. Keep this document concise; link to test output or screenshots rather than embedding them.
+
+### Workflow amendment — 2026-07-19
+
+The user explicitly removed subtask briefs, reports, repeated full-suite runs, and internal review loops after observing that ceremony—not product engineering—was dominating elapsed time. R1 and R2 now use direct implementation plus focused verification; independent implementation/bloat review is reserved for R5 integration and R7 final audit.

@@ -1,21 +1,35 @@
 import { createTestDocument } from "../model/test-fixtures";
-import { clampModuleWidth, resizeModule } from "./adapters";
+import { clampModuleSize, resizeModule } from "./adapters";
 
-describe("horizontal module resize", () => {
-  it.each([
-    [100, 220],
-    [320, 320],
-    [800, 480],
-  ])("clamps %s to %s", (input, expected) => {
-    expect(clampModuleWidth(input)).toBe(expected);
+describe("two-axis module resize", () => {
+  it("clamps both axes to content-safe bounds", () => {
+    const module = createTestDocument().modules[1];
+    expect(clampModuleSize(module, { width: 100, height: 40 })).toEqual({
+      width: 220,
+      height: 152,
+    });
+    expect(clampModuleSize(module, { width: 900, height: 900 })).toEqual({
+      width: 520,
+      height: 520,
+    });
   });
 
-  it("changes width only and preserves content, height-free geometry, and text data", () => {
+  it("changes width and height while preserving authored content", () => {
     const document = createTestDocument();
-    const resized = resizeModule(document, "annuity-policy", 800);
-    expect(resized.modules[1].width).toBe(480);
+    const resized = resizeModule(document, "annuity-policy", { width: 430, height: 310 });
+    expect(resized.modules[1]).toMatchObject({ width: 430, height: 310 });
     expect(resized.modules[1].rows).toBe(document.modules[1].rows);
     expect(resized.modules[1].title).toBe(document.modules[1].title);
-    expect(resized.modules[1]).not.toHaveProperty("height");
+  });
+
+  it("does not resize a rotated object", () => {
+    const document = createTestDocument();
+    const rotated = {
+      ...document,
+      modules: document.modules.map((module, index) =>
+        index === 1 ? { ...module, rotation: 15 } : module,
+      ),
+    };
+    expect(resizeModule(rotated, "annuity-policy", { width: 430, height: 310 })).toBe(rotated);
   });
 });

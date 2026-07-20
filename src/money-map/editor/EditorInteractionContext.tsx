@@ -4,9 +4,9 @@ import type { Point } from "../model/types";
 import type { WorkspaceCommandDefinition } from "./commands";
 
 export type InlineEditTarget =
-  | { moduleId: string; field: "title"; original: string }
-  | { moduleId: string; field: "row-value"; rowId: string; original: string }
-  | { moduleId: string; field: "total-value"; original: string };
+  | { moduleId: string; field: "title" | "eyebrow" | "subtitle" | "note"; original: string }
+  | { moduleId: string; field: "row-label" | "row-value"; rowId: string; original: string }
+  | { moduleId: string; field: "total-label" | "total-value"; original: string };
 
 export interface EditorInteraction {
   selectionCount: number;
@@ -23,11 +23,11 @@ export interface EditorInteraction {
   cancelFlowEdit(): void;
   commitFlowEdit(flowId: string, exact: string): void;
   selectFlow(flowId: string): void;
-  commitFlowWaypoint(flowId: string, point: Point): void;
+  commitFlowLabelPosition(flowId: string, point: Point): void;
   executeCommand(id: string): void;
   openPalette(invoker: HTMLElement): void;
   nudgeSelected(delta: Point): void;
-  commitModuleWidth(moduleId: string, width: number): void;
+  commitModuleSize(moduleId: string, size: { width: number; height: number }): void;
   commitModuleMove(moduleId: string, position: Point): void;
   createConnection(source: string, target: string): void;
   reconnectRelationship(flowId: string, connection: { source: string; target: string }): void;

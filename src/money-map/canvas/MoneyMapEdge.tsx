@@ -21,6 +21,9 @@ export function MoneyMapEdge({
   targetX,
   targetY,
 }: EdgeProps<MoneyMapCanvasEdge>) {
+  const pointerStart = useRef<Point | null>(null);
+  const pointerDragged = useRef(false);
+  const suppressClick = useRef(false);
   if (!data) return null;
   const { flow, handlers, editing = false } = data;
   const geometry = relationshipGeometry(
@@ -29,9 +32,6 @@ export function MoneyMapEdge({
     { x: targetX, y: targetY },
     flow.waypoints,
   );
-  const pointerStart = useRef<Point | null>(null);
-  const pointerDragged = useRef(false);
-  const suppressClick = useRef(false);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -53,7 +53,7 @@ export function MoneyMapEdge({
     if (pointerStart.current && pointerDragged.current) {
       suppressClick.current = true;
       handlers?.select();
-      handlers?.moveWaypoint({ x: event.clientX, y: event.clientY });
+      handlers?.moveLabelPosition({ x: event.clientX, y: event.clientY });
     }
     pointerStart.current = null;
     pointerDragged.current = false;
@@ -94,7 +94,7 @@ export function MoneyMapEdge({
           data-presentation-focus={data.presentationFocus ? "true" : "false"}
           style={{
             position: "absolute",
-            transform: `translate(-50%, -50%) translate(${geometry.label.x}px, ${geometry.label.y}px)`,
+            transform: `translate(-50%, -50%) translate(${flow.labelPosition.x}px, ${flow.labelPosition.y}px)`,
             pointerEvents: "all",
           }}
         >
@@ -148,9 +148,9 @@ export function MoneyMapEdge({
                       : event.key === "ArrowUp"
                         ? { x: 0, y: -distance }
                         : { x: 0, y: distance };
-                handlers?.nudgeWaypoint({
-                  x: geometry.label.x + delta.x,
-                  y: geometry.label.y + delta.y,
+                handlers?.nudgeLabelPosition({
+                  x: flow.labelPosition.x + delta.x,
+                  y: flow.labelPosition.y + delta.y,
                 });
               }}
               onPointerDown={onPointerDown}

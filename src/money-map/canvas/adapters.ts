@@ -1,6 +1,6 @@
 import { MarkerType, Position, type Edge, type Node } from "@xyflow/react";
 
-import { updateModule } from "../model/document";
+import { moveModules, updateModule } from "../model/document";
 import type {
   MoneyMapDocument,
   MoneyMapFlow,
@@ -16,8 +16,8 @@ export interface MoneyMapEdgeHandlers {
   beginEdit(): void;
   cancelEdit(): void;
   commitEdit(literal: string): void;
-  moveWaypoint(clientPoint: Point): void;
-  nudgeWaypoint(delta: Point): void;
+  moveLabelPosition(clientPoint: Point): void;
+  nudgeLabelPosition(point: Point): void;
   select(): void;
 }
 
@@ -143,7 +143,7 @@ export function documentToNodes(
         presentation: Boolean(presentationStep),
         presentationFocus: presentationStep?.moduleIds.includes(module.id) ?? false,
       },
-      style: { width: module.width },
+      style: { width: module.width, height: module.height, zIndex: module.zIndex },
       selected: selected.has(module.id),
       draggable: !presentationStep,
       selectable: !presentationStep,
@@ -197,25 +197,45 @@ export function moveModule(
   moduleId: string,
   position: Point,
 ): MoneyMapDocument {
-  return updateModule(document, moduleId, (module) => ({
-    ...module,
-    position: { x: position.x, y: position.y },
-  }));
+  return moveModules(document, new Map([[moduleId, position]]));
 }
-export const MIN_MODULE_WIDTH = 220;
-export const MAX_MODULE_WIDTH = 480;
+export const MAX_MODULE_SIZE = 520;
 
-export function clampModuleWidth(width: number): number {
-  return Math.min(MAX_MODULE_WIDTH, Math.max(MIN_MODULE_WIDTH, width));
+export function minimumModuleSize(module: MoneyMapModule): Point {
+  if (module.primitive === "text") {
+    return module.density === "essential"
+      ? { x: 160, y: 60 }
+      : module.density === "standard"
+        ? { x: 200, y: 90 }
+        : { x: 240, y: 120 };
+  }
+  if (module.density === "essential") return { x: 180, y: 112 };
+  if (module.density === "full") return { x: 260, y: 196 };
+  return { x: 220, y: 152 };
+}
+
+export function clampModuleSize(
+  module: MoneyMapModule,
+  size: { width: number; height: number },
+): { width: number; height: number } {
+  const minimum = minimumModuleSize(module);
+  return {
+    width: Math.min(MAX_MODULE_SIZE, Math.max(minimum.x, size.width)),
+    height: Math.min(MAX_MODULE_SIZE, Math.max(minimum.y, size.height)),
+  };
 }
 
 export function resizeModule(
   document: MoneyMapDocument,
   moduleId: string,
-  width: number,
+  size: { width: number; height: number },
 ): MoneyMapDocument {
-  const nextWidth = clampModuleWidth(width);
-  return updateModule(document, moduleId, (module) =>
-    module.width === nextWidth ? module : { ...module, width: nextWidth },
+  const module = document.modules.find(({ id }) => id === moduleId);
+  if (!module || module.rotation !== 0) return document;
+  const next = clampModuleSize(module, size);
+  return updateModule(document, moduleId, (current) =>
+    current.width === next.width && current.height === next.height
+      ? current
+      : { ...current, ...next },
   );
 }

@@ -1,6 +1,6 @@
 # Advisor-Safe Shape Studio — Audited Lean Plan
 
-> Required workflow: test-driven behavior changes, one implementer at a time, independent review at the four named gates, and a final Impeccable audit. Update `PROJECT.md` before each checkpoint commit. Do not push, merge, deploy, or release without explicit approval.
+> Required workflow: direct test-driven implementation, focused checks during development, and a full gate only after a complete user-visible checkpoint. No subtask briefs, reports, or internal review loops. Update `PROJECT.md` before each checkpoint commit. Do not push, merge, deploy, or release without explicit approval.
 
 ## Goal
 
@@ -18,11 +18,12 @@ Turn the literal-safe prototype into a polished, near-freeform advisor story stu
 - Test ceilings are not quotas: at most 390 unit/component tests and 40 end-to-end journeys unless a reviewed exception replaces lower-value coverage.
 - Superseded controls, flags, and terminology are removed in the checkpoint that replaces them.
 
-## Review and evidence cadence
+## Verification cadence
 
-- Full three-viewport evidence and fresh implementation plus bloat review occur at four gates: reference slice, flow system, four-starter integration, and final audit.
-- Interior checkpoints require focused tests, typecheck, build, and one inspected 1440×900 render.
-- The external pre-implementation audit is recorded in the audit ledger. Internal reviewers do not substitute for any later external review explicitly requested by the user.
+- During implementation, run focused tests and inspect one 1440×900 render.
+- Run full tests/build after each complete user-visible checkpoint.
+- Reserve full three-viewport evidence and independent review for four-starter integration and the final audit.
+- Use subagents only for parallel read-only inspection; no agents edit shared product code.
 
 ## R0 — Lock audited scope
 
@@ -70,7 +71,7 @@ Turn the literal-safe prototype into a polished, near-freeform advisor story stu
 - Rendered no-clip matrix for the slice shapes × densities at minimum size.
 - Computed AA contrast for every slice semantic style × theme.
 
-**Gate:** at 1280×720, 1440×900, and 1920×1080 the slice reads at a glance, nothing clips, all visible text edits directly, and no style implies financial magnitude. Fresh implementation and bloat reviews required.
+**Gate:** at 1440×900 the slice reads at a glance, nothing clips, all visible text edits directly, and no style implies financial magnitude.
 
 **Commit:** `feat: establish literal-safe advisor canvas grammar`
 
@@ -100,7 +101,7 @@ Turn the literal-safe prototype into a polished, near-freeform advisor story stu
 - Every route has an attached endpoint, readable label ownership, and adequate hit target.
 - No amount-like string changes path geometry.
 
-**Gate:** a first-time user can find and create a labeled flow in ten seconds; the known screenshots’ janky doglegs, floating labels, and side-exit errors cannot recur. Fresh implementation and bloat reviews required.
+**Gate:** a first-time user can find and create a labeled flow in ten seconds; the known screenshots’ janky doglegs, floating labels, and side-exit errors cannot recur.
 
 **Commit:** `feat: make money flows obvious and reliable`
 
@@ -161,7 +162,7 @@ Turn the literal-safe prototype into a polished, near-freeform advisor story stu
 
 **Evidence:** up to two screenshots per starter per mode. Capture two recruiter-facing GIFs total: one authoring journey and one presentation journey—not one pair per starter.
 
-**Gate:** full 1280×720, 1440×900, and 1920×1080 evidence plus fresh implementation and bloat reviews.
+**Gate:** full 1280×720, 1440×900, and 1920×1080 evidence plus one independent integration review.
 
 **Commits:** one reviewed commit per starter, followed by a shared integration commit only if needed.
 

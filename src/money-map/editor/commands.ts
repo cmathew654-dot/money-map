@@ -1,7 +1,7 @@
 import { CommandRegistry } from "../commands/registry";
 import type { CommandDefinition, EditorMutation } from "../commands/types";
 import { duplicateSelection, removeSelection, updateFlow, updateModule } from "../model/document";
-import { resetFlowWaypoint } from "./mutations";
+import { resetFlowLabel } from "./mutations";
 import type {
   CadenceKind,
   LabelTreatment,
@@ -33,7 +33,16 @@ export type WorkspaceCommandDefinition = CommandDefinition<
   WorkspaceCommandResult
 >;
 
-const primitives: PrimitiveStyle[] = ["ledger", "plate", "tray", "band", "roundel", "frame"];
+const primitives: PrimitiveStyle[] = [
+  "ledger",
+  "plate",
+  "tray",
+  "band",
+  "roundel",
+  "frame",
+  "cylinder",
+  "text",
+];
 const widths = [
   { id: "small", label: "Small", width: 240 },
   { id: "standard", label: "Standard", width: 320 },
@@ -298,14 +307,14 @@ export function createWorkspaceCommands(
   }
 
   registry.register({
-    id: "flow.waypoint.reset",
+    id: "flow.label-position.reset",
     label: "Reset label position",
     keywords: ["relationship", "route", "waypoint"],
     isAvailable: hasSingleFlow,
     execute: (context) => {
       const flow = selectedFlows(context)[0];
       return mutation(
-        flow ? resetFlowWaypoint(context.document, flow.id) : context.document,
+        flow ? resetFlowLabel(context.document, flow.id) : context.document,
         "Label position reset.",
       );
     },

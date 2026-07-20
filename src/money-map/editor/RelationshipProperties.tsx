@@ -174,7 +174,7 @@ export function RelationshipProperties({
         />
       ) : null}
       {commands
-        .filter(({ id }) => id === "flow.waypoint.reset")
+        .filter(({ id }) => id === "flow.label-position.reset")
         .map((command) => (
           <button key={command.id} type="button" onClick={() => onExecute(command.id)}>
             {command.label}
