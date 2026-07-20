@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 const css = readFileSync("src/money-map/styles/canvas.css", "utf8");
 
 describe("canvas pointer target CSS", () => {
+  it("keeps the React Flow attribution link at least 24px tall", () => {
+    expect(css).toMatch(/\.react-flow__attribution a[^}]*\{[^}]*min-height:\s*24px/s);
+  });
+
   it("keeps normal edge and handle targets at least 28px and 24px", () => {
     expect(css).toMatch(/\.money-map-handle[^}]*\{[^}]*width:\s*24px;[^}]*height:\s*24px/s);
   });

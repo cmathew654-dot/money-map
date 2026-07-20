@@ -15,7 +15,7 @@ Money Map is an advisor authoring canvas with presentation-quality output. It mu
 ## Camera and selection
 
 - Wheel and pinch zoom around the pointer.
-- `Ctrl/Cmd +/-`, Fit map, Fit selection, and 100% commands.
+- `Ctrl/Cmd +/-`, Fit story, Fit selection, and 100% commands.
 - Bottom-left `−`, percentage, `+`, and Fit controls.
 - Empty-canvas, middle-button, and Space drag pan. Shift-drag creates a marquee selection.
 - Click selects, Shift-click adds, Escape clears or cancels.
@@ -58,7 +58,7 @@ Monthly, Annual, One-time, As needed, and exact custom cadence are display-only.
 ## Interaction hierarchy
 
 - Single click selects; double-click or Enter edits the visible text under the pointer.
-- A compact Add control exposes shapes, flow, text, and note. `L` starts Draw flow; `Ctrl/Cmd+K` exposes every command.
+- A compact Add control exposes the eight purposeful shapes, including text and planning-frame objects. `L` starts Draw flow; `Ctrl/Cmd+K` exposes every command.
 - Dragging from a selected object's quick-create port creates a connected object with the current style.
 - Multi-selection supports z-order, align, and distribute without moving unrelated content.
 - A small optional legend explains authored semantics.
@@ -67,7 +67,7 @@ Monthly, Annual, One-time, As needed, and exact custom cadence are display-only.
 
 - **Private Ledger:** warm paper, carbon, burnished ochre; editorial ledger, plates, tray, roundel, curved routes.
 - **Distribution Registry:** neutral field, deep pine, iron, rust; annual distribution sequence and orthogonal routes.
-- **Foundation:** graphite, chalk, mineral blue, muted amber; architectural income-floor bands and straight/stepped routes.
+- **Foundation:** graphite, chalk, mineral blue, muted amber; architectural income-floor bands and straight/orthogonal routes.
 - **Conversion Path:** near-white, aubergine, controlled vermilion; staged corridor with open frames, bands, roundels, and mixed routes.
 
 ## Accessibility and motion

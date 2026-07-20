@@ -4,9 +4,9 @@
 
 **Branch:** `codex/advisor-shape-studio`
 
-**Checkpoint:** R6 portfolio packaging complete locally
+**Checkpoint:** R7 final audit and remediation complete locally
 
-**Phase:** R7 final Impeccable audit and remediation
+**Phase:** Ready for user review; no release action authorized
 
 ## Current product
 
@@ -26,11 +26,12 @@
 ## Verification
 
 - ESLint, TypeScript, production build, and Pages asset validation pass in the integration worktree.
-- R6 unit/component inventory: 35 files, 271 tests.
-- Full Chromium: 28/28 journeys passed.
+- Final unit/component gate: 35 files, 272 tests passed.
+- Final browser gate: 28/28 Chromium journeys and 1/1 WebKit presentation smoke passed.
 - All four stories pass presentation geometry and readability checks at 1280x720, 1440x900, and 1920x1080: bounded content, no module/label collisions, no unrelated route crossings, and enforced text floors.
-- R6 production build passed on 2026-07-19: 470.27 kB JavaScript / 143.16 kB gzip and 50.00 kB CSS / 9.47 kB gzip, within the audited budget.
-- WebKit presentation smoke passed for all four starters; the final Impeccable re-audit remains the only open gate.
+- Final production build passed on 2026-07-19: 470.27 kB JavaScript / 143.16 kB gzip and 50.12 kB CSS / 9.48 kB gzip, within the audited budget.
+- Final independent Impeccable audit: 20/20, gate PASS, no unresolved P0/P1/P2. The attribution target and the two over-soft Private Ledger shadows found during the gate were repaired and re-verified.
+- Final runtime audit: zero console warnings/errors/page errors, no unnamed visible controls, favicon HTTP 200, and primary theme contrast pairs from 5.03:1 to 10.49:1.
 - The 1440x900 Retirement slice was inspected in-browser: no module content clips; direct title editing opens on double-click; one two-axis resize control appears on selection.
 
 ## Known boundaries
@@ -43,7 +44,7 @@
 
 ## Active direction
 
-- R1 through R6 are complete locally. R7 is the final Impeccable audit/remediation and clean verification gate.
+- R1 through R7 are complete locally. The branch is ready for user review; pushing, merging, Pages deployment, and release remain prohibited without explicit approval.
 - Eight purposeful shapes, three priority levels, three content densities, and curated theme swatches form the release grammar. Rotation remains available to every object with explicit React Flow-safe constraints.
 - Per explicit user instruction, ceremony has been removed: direct implementation, focused checks during development, full gates only after user-visible checkpoints, and independent review only at four-starter integration/final audit.
 - Nothing will be pushed, merged, deployed, or released without explicit user approval.

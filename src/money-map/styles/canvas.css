@@ -354,6 +354,13 @@
   font-size: 9px;
 }
 
+.money-map-canvas .react-flow__attribution a {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding-inline: 4px;
+}
+
 .authoring-cover {
   display: grid;
   min-height: 0;
