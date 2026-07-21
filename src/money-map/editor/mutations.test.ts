@@ -236,10 +236,38 @@ describe("relationship mutations", () => {
       labelTreatment: "plate",
       label: "New transfer",
       cadence: { kind: "as-needed", label: "As needed" },
-      labelPosition: { x: 562, y: 202 },
+      // Not the centre-to-centre midpoint (562, 202): the route from
+      // source-account to monthly-need passes straight through annuity-policy
+      // (x 420-724, y 112-359), so that midpoint put the label squarely on top
+      // of a card — on the very first thing a user does after drawing a flow.
+      // The label now clears above it, by the smallest displacement that does.
+      labelPosition: { x: 570.4605682741974, y: 82.29862663913315 },
       waypoints: [],
     });
     expect(created.modules).toBe(document.modules);
+  });
+
+  it("keeps a new relationship label clear of every module it crosses", () => {
+    const document = createTestDocument();
+    const created = createRelationship(
+      document,
+      "source-account",
+      "monthly-need",
+      () => "crossing-flow",
+    );
+    const { labelPosition } = created.flows.at(-1)!;
+
+    // Asserted as geometry rather than a fixed point, so the guarantee
+    // survives any future retuning of the search.
+    for (const module of created.modules) {
+      const overlapWidth =
+        Math.min(labelPosition.x + 50, module.position.x + module.width) -
+        Math.max(labelPosition.x - 50, module.position.x);
+      const overlapHeight =
+        Math.min(labelPosition.y + 18, module.position.y + module.height) -
+        Math.max(labelPosition.y - 18, module.position.y);
+      expect(overlapWidth > 8 && overlapHeight > 8, `new label covers ${module.id}`).toBe(false);
+    }
   });
 
   it("uses the active authored cadence when one is supplied", () => {

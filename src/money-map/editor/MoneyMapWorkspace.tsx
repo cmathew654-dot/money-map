@@ -910,7 +910,15 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     if (presenting) return;
     const handleGlobalShortcut = (event: globalThis.KeyboardEvent) => {
       if (presentingRef.current) return;
-      if (event.defaultPrevented || isTextControl(event.target) || event.isComposing) return;
+      if (event.defaultPrevented || event.isComposing) return;
+      // Text controls swallow shortcuts, correctly — except an inline field
+      // still holding its opening text, which is where a newly created object
+      // lands. InlineField cancels itself on Ctrl/Cmd+Z or K in that state and
+      // lets the event through; honouring it here is what turns undo from a
+      // silent no-op into "undo what I just made".
+      const untouchedInlineField =
+        event.target instanceof HTMLElement && event.target.dataset.inlineUntouched === "true";
+      if (isTextControl(event.target) && !untouchedInlineField) return;
       const commandKey = event.ctrlKey || event.metaKey;
       const key = event.key.toLocaleLowerCase();
       if (commandKey && key === "k") {

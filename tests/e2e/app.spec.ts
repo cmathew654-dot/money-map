@@ -137,20 +137,36 @@ test("drags one node relative to a stationary node without changing literal text
   const stationaryBefore = await stationary.boundingBox();
   if (!before || !stationaryBefore) throw new Error("Expected module bounds before drag");
 
-  await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+  // Measured relative to a stationary neighbour so an incidental pan cannot
+  // fake a pass. The displacement is polled rather than read once: React Flow
+  // applies drags through its own rAF loop behind a small drag threshold, so a
+  // single synthetic move-then-release sometimes released before the last
+  // movement was applied and landed short (measured 53-68px of an intended
+  // 120px, ~1 run in 3, on this test since well before the current work).
+  const startX = before.x + before.width / 2;
+  const startY = before.y + before.height / 2;
+  const displacement = async () => {
+    const after = await module.boundingBox();
+    const stationaryAfter = await stationary.boundingBox();
+    if (!after || !stationaryAfter) return { x: 0, y: 0 };
+    return {
+      x: Math.abs(after.x - before.x - (stationaryAfter.x - stationaryBefore.x)),
+      y: Math.abs(after.y - before.y - (stationaryAfter.y - stationaryBefore.y)),
+    };
+  };
+
+  await page.mouse.move(startX, startY);
   await page.mouse.down();
-  await page.mouse.move(before.x + before.width / 2 + 120, before.y + before.height / 2 + 80, {
-    steps: 8,
-  });
+  // Clear the drag threshold first, then travel in steps.
+  await page.mouse.move(startX + 24, startY + 16);
+  await page.mouse.move(startX + 120, startY + 80, { steps: 10 });
+  await expect.poll(async () => (await displacement()).x, { timeout: 5000 }).toBeGreaterThan(80);
+  await expect.poll(async () => (await displacement()).y, { timeout: 5000 }).toBeGreaterThan(50);
   await page.mouse.up();
 
-  const after = await module.boundingBox();
-  const stationaryAfter = await stationary.boundingBox();
-  if (!after || !stationaryAfter) throw new Error("Expected module bounds after drag");
-  const relativeX = after.x - before.x - (stationaryAfter.x - stationaryBefore.x);
-  const relativeY = after.y - before.y - (stationaryAfter.y - stationaryBefore.y);
-  expect(Math.abs(relativeX)).toBeGreaterThan(80);
-  expect(Math.abs(relativeY)).toBeGreaterThan(50);
+  const settled = await displacement();
+  expect(settled.x, "drag must survive pointer release").toBeGreaterThan(80);
+  expect(settled.y, "drag must survive pointer release").toBeGreaterThan(50);
   await expect(module.getByText(literal)).toBeVisible();
 });
 
@@ -877,5 +893,91 @@ test("properties surface stays on screen across tab switches for a low module", 
   expect(await bottomOf(), "Content tab hangs past the viewport on return").toBeLessThanOrEqual(
     720,
   );
+  await page.evaluate(() => localStorage.clear());
+});
+
+// Every relationship used to occupy two consecutive tab stops — the route
+// path and its label — announcing the identical sentence, so a screen-reader
+// user could not tell which stop was which, and modules on this starter did
+// not begin until stop 21 of a 32-stop cycle. The path is no longer focusable
+// (adapters.ts): the label button is the relationship's keyboard surface and
+// already handles select, Enter to edit, and arrow-key movement.
+test("each relationship is one keyboard stop with a unique announcement", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/i }).click();
+  await showAllRelationships(page);
+
+  const flowCount = await page.locator(".money-map-flow-label-wrap").count();
+  expect(flowCount).toBeGreaterThan(0);
+
+  const focusableEdgePaths = await page
+    .locator(".react-flow__edge")
+    .evaluateAll((edges) => edges.filter((edge) => (edge as HTMLElement).tabIndex >= 0).length);
+  expect(focusableEdgePaths, "route paths must not be tab stops").toBe(0);
+
+  const labels: string[] = [];
+  for (let step = 0; step < 40; step++) {
+    await page.keyboard.press("Tab");
+    const focused = await page.evaluate(() => {
+      const active = document.activeElement as HTMLElement | null;
+      if (!active?.classList.contains("money-map-flow-label")) return null;
+      return active.getAttribute("aria-label");
+    });
+    if (focused) labels.push(focused);
+    if (labels.length === flowCount) break;
+  }
+
+  expect(labels, "every relationship label should be reachable").toHaveLength(flowCount);
+  expect(new Set(labels).size, "relationship announcements must be distinct").toBe(flowCount);
+});
+
+// Drawing a flow is the primary authoring action, so the first one a user
+// creates sets their impression of the whole tool. Its label used to land on
+// the centre-to-centre midpoint with no knowledge of what occupied that
+// point — on a populated map, on top of a card — and the label opened in
+// inline edit with its default text preselected, which swallowed Ctrl+Z, so
+// reaching for undo at that exact moment did nothing at all.
+test("a newly drawn flow places its label clear of cards and stays undoable", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/i }).click();
+  await showAllRelationships(page);
+
+  const labels = page.locator(".money-map-flow-label-wrap");
+  const before = await labels.count();
+
+  // Deliberately a long diagonal across the populated middle of the map:
+  // the plain midpoint of this pair sits on another module.
+  await page.locator('.react-flow__node[data-id="retirement-income"]').click();
+  await page.getByRole("button", { name: "Draw flow" }).click();
+  const picker = page.getByRole("complementary", { name: "Draw flow" });
+  await expect(picker).toBeVisible();
+  await picker
+    .getByRole("button", { name: /Insurance|Irrevocable/ })
+    .first()
+    .click();
+  await expect(labels).toHaveCount(before + 1);
+
+  const covered = await page.evaluate(() => {
+    const wraps = [...document.querySelectorAll<HTMLElement>(".money-map-flow-label-wrap")];
+    const box = wraps[wraps.length - 1].getBoundingClientRect();
+    return [...document.querySelectorAll<HTMLElement>(".react-flow__node")].flatMap((node) => {
+      const body = node.querySelector<HTMLElement>(".money-map-module");
+      if (!body) return [];
+      const bounds = body.getBoundingClientRect();
+      const overlapWidth = Math.min(box.right, bounds.right) - Math.max(box.left, bounds.left);
+      const overlapHeight = Math.min(box.bottom, bounds.bottom) - Math.max(box.top, bounds.top);
+      // A graze at an attachment point is fine; sitting on a card is not.
+      return overlapWidth > 8 && overlapHeight > 8 ? [node.dataset.id ?? "?"] : [];
+    });
+  });
+  expect(covered, "new flow label sits on top of a module").toEqual([]);
+
+  // Undo reaches the document even though the label opened in inline edit.
+  await page.keyboard.press("Control+z");
+  await expect(labels).toHaveCount(before);
   await page.evaluate(() => localStorage.clear());
 });

@@ -31,6 +31,23 @@ export function InlineField({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // A field still holding exactly what it opened with is not an edit in
+    // progress — it is the state a newly created object lands in, with its
+    // default text preselected. Undo or the command palette pressed there
+    // means "undo what I just made" / "open the palette", not "undo my
+    // typing", and swallowing both made them silent no-ops at precisely the
+    // moment a user reaches for them. Once anything has actually been typed
+    // this yields, and native text undo behaves normally.
+    if ((event.ctrlKey || event.metaKey) && draft === value) {
+      const key = event.key.toLocaleLowerCase();
+      if (key === "z" || key === "k") {
+        cancelled.current = true;
+        onCancel();
+        // Deliberately no stopPropagation: the workspace shortcut handler
+        // needs to see this, and it allows untouched inline fields through.
+        return;
+      }
+    }
     event.stopPropagation();
     if (event.key === "Escape") {
       event.preventDefault();
@@ -64,6 +81,9 @@ export function InlineField({
 
   const shared = {
     "aria-label": ariaLabel,
+    // Lets the workspace shortcut handler distinguish "a field sitting on its
+    // default text" from "an edit in progress" without reaching into state.
+    "data-inline-untouched": draft === value ? "true" : undefined,
     autoFocus: true,
     className: `inline-field nodrag nowheel ${className ?? ""}`.trim(),
     style: multiline ? undefined : { width: `${visibleWidth}ch` },

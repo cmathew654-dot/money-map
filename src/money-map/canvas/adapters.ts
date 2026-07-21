@@ -187,7 +187,16 @@ export function documentToEdges(
       },
       selected: selected.has(flow.id),
       selectable: !presentationStep,
-      focusable: !presentationStep,
+      // The route path is deliberately NOT a tab stop. It used to be, which
+      // gave every relationship two consecutive stops announcing the exact
+      // same sentence (verified: stops 7-13 were paths, 14-20 their labels,
+      // aria-label identical), so a screen-reader user had no way to tell
+      // which stop was the route and which was the label — and modules on
+      // Retirement Income did not begin until stop 21. Nothing is lost: the
+      // label button is the relationship's keyboard surface and already
+      // handles select, Enter to edit, and arrow-key movement, with the
+      // route handle reachable once selected.
+      focusable: false,
       reconnectable: !presentationStep && flow.id === reconnectableId,
       hidden: !cadenceMatchesFilter(flow, filter),
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
