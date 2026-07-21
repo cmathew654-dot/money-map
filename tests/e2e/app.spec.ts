@@ -19,6 +19,42 @@ async function readPercentage(readout: Locator): Promise<number> {
   return Number(text.replace("%", ""));
 }
 
+/**
+ * Waits for the authoring camera to stop moving, then reports it.
+ *
+ * Opening a starter runs an animated fitView. Anything that converts between
+ * screen and world coordinates — a pointer drag, a hit test, a measured
+ * offset — is meaningless until that lands, because both zoom and pan are
+ * still changing underneath it. Two consecutive matching reads, not one: a
+ * single comparison can be satisfied before the animation has started.
+ */
+async function settledCanvasCamera(page: Page): Promise<{ zoom: number; x: number; y: number }> {
+  const read = () =>
+    page.locator(".money-map-canvas .react-flow__viewport").evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+      return { zoom: matrix.a, x: matrix.e, y: matrix.f };
+    });
+
+  let previous = await read();
+  let stableRuns = 0;
+  await expect
+    .poll(
+      async () => {
+        const current = await read();
+        const stable =
+          Math.abs(current.x - previous.x) < 0.5 &&
+          Math.abs(current.y - previous.y) < 0.5 &&
+          Math.abs(current.zoom - previous.zoom) < 0.001;
+        previous = current;
+        stableRuns = stable ? stableRuns + 1 : 0;
+        return stableRuns >= 2;
+      },
+      { timeout: 5000, intervals: [100] },
+    )
+    .toBe(true);
+  return previous;
+}
+
 async function showAllRelationships(page: Page): Promise<void> {
   const all = page.getByRole("button", { name: "All", exact: true });
   await all.click();
@@ -130,43 +166,53 @@ test("drags one node relative to a stationary node without changing literal text
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
   const module = page.locator('.react-flow__node[data-id="annuity-plan"] .money-map-module');
-  const stationary = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const literal = "$300,000 — revised illustration";
   await expect(module.getByText(literal)).toBeVisible();
-  const before = await module.boundingBox();
-  const stationaryBefore = await stationary.boundingBox();
-  if (!before || !stationaryBefore) throw new Error("Expected module bounds before drag");
 
-  // Measured relative to a stationary neighbour so an incidental pan cannot
-  // fake a pass. The displacement is polled rather than read once: React Flow
-  // applies drags through its own rAF loop behind a small drag threshold, so a
-  // single synthetic move-then-release sometimes released before the last
-  // movement was applied and landed short (measured 53-68px of an intended
-  // 120px, ~1 run in 3, on this test since well before the current work).
-  const startX = before.x + before.width / 2;
-  const startY = before.y + before.height / 2;
-  const displacement = async () => {
-    const after = await module.boundingBox();
-    const stationaryAfter = await stationary.boundingBox();
-    if (!after || !stationaryAfter) return { x: 0, y: 0 };
-    return {
-      x: Math.abs(after.x - before.x - (stationaryAfter.x - stationaryBefore.x)),
-      y: Math.abs(after.y - before.y - (stationaryAfter.y - stationaryBefore.y)),
-    };
-  };
+  // The starter enters through an animated fitView. Dragging before it lands
+  // was the entire defect in this test: zoom fell 0.938 -> 0.790 and the pane
+  // panned 23px DURING the drag, so a screen-space measurement was being taken
+  // against a moving camera and could not be made to add up (it landed 53-68px
+  // of an intended 120px, ~1 run in 3). Wait for the camera, then measure in
+  // world units, which are what React Flow actually stores and are immune to
+  // any later zoom or pan.
+  const camera = await settledCanvasCamera(page);
+  const worldOf = (id: string) =>
+    page.evaluate((nodeId) => {
+      const node = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${nodeId}"]`);
+      if (!node) throw new Error(`Expected node ${nodeId}`);
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(node).transform);
+      return { x: matrix.e, y: matrix.f };
+    }, id);
+
+  const stationaryBefore = await worldOf("annuity-source");
+  const box = (await module.boundingBox())!;
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
 
   await page.mouse.move(startX, startY);
   await page.mouse.down();
-  // Clear the drag threshold first, then travel in steps.
+  // React Flow measures a drag from where its own drag threshold was crossed,
+  // not from pointerdown, so the movement that engages the drag is consumed
+  // and never reaches the node. Baseline AFTER engaging and the assertion
+  // stops depending on the threshold's size entirely.
   await page.mouse.move(startX + 24, startY + 16);
-  await page.mouse.move(startX + 120, startY + 80, { steps: 10 });
-  await expect.poll(async () => (await displacement()).x, { timeout: 5000 }).toBeGreaterThan(80);
-  await expect.poll(async () => (await displacement()).y, { timeout: 5000 }).toBeGreaterThan(50);
+  const engaged = await worldOf("annuity-plan");
+  const travel = { x: 96, y: 64 };
+  await page.mouse.move(startX + 24 + travel.x, startY + 16 + travel.y, { steps: 10 });
   await page.mouse.up();
 
-  const settled = await displacement();
-  expect(settled.x, "drag must survive pointer release").toBeGreaterThan(80);
-  expect(settled.y, "drag must survive pointer release").toBeGreaterThan(50);
+  const after = await worldOf("annuity-plan");
+  const stationaryAfter = await worldOf("annuity-source");
+
+  // Screen travel converts to world travel by the (now settled) zoom, so this
+  // asserts the node tracked the pointer exactly — a real equality, not a
+  // "moved further than some floor" proxy that a partial drag could satisfy.
+  expect(after.x - engaged.x).toBeCloseTo(travel.x / camera.zoom, 0);
+  expect(after.y - engaged.y).toBeCloseTo(travel.y / camera.zoom, 0);
+  // Dragging one node must not carry its neighbour, and a pan cannot fake it:
+  // world coordinates do not move when the camera does.
+  expect(stationaryAfter).toEqual(stationaryBefore);
   await expect(module.getByText(literal)).toBeVisible();
 });
 
