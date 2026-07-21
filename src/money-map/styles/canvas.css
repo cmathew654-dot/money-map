@@ -1478,8 +1478,12 @@
     stroke-width: 44px !important;
   }
 
-  .react-flow__node:hover .money-map-handle,
-  .react-flow__node.selected .money-map-handle {
+  /* Reconnect mode is the only state in which these handles are live: they are
+     pointer-events:none everywhere else. Keying the touch target off :hover and
+     .selected aimed it at states that can never coincide with it — reconnect
+     requires zero selected modules, and a coarse pointer has no hover — so the
+     44px target existed on paper and never once applied to a real grip. */
+  .money-map-module[data-reconnect-mode="true"] .money-map-handle {
     width: 44px;
     height: 44px;
   }
