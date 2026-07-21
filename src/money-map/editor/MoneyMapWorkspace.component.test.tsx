@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { createTestDocument } from "../model/test-fixtures";
@@ -187,6 +187,25 @@ describe("MoneyMapWorkspace command lifecycle", () => {
         globalThis.document.activeElement,
       ),
     );
+  });
+
+  it("anchors relationship actions to a selected flow and opens the existing surface", () => {
+    setSelection(hookMock.editor, { moduleIds: [], flowIds: ["income-flow"] });
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+
+    const toolbar = screen.getByRole("toolbar", { name: "Selected relationship actions" });
+    const buttons = within(toolbar).getAllByRole("button");
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Edit relationship label",
+      "Relationship properties",
+    ]);
+
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Edit relationship label" }));
+    expect(hookMock.editor.executeCommand).toHaveBeenCalledWith("flow.edit");
+
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Relationship properties" }));
+    expect(hookMock.editor.executeCommand).toHaveBeenCalledWith("flow.properties");
+    expect(screen.getByLabelText("Relationship properties")).toBeTruthy();
   });
 
   it("clears a selected relationship and its panel when a cadence edit hides it", () => {

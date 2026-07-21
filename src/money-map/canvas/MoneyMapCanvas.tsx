@@ -414,11 +414,21 @@ function MoneyMapCanvasInner({
 
   const handleConnect = useCallback(
     (connection: Connection) => {
-      if (connection.source && connection.target) {
-        editor?.createConnection(connection.source, connection.target);
+      if (!connection.source || !connection.target) return;
+      // A handle sits exactly where an existing relationship terminates, so a
+      // drag meant as "move this endpoint" can land as a fresh connection
+      // retracing the same pair. Select the existing relationship instead of
+      // stacking a duplicate "New transfer" on top of it.
+      const existing = document.flows.find(
+        (flow) => flow.source === connection.source && flow.target === connection.target,
+      );
+      if (existing) {
+        editor?.selectFlow(existing.id);
+        return;
       }
+      editor?.createConnection(connection.source, connection.target);
     },
-    [editor],
+    [document.flows, editor],
   );
 
   const handleConnectEnd = useCallback<OnConnectEnd>(

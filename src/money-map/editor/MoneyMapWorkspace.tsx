@@ -39,6 +39,7 @@ import {
 } from "./mutations";
 import { RelationshipLegend } from "./RelationshipLegend";
 import { RelationshipProperties } from "./RelationshipProperties";
+import { SelectionHalo } from "./SelectionHalo";
 import { PresentationShell } from "./PresentationShell";
 import {
   findOpenModulePlacement,
@@ -205,6 +206,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const presentingRef = useRef(presenting);
   presentingRef.current = presenting;
   const [surfacePosition, setSurfacePosition] = useState<EditorSurfacePosition | null>(null);
+  const [flowHaloAnchor, setFlowHaloAnchor] = useState<{ left: number; top: number } | null>(null);
   const actionsRef = useRef<HTMLButtonElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
   const presentRef = useRef<HTMLButtonElement>(null);
@@ -406,6 +408,50 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     if (!relationshipOpen) return;
     placeFlowSurface();
   }, [selectedFlowId]);
+
+  // The selected-flow halo mirrors the module halo, which rides React Flow's
+  // node toolbar above the selected shape and is camera-aware by construction:
+  // React Flow rewrites the toolbar's own transform every time the camera
+  // pans or zooms. Flows have no node to ride, so the workspace measures the
+  // label box instead, and has to re-measure whenever that box's actual
+  // screen position changes in the DOM -- not just when the document or
+  // selection changes. The label lives inside .react-flow__viewport, which
+  // gets a freshly written style attribute on every pan/zoom frame, and the
+  // label element itself gets one on every drag/nudge/creation; a single
+  // MutationObserver on the viewport, watching its own style attribute plus
+  // its whole subtree, catches every one of those moves -- including a label
+  // that does not exist in the DOM yet at the moment a drag-created
+  // relationship is selected (the canvas's own edge state syncs one commit
+  // after this effect's first run, so the initial measurement can miss it;
+  // the observer's childList mutation for the label finally landing corrects
+  // it). This is the same style-attribute-observing idiom SelectionHalo uses
+  // to reclamp itself against camera moves.
+  useEffect(() => {
+    if (!selectedFlowId) {
+      setFlowHaloAnchor(null);
+      return;
+    }
+    const measure = () => {
+      const label = document.querySelector<HTMLElement>(`[data-flow-label-id="${selectedFlowId}"]`);
+      if (!label) {
+        setFlowHaloAnchor(null);
+        return;
+      }
+      const bounds = label.getBoundingClientRect();
+      setFlowHaloAnchor({ left: bounds.left + bounds.width / 2, top: bounds.top });
+    };
+    measure();
+    const viewport = document.querySelector(".money-map-canvas .react-flow__viewport");
+    if (!viewport) return;
+    const observer = new MutationObserver(measure);
+    observer.observe(viewport, {
+      attributes: true,
+      attributeFilter: ["style"],
+      childList: true,
+      subtree: true,
+    });
+    return () => observer.disconnect();
+  }, [editor.document, selectedFlowId]);
 
   const beginSelectedTitle = useCallback(() => {
     if (!selectedModuleId) return;
@@ -1044,6 +1090,21 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
         )}
 
         {addOpen ? <AddMenu onChoose={createObject} onClose={closeAdd} /> : null}
+
+        {selectedFlowId ? (
+          /* selection-halo-anchor is also what SelectionHalo's own clamp
+             observes for style changes, so re-anchoring here re-clamps there. */
+          <div
+            className="selection-halo-anchor flow-selection-anchor"
+            style={flowHaloAnchor ?? undefined}
+          >
+            <SelectionHalo
+              commands={availableCommands}
+              selectionCount={1}
+              onExecute={executeCommand}
+            />
+          </div>
+        ) : null}
 
         {drawFlowOpen && selectedModuleId ? (
           <FlowTargetPicker

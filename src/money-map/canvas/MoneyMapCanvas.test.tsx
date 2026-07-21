@@ -712,14 +712,16 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       </EditorInteractionContext.Provider>,
     );
 
+    // A pair with no existing flow between them: a connect retracing an
+    // existing relationship deliberately routes to selectFlow instead.
     act(() => {
       (flowMock.props.onConnect as (connection: { source: string; target: string }) => void)({
         source: "source-account",
-        target: "annuity-policy",
+        target: "monthly-need",
       });
     });
     expect(createConnection).toHaveBeenCalledTimes(1);
-    expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
+    expect(createConnection).toHaveBeenCalledWith("source-account", "monthly-need");
 
     act(() => {
       (
@@ -787,5 +789,58 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       source: "monthly-need",
       target: "annuity-policy",
     });
+  });
+
+  it("selects the existing relationship instead of duplicating it when a connect retraces one", () => {
+    const mapDocument = createTestDocument();
+    const createConnection = vi.fn();
+    const selectFlow = vi.fn();
+    const interaction: EditorInteraction = {
+      selectionCount: 0,
+      announcement: "",
+      selectedModuleIds: [],
+      availableCommands: [],
+      activeInlineField: null,
+      activeFlowId: null,
+      beginFlowEdit: vi.fn(),
+      cancelFlowEdit: vi.fn(),
+      commitFlowEdit: vi.fn(),
+      selectFlow,
+      commitFlowLabelPosition: vi.fn(),
+      commitFlowWaypoint: vi.fn(),
+      createConnection,
+      quickCreateConnection: vi.fn(),
+      reconnectRelationship: vi.fn(),
+      beginInlineEdit: vi.fn(),
+      commitInlineEdit: vi.fn(),
+      cancelInlineEdit: vi.fn(),
+      executeCommand: vi.fn(),
+      openPalette: vi.fn(),
+      nudgeSelected: vi.fn(),
+      commitModuleSize: vi.fn(),
+      commitModuleMove: vi.fn(),
+    };
+
+    render(
+      <EditorInteractionContext.Provider value={interaction}>
+        <MoneyMapCanvas
+          document={mapDocument}
+          selection={{ moduleIds: [], flowIds: [] }}
+          onSelectionChange={vi.fn()}
+          onDocumentChange={vi.fn()}
+        />
+      </EditorInteractionContext.Provider>,
+    );
+
+    // funding-flow already runs source-account -> annuity-policy, so this
+    // drop retraces it and must not stack a second "New transfer" on top.
+    act(() => {
+      (flowMock.props.onConnect as (connection: { source: string; target: string }) => void)({
+        source: "source-account",
+        target: "annuity-policy",
+      });
+    });
+    expect(createConnection).not.toHaveBeenCalled();
+    expect(selectFlow).toHaveBeenCalledWith("funding-flow");
   });
 });

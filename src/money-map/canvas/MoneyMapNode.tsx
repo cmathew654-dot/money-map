@@ -84,6 +84,19 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         style={{ transform: `rotate(${module.rotation}deg)` }}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
+        {/* Full-card drop surface: a dragged connection released anywhere on
+            the card completes instead of demanding a side-midpoint dot. Drops
+            only — drags still start from the visible dots below, and the CSS
+            keeps this surface inert except while a connection is in flight. */}
+        <Handle
+          className="money-map-handle-surface"
+          id="target-surface"
+          position={Position.Top}
+          type="target"
+          isConnectable={canEndConnection}
+          isConnectableStart={false}
+          isConnectableEnd={canEndConnection}
+        />
         {handlePositions.map((position) => (
           <Handle
             className="money-map-handle"

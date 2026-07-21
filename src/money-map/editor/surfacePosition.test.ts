@@ -1,4 +1,8 @@
-import { findOpenModulePlacement, positionEditorSurface } from "./surfacePosition";
+import {
+  findOpenModulePlacement,
+  horizontalViewportShift,
+  positionEditorSurface,
+} from "./surfacePosition";
 
 describe("editor surface placement", () => {
   it("uses the right side when viable and flips left near the viewport edge", () => {
@@ -124,6 +128,26 @@ describe("editor surface placement", () => {
     const position = positionEditorSurface(selected, viewport, size, [grazedOnly]);
 
     expect(position).toMatchObject({ left: 616, top: 100, side: "right" });
+  });
+});
+
+describe("horizontal viewport shift for an externally anchored surface", () => {
+  it("leaves a fully visible box alone", () => {
+    expect(horizontalViewportShift({ left: 400, right: 800 }, 1280)).toBe(0);
+  });
+
+  it("shifts a left-clipped box right to the standard margin", () => {
+    // The measured repro: a toolbar centered on a module at the viewport's
+    // left edge landed at x = -102.
+    expect(horizontalViewportShift({ left: -102, right: 350 }, 1280)).toBe(118);
+  });
+
+  it("shifts a right-clipped box left to the standard margin", () => {
+    expect(horizontalViewportShift({ left: 1100, right: 1300 }, 1280)).toBe(-36);
+  });
+
+  it("pins the left edge when the box is wider than the viewport, keeping the leading commands reachable", () => {
+    expect(horizontalViewportShift({ left: -200, right: 1400 }, 1280)).toBe(216);
   });
 });
 

@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { settledCanvasCamera } from "./cameraHelpers";
+
 const stories = [
   "Retirement Income",
   "RMD & Withholding",
@@ -17,42 +19,6 @@ async function readPercentage(readout: Locator): Promise<number> {
   const text = await readout.textContent();
   if (!text) throw new Error("Expected camera percentage text");
   return Number(text.replace("%", ""));
-}
-
-/**
- * Waits for the authoring camera to stop moving, then reports it.
- *
- * Opening a starter runs an animated fitView. Anything that converts between
- * screen and world coordinates — a pointer drag, a hit test, a measured
- * offset — is meaningless until that lands, because both zoom and pan are
- * still changing underneath it. Two consecutive matching reads, not one: a
- * single comparison can be satisfied before the animation has started.
- */
-async function settledCanvasCamera(page: Page): Promise<{ zoom: number; x: number; y: number }> {
-  const read = () =>
-    page.locator(".money-map-canvas .react-flow__viewport").evaluate((element) => {
-      const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
-      return { zoom: matrix.a, x: matrix.e, y: matrix.f };
-    });
-
-  let previous = await read();
-  let stableRuns = 0;
-  await expect
-    .poll(
-      async () => {
-        const current = await read();
-        const stable =
-          Math.abs(current.x - previous.x) < 0.5 &&
-          Math.abs(current.y - previous.y) < 0.5 &&
-          Math.abs(current.zoom - previous.zoom) < 0.001;
-        previous = current;
-        stableRuns = stable ? stableRuns + 1 : 0;
-        return stableRuns >= 2;
-      },
-      { timeout: 5000, intervals: [100] },
-    )
-    .toBe(true);
-  return previous;
 }
 
 async function showAllRelationships(page: Page): Promise<void> {
@@ -468,6 +434,44 @@ test("draws a relationship by dragging a visible port onto an existing module", 
   await expect(
     page.getByRole("button", {
       name: /relationship from annuity-source to annuity-policy: Direct port relationship — exact/i,
+    }),
+  ).toBeFocused();
+  await page.evaluate(() => localStorage.clear());
+});
+
+test("completes a dragged connection released over the middle of a card", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+
+  // The drop point is a screen-space read of the target card, so the entry
+  // camera must land before it means anything.
+  await settledCanvasCamera(page);
+  const source = page.locator('.react-flow__node[data-id="annuity-source"]');
+  const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
+  await source.hover();
+  const sourcePort = source.locator(".react-flow__handle.source.react-flow__handle-right");
+  const sourceBox = await sourcePort.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Expected source port and target card geometry");
+
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  // Release over the centre of the card body — nowhere near a side-midpoint
+  // dot — which is where a user aiming "connect to this card" actually drops.
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
+
+  const label = page.getByRole("textbox", { name: "Edit relationship label" });
+  await expect(label).toBeFocused();
+  await label.fill("Card-body drop relationship — exact");
+  await label.press("Enter");
+  await expect(
+    page.getByRole("button", {
+      name: /relationship from annuity-source to annuity-policy: Card-body drop relationship — exact/i,
     }),
   ).toBeFocused();
   await page.evaluate(() => localStorage.clear());

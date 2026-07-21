@@ -159,6 +159,28 @@ export function positionEditorSurface(
   return { left, top, side: "clamped" };
 }
 
+/**
+ * Horizontal counterpart of positionEditorSurface's `top` clamp, for a surface
+ * whose placement is owned elsewhere: the selection halo rides React Flow's
+ * node toolbar, which centers it on the selected module with no viewport
+ * awareness, so a module against the canvas's left edge pushes the halo's
+ * first commands off-screen. Takes the measured box — measured, not declared,
+ * since declared size budgets drift from rendered sizes — and returns the X
+ * shift that keeps it inside the viewport at the standard margin. A box wider
+ * than the viewport pins its left edge so the leading commands stay reachable.
+ */
+export function horizontalViewportShift(
+  box: { left: number; right: number },
+  viewportWidth: number,
+): number {
+  const minLeft = margin;
+  const maxRight = viewportWidth - margin;
+  if (box.right - box.left > maxRight - minLeft) return minLeft - box.left;
+  if (box.left < minLeft) return minLeft - box.left;
+  if (box.right > maxRight) return maxRight - box.right;
+  return 0;
+}
+
 export interface ModuleFootprint {
   x: number;
   y: number;
