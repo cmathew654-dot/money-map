@@ -76,6 +76,14 @@ Monthly, Annual, One-time, As needed, and exact custom cadence are display-only.
 - **Foundation:** graphite, chalk, mineral blue, muted amber; architectural income-floor bands and straight/orthogonal routes.
 - **Conversion Path:** near-white, aubergine, controlled vermilion; staged corridor with open frames, bands, roundels, and mixed routes.
 
+The route signature above is part of what makes four stories read as four
+directions rather than one template reskinned, so it is a contract on authored
+content, not a description of it. Known open contradiction: each starter's
+tests currently assert that every story uses all three route styles, and three
+of the four directions no longer match their signature — Private Ledger is
+authored orthogonal-plurality despite "curved routes" being its own. Resolve
+by re-authoring routes per direction, not by relaxing this line.
+
 ## Accessibility and motion
 
 Target WCAG 2.2 AA, keyboard parity, focus restoration, live announcements, reduced motion, non-drag alternatives, at least 24×24px targets, and 44×44px primary targets for coarse pointers.
