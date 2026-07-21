@@ -2,6 +2,8 @@
 
 Money Map turns a household's accounts, income sources, reserves, needs, and relationships into a composed visual story an advisor can shape with the household in front of them. It is a portfolio demonstration of WealthTech product judgment and frontend design engineering—not a financial calculator.
 
+**[▶ Open the live demo](https://cmathew654-dot.github.io/money-map/)** — four starter stories, no sign-in. Authoring needs a viewport of at least 1180 × 660.
+
 ## Try the demo locally
 
 ```powershell
@@ -41,7 +43,7 @@ Money Map does **not** calculate taxes, reconcile balances, annualize cash flows
 
 - Add eight purposeful financial-story shapes from one compact menu; select, multi-select, move, duplicate, remove, resize on both axes, rotate in safe 15° steps, and change stacking order.
 - Double-click visible module text to edit it directly. Appearance provides shape, priority, detail, curated color, size, and layer controls without exposing a generic diagrammer.
-- Draw a flow from hover-visible ports, the selection halo, `L`, or the Actions palette. Labels and bends move independently; endpoints reconnect by pointer or properties.
+- Connect cards in a mode rather than by hitting a small target: press `C`, click one card, then another. Cards stop being draggable while it is on, so the same pixels never have to mean both "move this" and "start a flow here." `Connect to…` — the selection halo, `L`, or the Actions palette — is the keyboard route to the same thing. Labels and bends move independently; endpoints reconnect by pointer or properties.
 - Pan and zoom with the pointer, keyboard, or compact on-canvas controls; fit the authored story or current selection.
 - Each story opens on its useful Monthly or Annual cadence. All remains available as an explicit overview instead of the crowded default.
 - Use the searchable Actions palette (`Ctrl/Cmd+K`) for the same commands exposed contextually by the selection halo and properties.
@@ -82,4 +84,6 @@ The editor provides keyboard alternatives for core canvas actions, visible focus
 
 Cairn, the Hartwell family, and every displayed scenario are fictional. No real client data, firm logos, or raw reference media is included; see [provenance](docs/provenance.md).
 
-This repository is a portfolio prototype, not production financial-planning software or financial advice. The GitHub Pages workflow is prepared but has not been run, and no public deployment URL is claimed here.
+This repository is a portfolio prototype, not production financial-planning software or financial advice.
+
+The live demo above is published by the `Deploy Pages` workflow from the same production build the test suite exercises: every push to `main` builds, validates that assets stay relative and resolvable under the repository subpath, and deploys the artifact.

@@ -29,7 +29,7 @@ One ramp, both modes: note 11, rows and eyebrow 12, subtitle 13, total 20, title
 
 ## Editing surfaces
 
-- A screen-space selection halo exposes Edit, Style, Draw flow, Duplicate, and More.
+- A screen-space selection halo exposes Edit, Style, Connect to…, Duplicate, and More.
 - `Ctrl/Cmd+K` and a visible Actions control open the shared command palette.
 - Every command surface uses one registry and one undo history.
 - Double-click or Enter starts direct editing; Enter or blur commits; Escape restores exact prior content.
@@ -48,7 +48,9 @@ Eight shapes are available: `ledger`, `plate`, `tray`, `band`, `roundel`, `frame
 
 ## Connections
 
-- The primary action is `Draw flow`; the user drags from a visible object port to a target object or empty canvas.
+- Connecting is a mode, not a precision gesture. `C` or the Connect control suspends card dragging and makes each whole card both source and target: click one card, then another. The alternative was asking the pointer to distinguish "move this card" from "start a flow here" on the same pixels, which forced connections onto four 8px hover-only ports.
+- `Connect to…` — the selection halo, the palette, or `L` — is the same concept reached by keyboard: it lists candidate destinations for the selected card. Both routes share the word "Connect" because they are one feature with two doors.
+- Ports are attachment geometry, not handles. They never start a connection and stay invisible until a selected relationship offers its endpoints for re-anchoring.
 - Route geometry: straight, orthogonal, or curved.
 - Relationship semantics: income, transfer, replenishment, or planned/conditional, redundantly conveyed by pattern and label.
 - Label treatment: plain, plate, or filled. Authoring exposes all three; authored stories derive treatment from relationship type — income is filled, transfer is plate, replenishment and planned are plain — so treatment is a third redundant semantic channel rather than decoration. A story with no income relationship therefore has no filled label.
@@ -64,7 +66,7 @@ Monthly, Annual, One-time, As needed, and exact custom cadence are display-only.
 ## Interaction hierarchy
 
 - Single click selects; double-click or Enter edits the visible text under the pointer.
-- A compact Add control exposes the eight purposeful shapes, including text and planning-frame objects. `L` starts Draw flow; `Ctrl/Cmd+K` exposes every command.
+- A compact Add control exposes the eight purposeful shapes, including text and planning-frame objects. `C` enters Connect mode and `L` opens `Connect to…` for the selected card; `Ctrl/Cmd+K` exposes every command.
 - Dragging from a selected object's quick-create port creates a connected object with the current style.
 - Multi-selection supports z-order, align, and distribute without moving unrelated content.
 - A small optional legend explains authored semantics.
