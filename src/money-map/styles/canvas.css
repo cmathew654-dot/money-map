@@ -377,6 +377,10 @@
   line-height: 1.45;
 }
 
+.react-flow__handle.money-map-handle {
+  pointer-events: none;
+}
+
 .money-map-handle {
   width: 8px;
   height: 8px;
@@ -427,8 +431,53 @@
   fill: none;
 }
 
+/* Connect mode turns every card into one large connection target: the surface
+   handle becomes reachable, so a click or a drag anywhere on the card starts
+   or completes a relationship. Cards are not draggable while this is on
+   (nodesDraggable), so nothing competes for the same gesture. */
+.money-map-canvas[data-connect-mode="true"] .money-map-handle-surface {
+  pointer-events: all;
+  opacity: 1;
+  cursor: crosshair;
+  border: 2px dashed var(--map-accent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--map-accent) 5%, transparent);
+}
+
+.money-map-canvas[data-connect-mode="true"] .money-map-handle-surface:hover {
+  background: color-mix(in srgb, var(--map-accent) 14%, transparent);
+}
+
 .money-map-handle-surface.connectionindicator {
   pointer-events: all;
+}
+
+/* While a connection is armed, every card that can receive it paints itself.
+   React Flow marks connectable ends with .connectionindicator in both the
+   drag and the click path, so the target set is shown rather than guessed —
+   the rule above does the painting, and this names the action so the second
+   click is not something the user has to already know about. */
+.money-map-connect-hint {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--map-ink);
+  color: var(--map-canvas);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 18px var(--map-module-shadow-selected);
+  pointer-events: none;
+}
+
+.money-map-connect-hint span {
+  opacity: 0.7;
+  font-weight: 500;
 }
 
 .money-map-module[data-reconnect-mode="true"] .money-map-handle {
@@ -440,22 +489,12 @@
   pointer-events: all;
 }
 
-.react-flow__node:hover .money-map-handle,
-.react-flow__node.selected .money-map-handle {
-  width: 24px;
-  height: 24px;
-  border: 0;
-  cursor: crosshair;
-  background: radial-gradient(
-    circle,
-    var(--map-accent) 0 6px,
-    var(--map-surface) 7px 10px,
-    var(--map-line) 10px 11px,
-    transparent 12px
-  );
-  opacity: 1;
-  pointer-events: all;
-}
+/* The four side-midpoint handles stay in the DOM because edges anchor to
+   them, but nothing paints them any more. As a visible affordance they were
+   the whole problem: 8px at rest, hover-only, and the one place a connection
+   could start — so every connection was a precision task, a missed grab moved
+   the card instead, and grabbing one that already had a flow spawned a
+   duplicate. Connect mode replaced them. */
 
 .money-map-canvas .react-flow__edge-path {
   stroke: var(--map-line);
@@ -607,7 +646,8 @@
    number. Back to stories (.text-button, styles.css) is the ghost tier:
    no border, body weight, same 36px height. */
 .actions-button,
-.add-button {
+.add-button,
+.connect-button {
   display: inline-flex;
   min-height: 36px;
   gap: 12px;
@@ -627,6 +667,15 @@
   justify-content: center;
 }
 
+/* Connect joins the outlined-secondary tier: it opens a working state rather
+   than acting once. Pressed inverts to the accent so the mode is legible from
+   the header, not only from the canvas banner. */
+.connect-button[aria-pressed="true"] {
+  border-color: var(--map-accent);
+  color: var(--map-surface);
+  background: var(--map-accent);
+}
+
 .present-button {
   min-height: 36px;
   padding: 7px 14px;
@@ -639,12 +688,18 @@
   cursor: pointer;
 }
 
-.present-button:focus-visible {
+.present-button:focus-visible,
+.connect-button:focus-visible {
   outline: 3px solid var(--map-focus);
   outline-offset: 2px;
 }
 
+.connect-button[aria-pressed="true"] kbd {
+  color: color-mix(in srgb, var(--map-surface) 78%, transparent);
+}
+
 .actions-button kbd,
+.connect-button kbd,
 .command-palette kbd {
   color: #756e61;
   font-family: inherit;

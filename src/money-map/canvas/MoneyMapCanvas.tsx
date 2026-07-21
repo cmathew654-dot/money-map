@@ -56,6 +56,12 @@ interface MoneyMapCanvasProps {
   /** Reports zoom percentage changes so a host shell (e.g. presentation
    * chrome) can render camera controls outside the stage. */
   onZoomChange?(zoomPercentage: number): void;
+  /** Connect mode: cards stop being draggable and the whole card becomes both
+   * connection source and target. Dragging a card body moves the card, so
+   * while that is live a connection can only start from a small dedicated
+   * target — the precision trap this mode exists to remove. */
+  connectMode?: boolean;
+  onExitConnectMode?(): void;
 }
 
 const nodeTypes = { moneyMapModule: MoneyMapNode };
@@ -125,6 +131,7 @@ function MoneyMapCanvasInner({
   presentationStep,
   onControllerChange,
   onZoomChange,
+  connectMode = false,
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const editor = useEditorInteraction();
@@ -133,8 +140,8 @@ function MoneyMapCanvasInner({
   const [announcement, setAnnouncement] = useState("");
   const presenting = mode === "presentation";
   const adaptedNodes = useMemo(
-    () => documentToNodes(document, selection, presentationStep),
-    [document, presentationStep, selection],
+    () => documentToNodes(document, selection, presentationStep, connectMode),
+    [connectMode, document, presentationStep, selection],
   );
   const adaptedEdges = useMemo(
     () =>
@@ -545,6 +552,7 @@ function MoneyMapCanvasInner({
   return (
     <div
       className={`money-map-canvas${presenting ? " money-map-canvas--presentation" : ""}`}
+      data-connect-mode={connectMode && !presenting ? "true" : undefined}
       tabIndex={presenting ? -1 : 0}
       aria-label={`${document.title} ${presenting ? "presentation" : "authoring"} canvas`}
       onKeyDown={presenting ? undefined : handleKeyDown}
@@ -581,7 +589,7 @@ function MoneyMapCanvasInner({
         selectionKeyCode={presenting ? null : "Shift"}
         multiSelectionKeyCode="Shift"
         selectionOnDrag={false}
-        nodesDraggable={!presenting}
+        nodesDraggable={!presenting && !connectMode}
         elementsSelectable={!presenting}
         nodesConnectable={!presenting}
         connectionMode={ConnectionMode.Loose}
@@ -594,6 +602,11 @@ function MoneyMapCanvasInner({
         // lives in README.md's Stack section instead.
         proOptions={{ hideAttribution: true }}
       />
+      {connectMode && !presenting ? (
+        <p className="money-map-connect-hint" role="status">
+          Click a card, then click another <span>· Esc to cancel</span>
+        </p>
+      ) : null}
       {presenting ? null : (
         <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />
       )}

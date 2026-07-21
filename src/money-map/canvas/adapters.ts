@@ -34,6 +34,7 @@ export interface MoneyMapNodeData extends Record<string, unknown> {
   selectionModuleIds: string[];
   haloAnchor: boolean;
   reconnectMode: boolean;
+  connectMode: boolean;
   presentation?: boolean;
   presentationFocus?: boolean;
   presentationDim?: boolean;
@@ -120,6 +121,7 @@ export function documentToNodes(
   document: MoneyMapDocument,
   selection: Selection,
   presentationStep?: PresentationStep,
+  connectMode = false,
 ): Node<MoneyMapNodeData>[] {
   const selected = new Set(selection.moduleIds);
   const reconnectMode = selection.moduleIds.length === 0 && selection.flowIds.length === 1;
@@ -142,6 +144,7 @@ export function documentToNodes(
         selectionModuleIds: selection.moduleIds,
         haloAnchor: module.id === haloAnchorId,
         reconnectMode,
+        connectMode,
         presentation: Boolean(presentationStep),
         presentationFocus: inStep,
         presentationDim: stepFocused && !inStep,

@@ -375,18 +375,17 @@ test("adds one purposeful shape with carried style and immediate literal title e
   await expect(created).toHaveCount(0);
 });
 
-test("quick-creates a connected object by dropping a visible port on empty canvas", async ({
-  page,
-}) => {
+test("quick-creates a connected object by dropping a card on empty canvas", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
+  // Connect mode drags from the card itself. The side handles are edge anchors
+  // now, not connection sources.
+  await page.getByRole("button", { name: "Connect" }).click();
   const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
-  await source.hover();
-  const handle = source.locator(".react-flow__handle.source.react-flow__handle-right").last();
-  const handleBox = await handle.boundingBox();
+  const handleBox = await source.boundingBox();
   const paneBox = await page.locator(".react-flow__pane").boundingBox();
   if (!handleBox || !paneBox) throw new Error("Expected quick-create geometry");
   const drop = { x: paneBox.x + paneBox.width * 0.56, y: paneBox.y + paneBox.height * 0.83 };
@@ -407,22 +406,18 @@ test("quick-creates a connected object by dropping a visible port on empty canva
   await expect(created).toHaveCount(0);
 });
 
-test("draws a relationship by dragging a visible port onto an existing module", async ({
-  page,
-}) => {
+test("draws a relationship by dragging one card onto another in Connect mode", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  const source = page.locator('.react-flow__node[data-id="annuity-source"]');
-  const target = page.locator('.react-flow__node[data-id="annuity-policy"]');
-  await source.hover();
-  const sourcePort = source.locator(".react-flow__handle.source.react-flow__handle-right");
-  const targetPort = target.locator(".react-flow__handle.target.react-flow__handle-left");
-  const sourceBox = await sourcePort.boundingBox();
-  const targetBox = await targetPort.boundingBox();
-  if (!sourceBox || !targetBox) throw new Error("Expected source and target port geometry");
+  await page.getByRole("button", { name: "Connect" }).click();
+  const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
+  const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Expected source and target card geometry");
 
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
@@ -460,13 +455,12 @@ test("completes a dragged connection released over the middle of a card", async 
   // The drop point is a screen-space read of the target card, so the entry
   // camera must land before it means anything.
   await settledCanvasCamera(page);
-  const source = page.locator('.react-flow__node[data-id="annuity-source"]');
+  await page.getByRole("button", { name: "Connect" }).click();
+  const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
-  await source.hover();
-  const sourcePort = source.locator(".react-flow__handle.source.react-flow__handle-right");
-  const sourceBox = await sourcePort.boundingBox();
+  const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) throw new Error("Expected source port and target card geometry");
+  if (!sourceBox || !targetBox) throw new Error("Expected source and target card geometry");
 
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
@@ -507,6 +501,7 @@ test("persists committed edits only for one starter and Reset restores its scaff
 
   const source = page.locator(".money-map-module").filter({ hasText: "Traditional IRA" });
   await source.click();
+  await expect(source).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Enter");
   const title = page.getByRole("textbox", { name: "Edit shape title" });
   await title.fill("Saved Roth literal");

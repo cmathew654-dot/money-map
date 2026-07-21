@@ -200,6 +200,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const [paletteInvoker, setPaletteInvoker] = useState<HTMLElement | null>(null);
   const [propertiesTab, setPropertiesTab] = useState<"content" | "appearance" | null>(null);
   const [drawFlowOpen, setDrawFlowOpen] = useState(false);
+  // Connect mode. Dragging a card body moves the card, so a connection could
+  // only ever start from a small dedicated target — the precision trap behind
+  // "it reverts", "where do I grab", and accidental duplicates. While this is
+  // on, cards stop being draggable and the whole card connects instead.
+  const [connectMode, setConnectMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
@@ -484,6 +489,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setDrawFlowOpen(false);
     setAddOpen(false);
     setLegendOpen(false);
+    setConnectMode(false);
     setPresenting(true);
   }, []);
 
@@ -943,6 +949,29 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       selectFlow,
     ],
   );
+  // Connect mode's keys listen in the capture phase, unlike every other
+  // shortcut. React Flow's node keydown handler stops propagation, so with
+  // focus on a card — exactly where it sits after connecting — a bubble-phase
+  // window listener never runs and Escape silently did nothing.
+  useEffect(() => {
+    if (presenting) return;
+    const handleModeKey = (event: globalThis.KeyboardEvent) => {
+      if (event.isComposing || isTextControl(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === "Escape" && connectMode) {
+        event.preventDefault();
+        setConnectMode(false);
+        return;
+      }
+      if (event.key.toLocaleLowerCase() === "c" && !isInteractiveControl(event.target)) {
+        event.preventDefault();
+        setConnectMode((current) => !current);
+      }
+    };
+    window.addEventListener("keydown", handleModeKey, true);
+    return () => window.removeEventListener("keydown", handleModeKey, true);
+  }, [connectMode, presenting]);
+
   const handleWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (isTextControl(event.target) || event.nativeEvent.isComposing) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
@@ -1029,6 +1058,16 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               <span>{"Synthetic demo \u00b7 advisor-entered values"}</span>
             </div>
             <button
+              aria-pressed={connectMode}
+              className="connect-button"
+              disabled={!supported}
+              onClick={() => setConnectMode((current) => !current)}
+              type="button"
+            >
+              Connect
+              <kbd>C</kbd>
+            </button>
+            <button
               aria-expanded={addOpen}
               className="add-button"
               disabled={!supported}
@@ -1072,6 +1111,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               }
               onControllerChange={editor.registerCanvasController}
               cadenceFilter={cadenceFilter}
+              connectMode={connectMode}
             />
             <CadenceFilter value={cadenceFilter} onChange={changeCadenceFilter} />
           </section>

@@ -205,7 +205,7 @@ test("the selected-flow toolbar tracks its label through zoom, pan, and a keyboa
 // before the canvas's own edge state has synced to include it -- the
 // selected-flow toolbar's anchor must still land on screen, not wherever an
 // unset position style happens to leave it.
-test("the selected-flow toolbar lands on screen for a relationship created by dragging a handle onto a card", async ({
+test("the selected-flow toolbar lands on screen for a relationship drawn in Connect mode", async ({
   page,
 }) => {
   await page.goto("/");
@@ -214,13 +214,12 @@ test("the selected-flow toolbar lands on screen for a relationship created by dr
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
   await settledCanvasCamera(page);
 
-  const source = page.locator('.react-flow__node[data-id="annuity-source"]');
+  await page.getByRole("button", { name: "Connect" }).click();
+  const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
-  await source.hover();
-  const sourcePort = source.locator(".react-flow__handle.source.react-flow__handle-right");
-  const sourceBox = await sourcePort.boundingBox();
+  const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) throw new Error("Expected source port and target card geometry");
+  if (!sourceBox || !targetBox) throw new Error("Expected source and target card geometry");
 
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
@@ -285,4 +284,71 @@ test("a selected relationship draws its endpoint grips and previews a reconnect 
   expect(previewPaint.width).toBeGreaterThanOrEqual(1.5);
   expect(previewPaint.stroke).not.toBe("rgb(177, 177, 183)");
   await page.mouse.up();
+});
+
+// Connecting is a mode, not a precision gesture. Dragging a card body moves
+// the card, so connections used to be exiled to four hover-only dots — the
+// whole source of "it reverts", "where do I grab", and accidental duplicates.
+// Connect mode removes the conflict outright: cards stop being draggable, the
+// entire card is both source and target, and either gesture works.
+test("Connect mode joins two cards by clicking, by dragging, and exits on Escape", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await settledCanvasCamera(page);
+
+  const flows = page.locator(".money-map-flow-label-wrap");
+  const before = await flows.count();
+  const body = (id: string) => page.locator(`.react-flow__node[data-id="${id}"] .money-map-module`);
+
+  await page.getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByText(/click a card, then click another/i)).toBeVisible();
+
+  // Two clicks, anywhere on each card. No dot, no aim.
+  await body("annuity-source").click();
+  await body("annuity-reserve").click();
+  await expect(flows).toHaveCount(before + 1);
+  await expect(
+    page.getByRole("button", { name: /relationship from annuity-source to annuity-reserve/i }),
+    "the card clicked first is the source",
+  ).toBeVisible();
+
+  // The gesture people reach for first: drag one card onto another.
+  const fromBox = await body("annuity-income").boundingBox();
+  const toBox = await body("annuity-plan").boundingBox();
+  if (!fromBox || !toBox) throw new Error("Expected card geometry");
+  await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await expect(flows).toHaveCount(before + 2);
+  await expect(
+    page.getByRole("button", { name: /relationship from annuity-income to annuity-plan/i }),
+    "the card dragged from is the source",
+  ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByText(/click a card, then click another/i)).toHaveCount(0);
+});
+
+// The dots were the precision trap and the duplicate-flow trap. The handles
+// stay in the DOM because edges anchor to them; nothing paints them any more.
+test("cards never reveal connection dots on hover", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await settledCanvasCamera(page);
+
+  const card = page.locator('.react-flow__node[data-id="annuity-source"]');
+  await card.hover();
+  const painted = await card
+    .locator(".money-map-handle")
+    .evaluateAll(
+      (nodes) => nodes.filter((node) => Number(getComputedStyle(node).opacity) > 0).length,
+    );
+  expect(painted, "hovering a card must not paint connection dots").toBe(0);
 });

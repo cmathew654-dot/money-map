@@ -21,7 +21,6 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
   const { module, outgoingCount } = data;
   const editor = useEditorInteraction();
   const active = editor?.activeInlineField;
-  const canStartConnection = !data.presentation;
   const canEndConnection = !data.presentation;
   const showDetails = module.density !== "essential";
   const showNote = showDetails;
@@ -84,17 +83,17 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         style={{ transform: `rotate(${module.rotation}deg)` }}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
-        {/* Full-card drop surface: a dragged connection released anywhere on
-            the card completes instead of demanding a side-midpoint dot. Drops
-            only — drags still start from the visible dots below, and the CSS
-            keeps this surface inert except while a connection is in flight. */}
+        {/* The card's whole surface is its connection affordance. It both
+            starts and ends connections; the CSS keeps it inert except in
+            Connect mode or while a connection is already in flight, so it
+            never intercepts selection, inline editing, or a node drag. */}
         <Handle
           className="money-map-handle-surface"
-          id="target-surface"
+          id="source-surface"
           position={Position.Top}
-          type="target"
+          type="source"
           isConnectable={canEndConnection}
-          isConnectableStart={false}
+          isConnectableStart={data.connectMode && !data.presentation}
           isConnectableEnd={canEndConnection}
         />
         {handlePositions.map((position) => (
@@ -105,7 +104,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             position={position}
             type="target"
             isConnectable={canEndConnection}
-            isConnectableStart={canStartConnection}
+            isConnectableStart={false}
             isConnectableEnd={canEndConnection}
           />
         ))}
@@ -117,7 +116,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
             position={position}
             type="source"
             isConnectable={canEndConnection}
-            isConnectableStart={canStartConnection}
+            isConnectableStart={false}
             isConnectableEnd={canEndConnection}
           />
         ))}

@@ -126,7 +126,7 @@ describe("MoneyMapNode", () => {
     expect(begun).toEqual(["eyebrow", "subtitle", "row-label", "total-label", "note"]);
   });
 
-  it("allows new flow starts and reconnect drops whenever authoring", () => {
+  it("anchors edges on side handles that can no longer start a connection", () => {
     const module = createTestDocument().modules[0];
     const props = {
       id: module.id,
@@ -137,6 +137,7 @@ describe("MoneyMapNode", () => {
         selectionModuleIds: [],
         haloAnchor: false,
         reconnectMode: true,
+        connectMode: false,
       },
       selected: false,
       dragging: false,
@@ -155,10 +156,18 @@ describe("MoneyMapNode", () => {
         <MoneyMapNode {...props} />
       </ReactFlowProvider>,
     );
+    // The eight side handles remain because edges anchor to them, but they are
+    // no longer connection sources. As sources they were 8px, hover-only, and
+    // the only way to start a relationship — the precision trap Connect mode
+    // replaced. Leaving them start-capable left invisible live targets behind.
     const handles = [...container.querySelectorAll(".money-map-handle")];
     expect(handles).toHaveLength(8);
     expect(handles.every((handle) => handle.classList.contains("connectableend"))).toBe(true);
-    expect(handles.every((handle) => handle.classList.contains("connectablestart"))).toBe(true);
+    expect(handles.some((handle) => handle.classList.contains("connectablestart"))).toBe(false);
+
+    // The card surface is the sole start affordance, and only in Connect mode.
+    const surface = container.querySelector(".money-map-handle-surface");
+    expect(surface?.classList.contains("connectablestart")).toBe(false);
     expect(container.querySelector('[data-reconnect-mode="true"]')).toBeTruthy();
   });
 
@@ -173,6 +182,7 @@ describe("MoneyMapNode", () => {
         selectionModuleIds: [],
         haloAnchor: false,
         reconnectMode: false,
+        connectMode: false,
         presentation: true,
         presentationFocus: true,
       },
@@ -212,6 +222,7 @@ describe("MoneyMapNode", () => {
         selectionModuleIds: [],
         haloAnchor: false,
         reconnectMode: false,
+        connectMode: false,
         presentation: true,
         presentationFocus: false,
         presentationDim: true,
