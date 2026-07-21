@@ -1057,7 +1057,14 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               <span>{editor.document.asOf}</span>
               <span>{"Synthetic demo \u00b7 advisor-entered values"}</span>
             </div>
+            {/* Named "Connect mode" rather than inheriting "Connect C" from its
+                own text: the halo/palette route to the same concept is labelled
+                "Connect to…", and an accessible name of "Connect" is a substring
+                of it. Two buttons whose names nest ambiguate every by-name query
+                — for assistive tech as much as for tests. */}
             <button
+              aria-keyshortcuts="c"
+              aria-label="Connect mode"
               aria-pressed={connectMode}
               className="connect-button"
               disabled={!supported}

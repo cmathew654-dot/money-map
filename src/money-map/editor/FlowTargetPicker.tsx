@@ -60,21 +60,24 @@ export function FlowTargetPicker({
 
   return (
     <aside
-      aria-label="Draw flow"
+      aria-label="Connect to…"
       className="flow-target-picker"
       onKeyDown={handleKeyDown}
       style={style}
     >
       <header>
         <div>
-          <p className="workspace-kicker">Draw flow from</p>
+          <p className="workspace-kicker">Connect from</p>
           <h2>{source.title}</h2>
         </div>
-        <button aria-label="Cancel draw flow" onClick={onClose} type="button">
+        <button aria-label="Cancel connect" onClick={onClose} type="button">
           Cancel
         </button>
       </header>
-      <p>Choose a destination, or drag from any visible port on the canvas.</p>
+      {/* The old copy here offered "drag from any visible port". Ports stopped
+          starting connections when connecting became a mode, so it pointed at a
+          gesture that silently does nothing. */}
+      <p>Choose a destination, or press C to connect by clicking cards.</p>
       <div className="flow-target-picker__targets">
         {groups.map((group) => (
           <div className="flow-target-picker__group" key={group.label}>

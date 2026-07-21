@@ -248,7 +248,7 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
     .toBe(fontSize);
 });
 
-test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow", async ({
+test("uses palette duplicate, keyboard remove, undo, compact tabs, and Connect to", async ({
   page,
 }) => {
   await page.goto("/");
@@ -281,8 +281,8 @@ test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow
   await page.getByRole("tab", { name: "Appearance" }).click();
   await expect(page.getByRole("tab", { name: "Connections" })).toHaveCount(0);
   await page.getByRole("button", { name: "Close properties" }).click();
-  await page.getByRole("button", { name: "Draw flow" }).click();
-  await expect(page.getByRole("complementary", { name: "Draw flow" })).toBeVisible();
+  await page.getByRole("button", { name: "Connect to…" }).click();
+  await expect(page.getByRole("complementary", { name: "Connect to…" })).toBeVisible();
   await page.getByRole("button", { name: /Core lifestyle/ }).click();
   // The picker path lands as a resting pill too; renaming is a double-click.
   const newPill = page.locator("button.money-map-flow-label").filter({ hasText: /New transfer/ });
@@ -383,7 +383,7 @@ test("quick-creates a connected object by dropping a card on empty canvas", asyn
 
   // Connect mode drags from the card itself. The side handles are edge anchors
   // now, not connection sources.
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect mode" }).click();
   const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
   const handleBox = await source.boundingBox();
   const paneBox = await page.locator(".react-flow__pane").boundingBox();
@@ -412,7 +412,7 @@ test("draws a relationship by dragging one card onto another in Connect mode", a
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect mode" }).click();
   const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
   const sourceBox = await source.boundingBox();
@@ -455,7 +455,7 @@ test("completes a dragged connection released over the middle of a card", async 
   // The drop point is a screen-space read of the target card, so the entry
   // camera must land before it means anything.
   await settledCanvasCamera(page);
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect mode" }).click();
   const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
   const sourceBox = await source.boundingBox();
@@ -584,7 +584,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await expect(page.getByRole("toolbar", { name: /selected items/ })).toHaveCount(0);
 });
 
-test("keeps properties fresh and makes Draw flow, style, and properties exclusive", async ({
+test("keeps properties fresh and makes Connect to, style, and properties exclusive", async ({
   page,
 }) => {
   await page.goto("/");
@@ -610,11 +610,11 @@ test("keeps properties fresh and makes Draw flow, style, and properties exclusiv
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Investment account");
   await expect(source.getByRole("heading", { name: "Investment account" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Draw flow" }).click();
-  await expect(page.getByRole("complementary", { name: "Draw flow" })).toBeVisible();
+  await page.getByRole("button", { name: "Connect to…" }).click();
+  await expect(page.getByRole("complementary", { name: "Connect to…" })).toBeVisible();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Connections" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Cancel draw flow" }).click();
+  await page.getByRole("button", { name: "Cancel connect" }).click();
 
   await page.getByRole("button", { name: "Style shape" }).click();
   await expect(page.getByLabel("Advanced properties")).toBeVisible();
@@ -1017,8 +1017,8 @@ test("a newly drawn flow places its label clear of cards and stays undoable", as
   // Deliberately a long diagonal across the populated middle of the map:
   // the plain midpoint of this pair sits on another module.
   await page.locator('.react-flow__node[data-id="retirement-income"]').click();
-  await page.getByRole("button", { name: "Draw flow" }).click();
-  const picker = page.getByRole("complementary", { name: "Draw flow" });
+  await page.getByRole("button", { name: "Connect to…" }).click();
+  const picker = page.getByRole("complementary", { name: "Connect to…" });
   await expect(picker).toBeVisible();
   await picker
     .getByRole("button", { name: /Insurance|Irrevocable/ })

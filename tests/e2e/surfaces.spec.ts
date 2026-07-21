@@ -214,7 +214,7 @@ test("the selected-flow toolbar lands on screen for a relationship drawn in Conn
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
   await settledCanvasCamera(page);
 
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect mode" }).click();
   const source = page.locator('.react-flow__node[data-id="annuity-source"] .money-map-module');
   const target = page.locator('.react-flow__node[data-id="annuity-policy"] .money-map-module');
   const sourceBox = await source.boundingBox();
@@ -304,7 +304,7 @@ test("Connect mode joins two cards by clicking, by dragging, and exits on Escape
   const before = await flows.count();
   const body = (id: string) => page.locator(`.react-flow__node[data-id="${id}"] .money-map-module`);
 
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect mode" }).click();
   await expect(page.getByText(/click a card, then click another/i)).toBeVisible();
 
   // Two clicks, anywhere on each card. No dot, no aim.

@@ -116,15 +116,15 @@ describe("MoneyMapWorkspace command lifecycle", () => {
   it("draws a flow from one explicit, keyboard-accessible surface", () => {
     render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
 
-    openCommand("draw flow");
-    const picker = screen.getByLabelText("Draw flow");
+    openCommand("connect to");
+    const picker = screen.getByLabelText("Connect to…");
     expect(picker.textContent).toContain("Illustrative annuity");
     expect(screen.queryByRole("tab", { name: "Connections" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /Source account/ }));
 
     expect(hookMock.editor.applyDocument).toHaveBeenCalledTimes(1);
-    expect(screen.queryByLabelText("Draw flow")).toBeNull();
+    expect(screen.queryByLabelText("Connect to…")).toBeNull();
   });
 
   it("opens Style directly in Appearance and closes it with Escape", () => {

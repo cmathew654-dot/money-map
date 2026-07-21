@@ -200,7 +200,11 @@ export function createWorkspaceCommands(
   for (const [id, label, surface] of [
     ["module.edit", "Edit shape", "inline"],
     ["module.style", "Style shape", "appearance"],
-    ["module.draw-flow", "Draw flow", "draw-flow"],
+    // One concept, two doors: Connect mode (C) is the pointer route, this is the
+    // keyboard route. They share the word "Connect" deliberately. The surface id
+    // stays "draw-flow" so it keeps seeding the palette keywords below — a search
+    // for "draw" or "flow" still finds connecting.
+    ["module.draw-flow", "Connect to…", "draw-flow"],
     ["module.properties", "More properties", "properties"],
   ] as const) {
     registry.register({
