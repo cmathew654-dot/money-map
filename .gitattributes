@@ -1,0 +1,17 @@
+# Source checks out LF on every platform.
+#
+# Several contract tests read a source file with readFileSync and compare it
+# against a template literal — and the language normalises CRLF to LF inside
+# template literals. So on a CRLF checkout the expected string is LF while the
+# actual string is CRLF, and the comparison cannot succeed no matter what the
+# file says. That split is silent and platform-shaped: canvasCssContract fails
+# on a Windows clone while CI's Linux runner reports the same commit green.
+#
+# Pinning eol here removes the split at its source rather than teaching each
+# test to normalise.
+* text=auto eol=lf
+
+# Bundled typefaces and raster/media assets must never be line-ending filtered.
+*.otf binary
+*.png binary
+*.gif binary
