@@ -1,0 +1,20 @@
+.theme-conversion-path {
+  --map-canvas: #fbfaf8;
+  --map-surface: #fffefd;
+  --map-surface-alt: #f2ebef;
+  --map-ink: #30252d;
+  --map-muted: #685b63;
+  /* See private-ledger.css: module-internal muted text (eyebrow/subtitle/dt/
+     note) needs to clear 4.5:1 against tinted swatch mixes, not just the
+     flat --map-surface --map-muted is safe on. */
+  --map-module-muted: #52484e;
+  --map-line: #604f5a;
+  --map-border: #826f7b;
+  --map-grid: rgba(91, 51, 79, 0.15);
+  --map-accent: #a7442f;
+  --map-focus: #5b334f;
+  /* Was inheriting the warm carbon #47473f hard-coded in canvas.css, which
+     read as an un-themed foreign edge inside this near-white/aubergine
+     direction. The corridor's own deep aubergine ink is the right cap. */
+  --map-ledger-cap: var(--map-ink);
+}

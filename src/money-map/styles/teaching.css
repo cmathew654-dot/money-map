@@ -1,0 +1,200 @@
+/* Legibility pass: styling for markup introduced outside canvas.css ownership.
+   References the existing --map-* token layer defined in canvas.css; defines no
+   new tokens of its own. Loaded after canvas.css and themes.css. */
+
+/* Presentation step rail (PresentationShell.tsx): the step names themselves,
+   replacing anonymous dots. Current step gets more room; neighbours abbreviate
+   via ellipsis so all six entries (Overview + five steps) stay on one line at
+   1280x720 without wrapping. */
+.presentation-rail {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presentation-rail__item {
+  display: flex;
+  min-width: 44px;
+  flex: 0 1 auto;
+}
+
+/* The active step must never be the one that gets squeezed: nested flex-shrink
+   is proportional to flex-basis, so without this the widest (active) pill
+   absorbed the most shrinkage of all six items and truncated mid-word
+   ("Stage the 2...") even when its own max-width had room. Pinning it to its
+   content width and letting only the five neighbours shrink fixes that. */
+.presentation-rail__item[data-current="true"] {
+  flex-shrink: 0;
+}
+
+.presentation-rail__step {
+  min-width: 0;
+  max-width: 100px;
+  min-height: 44px;
+  overflow: hidden;
+  padding: 6px 12px;
+  border: 1px solid var(--map-button-border);
+  border-radius: 999px;
+  color: var(--map-button-ink);
+  background: var(--map-presentation-control-bg);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: center;
+  cursor: pointer;
+  /* Word-safe single-line clamp: lay the text out with normal wrapping (so
+     the browser only ever breaks between words), then clip to one line and
+     let the ellipsis land after the last whole word that fit. This is what
+     keeps neighbour abbreviations readable ("Reserve…") instead of the old
+     nowrap + text-overflow:ellipsis, which clipped at any pixel and produced
+     mid-word fragments ("Reserve wit..."). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  white-space: normal;
+}
+
+.presentation-rail__step[aria-current="step"] {
+  flex-shrink: 0;
+  /* Never truncated: the active step is the one the presenter and client are
+     reading together, so its full name always renders, even if that means
+     the five neighbours compress further to make room. Bounded at 60vw only
+     as a defensive ceiling against a hypothetical much-longer authored
+     title; none of today's step names come close to it. */
+  max-width: 60vw;
+  width: max-content;
+  border-color: var(--map-accent);
+  box-shadow: 0 0 0 2px var(--map-accent);
+  font-weight: 700;
+}
+
+.presentation-rail__step:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+/* Command palette section headers (CommandPalette.tsx): quiet, non-interactive
+   labels grouping commands by what they act on. Mirrors the existing
+   `.command-palette > label` treatment at a step down in weight so groups read
+   as structure, not as competing chrome. */
+.command-palette__group {
+  display: grid;
+  gap: 2px;
+}
+
+.command-palette__group + .command-palette__group {
+  margin-top: 10px;
+}
+
+.command-palette__group-label {
+  margin: 0;
+  padding: 4px 10px 2px;
+  color: var(--map-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Groups the relationship-legend toggle with the existing Exit button so both
+   still land in the presentation header's third grid column (canvas.css:
+   .presentation-header's grid-template-columns expects exactly three direct
+   children — title, meta, actions). .presentation-exit keeps its own
+   selector and styling untouched; this wrapper just takes over the
+   justify-self:end placement that used to apply to the button directly. */
+.presentation-header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+}
+
+/* Relationship legend (RelationshipLegend.tsx): an optional, off-by-default
+   control explaining the four flow relationship patterns (income, transfer,
+   replenishment, planned) with the exact stroke each one renders with on the
+   canvas, so the redundant channel DESIGN.md promises (line 64: "A small
+   optional legend explains authored semantics") actually exists.
+
+   Deliberately an in-flow disclosure inside the existing header chrome, not
+   a floating popover over the stage: both shells fit authored content to
+   frame, which can and does reach every edge of the stage (verified live —
+   an earlier corner-popover version overlapped authored cards on every
+   starter). The header row is chrome by construction and never contains
+   authored content, so revealing the legend there can never cover it. */
+.relationship-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The authoring header (Back, brand+title, provenance meta, + Add, Present,
+   Actions) is already near capacity at 1280px — measured live, opening the
+   legend there left only ~190px for four chips that need ~360px+. The
+   provenance text is the one non-interactive, always-visible-again-on-close
+   item in that row, so it's what yields: the legend gets the room it needs
+   and the meta text reappears the instant the legend closes. Presentation's
+   header has enough slack without this (verified live), so this rule is a
+   no-op there — .workspace-meta only exists in the authoring shell. */
+.workspace-header:has(.relationship-legend__list) .workspace-meta {
+  display: none;
+}
+
+.relationship-legend__toggle {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--map-hairline);
+  border-radius: 3px;
+  color: var(--map-button-ink);
+  background: var(--map-surface);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.relationship-legend__toggle:hover {
+  background: #eee7da;
+}
+
+.relationship-legend__toggle:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.relationship-legend__toggle[aria-expanded="true"] {
+  border-color: var(--map-accent);
+}
+
+.relationship-legend__list {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.relationship-legend__list li {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  color: var(--map-text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.relationship-legend__sample {
+  flex: 0 0 auto;
+  overflow: visible;
+}

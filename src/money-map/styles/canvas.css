@@ -1,0 +1,1825 @@
+:root {
+  /* Role accents (data-color-role) */
+  --map-role-income: #a45b19;
+  --map-role-account: #3d6170;
+  --map-role-reserve: #9a7137;
+  --map-role-need: #3d392f;
+  --map-role-specialty: #76536d;
+  --map-role-charitable: #496755;
+  --map-role-note: #726c61;
+
+  /* Relationship label chrome */
+  --map-label-ink: #3f3b34;
+  --map-label-border: #a89d8a;
+
+  /* Shared neutral borders */
+  --map-hairline: #aaa18f;
+  --map-panel-outline: #b6ad9d;
+  --map-popover-border: #8f8573;
+  --map-panel-divider: #c6bdad;
+  --map-zoom-divider: #bbb19f;
+  --map-button-border: #958b79;
+
+  /* Shared text ink */
+  --map-text-secondary: #625d53;
+  --map-button-ink: #373b36;
+  --map-icon-button-ink: #353b36;
+
+  /* Selection / control state */
+  --map-control-selected-bg: #4b514b;
+  --map-presentation-control-bg: #fbf8f0;
+  --map-row-divider: rgba(100, 92, 77, 0.3);
+
+  /* Overlays and scrims */
+  --map-scrim: rgba(39, 36, 30, 0.22);
+  --map-presentation-chrome-bg: rgba(248, 244, 235, 0.98);
+  --map-presentation-divider: rgba(99, 88, 69, 0.3);
+  --map-cadence-bg: rgba(251, 248, 240, 0.96);
+  --map-attribution-bg: rgba(246, 241, 231, 0.8);
+  --map-cover-grid: rgba(118, 105, 82, 0.2);
+
+  /* Tinted shadows */
+  --map-module-shadow-quiet: rgba(65, 57, 43, 0.08);
+  --map-module-shadow-selected: rgba(65, 57, 43, 0.12);
+  --map-module-shadow-spotlight: rgba(65, 57, 43, 0.2);
+  --map-panel-shadow: rgba(43, 38, 30, 0.22);
+  --map-menu-shadow: rgba(43, 38, 30, 0.24);
+  --map-label-plate-shadow: rgba(49, 43, 34, 0.12);
+  --map-label-shadow: rgba(49, 43, 34, 0.18);
+  --map-presentation-focus-shadow: rgba(49, 43, 34, 0.16);
+  --map-toolbar-shadow: rgba(66, 58, 44, 0.14);
+  --map-cadence-shadow: rgba(66, 58, 44, 0.12);
+  --map-selection-shadow: rgba(45, 40, 32, 0.18);
+  --map-resize-shadow: rgba(42, 36, 27, 0.24);
+  --map-command-palette-shadow: rgba(41, 36, 28, 0.3);
+
+  /* Destructive state */
+  --map-destructive-border: #d9c4b8;
+  --map-destructive-ink: #8a3324;
+  --map-destructive-hover-bg: #f4e4dd;
+}
+
+.money-map-workspace {
+  display: flex;
+  min-width: 320px;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--map-canvas);
+}
+
+.money-map-workspace .workspace-header {
+  flex: 0 0 76px;
+}
+
+.money-map-workspace .workspace-meta {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  text-align: right;
+}
+
+.money-map-workspace .workspace-meta span {
+  /* Defensive fallback only: the auto/1fr/auto header grid (styles.css) gives
+     the actions column enough room to render the meta stack, including the
+     full synthetic-data disclosure, on one line at every supported width
+     (1180-1920). This never actually triggers there; it just keeps a
+     pathologically long future value from blowing out the header instead of
+     silently truncating the DESIGN.md-required disclosure. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.workspace-stage {
+  position: relative;
+  display: block;
+  min-height: 0;
+  flex: 1;
+  background-color: var(--map-canvas);
+  color: var(--map-muted);
+}
+
+.money-map-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Safe-area reserve so fitted content (and anything anchored to it, like
+     the selection halo) never renders under the fixed cadence strip
+     (top-left) or gets clipped flush against the true canvas edges. Padding
+     shrinks the React Flow pane itself, so fitView's own framing already
+     respects this margin instead of the app layering chrome on top of it.
+     Authoring only: presentation has no in-stage chrome to clear, and the
+     reserve would cost enough fit scale to push type under its floor. */
+  padding: 64px 32px 32px 48px;
+  outline: none;
+  background-color: var(--map-canvas);
+  background-image: radial-gradient(var(--map-grid) 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+
+.money-map-canvas:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--map-focus);
+}
+
+.money-map-canvas .react-flow {
+  background: transparent;
+}
+
+.money-map-canvas .react-flow__node {
+  border-radius: 2px;
+  outline: none;
+}
+
+.money-map-module {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px;
+  border: 1px solid var(--map-border);
+  border-radius: 2px;
+  color: var(--map-ink);
+  background: var(--map-surface);
+  box-shadow: none;
+  cursor: grab;
+  transform-origin: center;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+  --module-accent: var(--map-accent);
+}
+
+.money-map-module[data-color-role="income"] {
+  --module-accent: var(--map-role-income);
+}
+.money-map-module[data-color-role="account"] {
+  --module-accent: var(--map-role-account);
+}
+.money-map-module[data-color-role="reserve"] {
+  --module-accent: var(--map-role-reserve);
+}
+.money-map-module[data-color-role="need"] {
+  --module-accent: var(--map-role-need);
+}
+.money-map-module[data-color-role="specialty"] {
+  --module-accent: var(--map-role-specialty);
+}
+.money-map-module[data-color-role="charitable"] {
+  --module-accent: var(--map-role-charitable);
+}
+.money-map-module[data-color-role="note"] {
+  --module-accent: var(--map-role-note);
+}
+
+.money-map-module[data-priority="quiet"] {
+  border-color: color-mix(in srgb, var(--module-accent) 34%, var(--map-border));
+  box-shadow: 0 2px 5px var(--map-module-shadow-quiet);
+}
+
+.money-map-module[data-priority="spotlight"] {
+  border: 2px solid var(--module-accent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--module-accent) 12%, transparent),
+    0 14px 30px var(--map-module-shadow-spotlight);
+}
+
+.money-map-module[data-swatch="muted"] {
+  background: color-mix(in srgb, var(--map-surface-alt) 80%, var(--module-accent) 20%);
+}
+
+.money-map-module[data-swatch="accent"] {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--map-surface) 84%, var(--module-accent) 16%);
+}
+
+.money-map-module[data-swatch="contrast"] {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--map-surface) 66%, var(--module-accent) 34%);
+}
+
+/* The ledger cap is a per-art-direction role, not a fixed carbon. Each theme
+   sets --map-ledger-cap; the fallback keeps the primitive rendering if a new
+   theme forgets to. */
+.money-map-module[data-primitive="ledger"] {
+  border-top: 4px solid var(--map-ledger-cap, var(--map-line));
+}
+
+.money-map-module[data-primitive="plate"] {
+  border-color: var(--map-border);
+  background: var(--map-surface-alt);
+}
+
+.money-map-module[data-primitive="tray"] {
+  border-width: 1px 1px 5px;
+}
+
+.money-map-module[data-primitive="band"] {
+  border-width: 2px 0;
+  border-style: solid;
+  border-color: var(--map-focus);
+}
+
+.money-map-module[data-primitive="roundel"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4% 17%;
+  border-radius: 50% / 40%;
+  text-align: center;
+}
+
+.money-map-module[data-primitive="cylinder"] {
+  border-radius: 50% / 13%;
+}
+
+.money-map-module[data-primitive="text"] {
+  height: auto;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.money-map-module[data-primitive="frame"] {
+  border: 2px solid var(--map-accent);
+  background: var(--map-surface);
+}
+
+.money-map-module[data-selected="true"] {
+  border-color: var(--map-accent);
+  box-shadow:
+    0 0 0 3px var(--map-canvas),
+    0 0 0 6px var(--map-accent),
+    0 8px 20px var(--map-module-shadow-selected);
+}
+
+.react-flow__node:focus-visible .money-map-module {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 5px;
+}
+
+.money-map-module__header h2 {
+  margin: 4px 0 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 23px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.money-map-module__eyebrow,
+.money-map-module__subtitle,
+.money-map-module__note {
+  margin: 0;
+}
+
+.money-map-module__eyebrow {
+  color: var(--map-module-muted);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.025em;
+}
+
+.money-map-module__subtitle {
+  margin-top: 6px;
+  color: var(--map-module-muted);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.money-map-module__rows {
+  display: grid;
+  gap: 0;
+  margin: 16px 0 0;
+}
+
+/* A 20px figure separates itself; it needs less clearance above than the
+   uniform 16px the row block uses. */
+.money-map-module__total {
+  display: grid;
+  gap: 0;
+  margin: 8px 0 0;
+}
+
+.money-map-module__row,
+.money-map-module__total > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--map-row-divider);
+}
+
+.money-map-module dt,
+.money-map-module dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.money-map-module dt {
+  color: var(--map-module-muted);
+}
+
+.money-map-module dd {
+  max-width: 150px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.money-map-module__total {
+  font-weight: 750;
+}
+
+/* The total is the figure the card exists to communicate, so it gets its own
+   step in the ramp (11 note / 12 rows / 13 subtitle / 20 total / 23 serif
+   title) rather than sitting at row size and relying on weight alone. This
+   is authored, not presentation-only: both modes render the same card, and
+   at presentation's 0.72-0.98 fit scales it is the difference between a
+   headline figure that reads and one that doesn't.
+   The label keeps row size — the contrast between them is the hierarchy. */
+/* A total stacks its label above the figure instead of sharing the row's
+   label|value split. Side by side, a 20px value claims ~125px of a 248px
+   card, squeezing the label track until "Total monthly income" wraps to
+   three lines — the row then grows by ~30px and overflows authored card
+   heights, and the stretched value box reads as loosely associated with its
+   label. Stacked, the label gets the full card width on one line and the
+   figure sits directly beneath it, which is how a financial document
+   presents a headline number anyway. */
+.money-map-module__total > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding-top: 6px;
+}
+
+.money-map-module__total dd {
+  /* The 150px cap and anywhere-breaking are tuned for 12px row values; at
+     20px they split a single authored figure across lines, which misreads
+     as two values. A headline figure is one literal string. */
+  max-width: none;
+  overflow-wrap: normal;
+  font-size: 20px;
+  line-height: 1.15;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.money-map-module__note {
+  margin-top: 12px;
+  color: var(--map-module-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.money-map-handle {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--map-line);
+  background: var(--map-canvas);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+/* Full-card drop surface (MoneyMapNode's target-surface handle): stretches
+   over the whole card so a dragged connection can be released anywhere on it,
+   not only on a side-midpoint dot. Never painted, and pointer-inert except
+   while React Flow marks it as a live connection end (.connectionindicator),
+   so it cannot intercept clicks, double-click editing, or node drags. The
+   visible dots render after it in the DOM and stay the drag-start surface. */
+.money-map-handle-surface {
+  inset: 0;
+  transform: none;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.money-map-handle-surface.connectionindicator {
+  pointer-events: all;
+}
+
+.money-map-module[data-reconnect-mode="true"] .money-map-handle {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: all;
+}
+
+.react-flow__node:hover .money-map-handle,
+.react-flow__node.selected .money-map-handle {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: radial-gradient(
+    circle,
+    var(--map-accent) 0 4px,
+    var(--map-surface) 5px 7px,
+    transparent 8px
+  );
+  opacity: 1;
+  pointer-events: all;
+}
+
+.money-map-canvas .react-flow__edge-path {
+  stroke: var(--map-line);
+  stroke-width: 1.5;
+}
+
+.money-map-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--map-accent);
+  stroke-width: 2.5;
+}
+
+.money-map-canvas .react-flow__edge-text {
+  fill: var(--map-ink);
+  font-size: 11px;
+}
+
+.money-map-canvas .react-flow__edge-textbg {
+  fill: var(--map-canvas);
+  fill-opacity: 0.94;
+}
+
+.canvas-controls {
+  position: absolute;
+  z-index: 5;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid var(--map-hairline);
+  border-radius: 4px;
+  background: var(--map-surface);
+  box-shadow: 0 6px 20px var(--map-toolbar-shadow);
+}
+
+.canvas-controls__zoom {
+  display: flex;
+  border: 1px solid var(--map-zoom-divider);
+  border-radius: 3px;
+}
+
+.canvas-controls button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 0;
+  color: #3f4d46;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.canvas-controls button:hover {
+  background: #eee7da;
+}
+
+.canvas-controls__zoom button + button {
+  border-left: 1px solid var(--map-zoom-divider);
+}
+
+.canvas-controls .canvas-controls__percentage {
+  min-width: 62px;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-map-canvas .react-flow__attribution {
+  right: 8px;
+  bottom: 6px;
+  color: var(--map-muted);
+  background: var(--map-attribution-bg);
+  font-size: 9px;
+}
+
+.money-map-canvas .react-flow__attribution a {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding-inline: 4px;
+}
+
+.authoring-cover {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  place-items: center;
+  padding: 40px;
+  background-color: var(--map-canvas);
+  background-image: radial-gradient(var(--map-cover-grid) 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+
+.authoring-cover > div {
+  max-width: 560px;
+  padding: 42px;
+  border: 1px solid var(--map-hairline);
+  background: var(--map-surface);
+}
+
+.authoring-cover h2 {
+  margin: 10px 0 14px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: clamp(34px, 5vw, 54px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.authoring-cover p:last-child {
+  margin: 0;
+  color: #655f54;
+  line-height: 1.6;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .canvas-controls button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-self: end;
+}
+
+/* Chrome button vocabulary: one height (36px, the zoom cluster's own
+   .canvas-controls button already lands here — see above), one weight per
+   role, one border treatment per role. Add and Actions are the same role
+   (outlined secondary, opens a panel) and now render identically instead
+   of an arbitrary 740-vs-720 split that made two visually-identical
+   controls look like they meant different things. Present is the sole
+   filled-primary control, one weight step heavier than the outlined tier
+   to read as the primary action without inventing a third arbitrary
+   number. Back to stories (.text-button, styles.css) is the ghost tier:
+   no border, body weight, same 36px height. */
+.actions-button,
+.add-button {
+  display: inline-flex;
+  min-height: 36px;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid var(--map-button-border);
+  border-radius: 3px;
+  color: var(--map-button-ink);
+  background: var(--map-surface);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.add-button {
+  min-width: 66px;
+  justify-content: center;
+}
+
+.present-button {
+  min-height: 36px;
+  padding: 7px 14px;
+  border: 1px solid var(--map-focus);
+  border-radius: 3px;
+  color: var(--map-surface);
+  background: var(--map-focus);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.present-button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.actions-button kbd,
+.command-palette kbd {
+  color: #756e61;
+  font-family: inherit;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.selection-halo {
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #8e8575;
+  border-radius: 4px;
+  background: var(--map-surface);
+  box-shadow: 0 7px 20px var(--map-selection-shadow);
+}
+
+/* A selected flow's halo. Modules ride React Flow's node toolbar (which
+   positions its own .selection-halo-anchor); flows have no node, so the
+   workspace anchors this wrapper to the measured label box, centered above
+   it with the same 10px offset the node toolbar uses. */
+.flow-selection-anchor {
+  position: fixed;
+  z-index: 20;
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+.selection-halo button,
+.add-menu button,
+.advanced-properties button,
+.command-palette button {
+  min-width: 24px;
+  min-height: 24px;
+  border: 0;
+  border-radius: 2px;
+  color: var(--map-icon-button-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.selection-halo button {
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.selection-halo button:hover,
+.selection-halo button:focus-visible,
+.add-menu button:hover,
+.advanced-properties button:hover,
+.command-palette button:hover,
+.command-palette button[aria-selected="true"] {
+  background: #e8e0d2;
+}
+
+.actions-button:focus-visible,
+.add-button:focus-visible,
+.selection-halo button:focus-visible,
+.add-menu button:focus-visible,
+.advanced-properties button:focus-visible,
+.advanced-properties input:focus-visible,
+.advanced-properties textarea:focus-visible,
+.command-palette input:focus-visible,
+.command-palette button:focus-visible,
+.inline-field:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.money-map-resize-control {
+  right: -11px !important;
+  bottom: -11px !important;
+  width: 26px !important;
+  height: 26px !important;
+  border: 2px solid var(--map-canvas) !important;
+  border-radius: 50% !important;
+  background: var(--map-accent) !important;
+  box-shadow: 0 2px 7px var(--map-resize-shadow);
+}
+
+.money-map-resize-control span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 7px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
+}
+
+.inline-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--map-focus);
+  border-radius: 2px;
+  color: inherit;
+  background: var(--map-surface);
+  font: inherit;
+  line-height: inherit;
+}
+
+.money-map-module dd .inline-field {
+  min-width: 112px;
+  text-align: right;
+}
+
+.command-palette-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding-top: min(16vh, 140px);
+  background: var(--map-scrim);
+}
+
+.command-palette {
+  width: min(520px, calc(100vw - 40px));
+  max-height: calc(100vh - 32px);
+  padding: 14px;
+  border: 1px solid #837968;
+  border-radius: 4px;
+  overflow: auto;
+  background: var(--map-surface);
+  box-shadow: 0 22px 70px var(--map-command-palette-shadow);
+}
+
+.command-palette > label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--map-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.command-palette input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #968b79;
+  background: var(--map-surface);
+  font: inherit;
+}
+
+.command-palette [role="listbox"] {
+  display: grid;
+  max-height: 360px;
+  gap: 2px;
+  margin-top: 8px;
+  overflow: auto;
+}
+
+.command-palette [role="option"] {
+  display: flex;
+  min-height: 38px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.command-palette [role="option"].command-palette__option--destructive {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--map-destructive-border);
+  color: var(--map-destructive-ink);
+}
+
+.command-palette [role="option"].command-palette__option--destructive:hover,
+.command-palette [role="option"].command-palette__option--destructive[aria-selected="true"] {
+  background: var(--map-destructive-hover-bg);
+}
+
+.advanced-properties,
+.flow-target-picker {
+  position: fixed;
+  z-index: 20;
+  top: 92px;
+  right: 20px;
+  width: min(352px, calc(100vw - 40px));
+  /* positionEditorSurface() (surfacePosition.ts) clamps its dynamic `top` so
+     the surface never needs more than defaultSize.height (400px) of
+     headroom below it. Matching that constant here — instead of a vh-based
+     guess keyed to this rule's own static top:92 — keeps the panel inside
+     the viewport even when `top` is pushed down near a low-positioned
+     module. Do not raise this above 400px without raising the JS constant
+     too. */
+  max-height: 400px;
+  padding: 16px;
+  border: 1px solid var(--map-popover-border);
+  border-radius: 4px;
+  overflow: auto;
+  background: var(--map-surface);
+  box-shadow: 0 16px 44px var(--map-panel-shadow);
+}
+
+.advanced-properties > header,
+.flow-target-picker > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.advanced-properties h2 {
+  margin: 3px 0 12px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 20px;
+}
+
+.advanced-properties [role="tablist"] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin: 0 -4px 14px;
+  border-bottom: 1px solid var(--map-panel-outline);
+}
+
+.advanced-properties [role="tab"] {
+  padding: 8px 5px;
+  border-radius: 0;
+}
+
+.advanced-properties [role="tab"][aria-selected="true"] {
+  border-bottom: 3px solid var(--map-accent);
+}
+
+.advanced-properties label {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+  color: var(--map-muted);
+  font-size: 11px;
+}
+
+.advanced-properties input,
+.advanced-properties textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 1px solid var(--map-hairline);
+  color: var(--map-ink);
+  background: var(--map-surface);
+  font: inherit;
+}
+
+.advanced-properties details {
+  margin-top: 12px;
+  border-top: 1px solid var(--map-panel-divider);
+  padding-top: 12px;
+}
+
+.advanced-properties summary {
+  min-height: 28px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.property-fields {
+  padding-top: 14px;
+}
+
+.property-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.advanced-properties fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--map-panel-outline);
+  margin: 0 0 12px;
+}
+
+.advanced-properties legend {
+  padding: 0 5px;
+  color: var(--map-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.advanced-properties [role="tabpanel"] > ul {
+  padding-left: 18px;
+  color: #5c584f;
+  font-size: 12px;
+}
+
+.flow-target-picker {
+  width: 292px;
+}
+
+.flow-target-picker h2,
+.flow-target-picker p {
+  margin: 0;
+}
+
+.flow-target-picker > p {
+  margin: 10px 0;
+  color: var(--map-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.flow-target-picker__targets {
+  display: grid;
+  gap: 10px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.flow-target-picker__group {
+  display: grid;
+  gap: 4px;
+}
+
+.flow-target-picker__targets p.flow-target-picker__group-label {
+  margin: 0 0 2px;
+  color: var(--map-muted);
+  font-size: 10px;
+}
+
+.flow-target-picker__targets button {
+  display: grid;
+  gap: 2px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid var(--map-panel-outline);
+  color: var(--map-ink);
+  background: var(--map-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.flow-target-picker__targets span {
+  color: var(--map-muted);
+  font-size: 10px;
+}
+
+.flow-target-picker button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.advanced-properties button[aria-pressed="true"] {
+  color: var(--map-surface);
+  background: var(--map-focus);
+}
+
+.add-menu {
+  position: fixed;
+  z-index: 24;
+  top: 66px;
+  right: 174px;
+  width: min(440px, calc(100vw - 40px));
+  max-height: calc(100vh - 90px);
+  padding: 16px;
+  border: 1px solid var(--map-popover-border);
+  border-radius: 5px;
+  overflow: auto;
+  background: var(--map-surface);
+  box-shadow: 0 18px 52px var(--map-menu-shadow);
+}
+
+.add-menu > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--map-panel-divider);
+}
+
+.add-menu__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.add-menu__grid > button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 58px;
+  padding: 8px;
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.add-menu__grid > button:hover {
+  border-color: var(--map-panel-outline);
+  background: #eee7db;
+}
+
+.add-menu__grid strong,
+.add-menu__grid small {
+  display: block;
+}
+
+.add-menu__grid small {
+  margin-top: 2px;
+  color: var(--map-muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.add-menu__shape {
+  display: block;
+  box-sizing: border-box;
+  width: 36px;
+  height: 25px;
+  border: 1px solid var(--map-focus);
+  background: linear-gradient(145deg, #fffdf8, #ddd0b9);
+  box-shadow: 3px 3px 0 rgba(94, 73, 43, 0.18);
+}
+
+.add-menu__shape[data-primitive="ledger"] {
+  border-width: 3px 0 1px;
+  box-shadow: none;
+}
+.add-menu__shape[data-primitive="tray"] {
+  border-radius: 0 0 4px 4px;
+  border-bottom-width: 5px;
+}
+.add-menu__shape[data-primitive="band"] {
+  clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%);
+}
+.add-menu__shape[data-primitive="roundel"] {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+.add-menu__shape[data-primitive="frame"] {
+  border-width: 2px;
+  background: transparent;
+  box-shadow: inset 0 0 0 3px var(--map-surface);
+}
+.add-menu__shape[data-primitive="cylinder"] {
+  border-radius: 50% / 22%;
+  background: linear-gradient(90deg, #ddd0b9, #fffdf8 45%, #c8b48f);
+}
+.add-menu__shape[data-primitive="text"] {
+  height: 18px;
+  border: 0;
+  border-bottom: 2px solid var(--map-focus);
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .text-button,
+  .actions-button,
+  .add-button,
+  .present-button,
+  .selection-halo button,
+  .add-menu button,
+  .advanced-properties button,
+  .command-palette button {
+    min-height: 44px;
+  }
+
+  .money-map-resize-control {
+    width: 44px !important;
+    height: 48px !important;
+  }
+
+  .advanced-properties input,
+  .advanced-properties textarea {
+    min-height: 44px;
+  }
+}
+
+/* Relationship authoring */
+.money-map-canvas .react-flow__edge-interaction {
+  stroke-width: 28px;
+}
+
+.money-map-canvas .money-map-relationship-path {
+  stroke: var(--map-line);
+  stroke-width: 1.7;
+  fill: none;
+}
+
+.money-map-canvas .money-map-relationship-casing {
+  stroke: var(--map-canvas);
+  stroke-width: 5.5;
+  fill: none;
+}
+
+.money-map-canvas .relationship--income {
+  stroke-dasharray: none;
+}
+
+.money-map-canvas .relationship--transfer {
+  stroke-dasharray: 10 6;
+}
+
+.money-map-canvas .relationship--replenishment {
+  stroke-dasharray: 2 6;
+  stroke-linecap: round;
+}
+
+.money-map-canvas .relationship--planned {
+  stroke-dasharray: 12 5 2 5;
+}
+
+.money-map-canvas .react-flow__edge.selected .money-map-relationship-path {
+  stroke: var(--map-accent);
+  stroke-width: 2.4;
+}
+
+/* Keyboard focus on a route (WCAG 2.4.11). React Flow sets outline: none on
+   .react-flow__edge:focus-visible and only re-colors the stroke, so a
+   focused route otherwise had no indicator of its own and was not distinct
+   from selection — DESIGN.md requires both.
+   The halo rides the casing, which is a separate solid path already painted
+   beneath the route, so the route's own stroke-dasharray is untouched and a
+   focused replenishment edge still reads as replenishment. (The audit
+   reported focus "swaps the semantic dash pattern for a solid stroke"; that
+   does not reproduce — no rule here or in React Flow's stylesheet sets
+   stroke-dasharray on focus. The missing indicator was the real defect.)
+   --map-focus, not --map-accent: selection stays accent, focus stays focus. */
+.money-map-canvas .react-flow__edge:focus-visible .money-map-relationship-casing {
+  stroke: var(--map-focus);
+  stroke-width: 9;
+}
+
+.money-map-flow-label-wrap {
+  z-index: 4;
+}
+
+.money-map-route-handle {
+  z-index: 5;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--map-accent) 0 3px,
+    var(--map-surface) 4px 7px,
+    var(--map-line) 8px 9px,
+    transparent 10px
+  );
+  cursor: move;
+}
+
+.money-map-route-handle:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.money-map-flow-label {
+  display: grid;
+  min-width: 96px;
+  min-height: 32px;
+  gap: 2px;
+  place-items: center;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--map-label-ink);
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  line-height: 1.2;
+  cursor: grab;
+}
+
+.money-map-flow-label strong {
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.money-map-flow-label span,
+.money-map-flow-label small {
+  font-size: 10px;
+  font-weight: 540;
+}
+
+/* Background-colored edge casing (DESIGN.md: "clarifies genuine
+   crossings") for the plain label treatment. Plate and filled already
+   carry their own opaque background below, so a route passing behind them
+   is hidden; plain previously had none — background: transparent from the
+   base rule above — so a route drawn behind a plain label struck straight
+   through the glyphs. On a dollar figure that reads as a voided amount.
+   Using the canvas token (not a surface color) keeps this a knockout that
+   reads as "the line stops here," not a card pinned to the canvas — the
+   same treatment already scoped to .money-map-presentation below; this
+   unscoped rule is what extends it to authoring, where it was missing. */
+.money-map-flow-label-wrap[data-treatment="plain"] .money-map-flow-label {
+  background: var(--map-canvas);
+  border-radius: 2px;
+}
+
+.money-map-flow-label-wrap[data-treatment="plate"] .money-map-flow-label {
+  border-color: var(--map-label-border);
+  background: var(--map-surface);
+  box-shadow: 0 3px 10px var(--map-label-plate-shadow);
+}
+
+.money-map-flow-label-wrap[data-treatment="filled"] .money-map-flow-label {
+  border-color: var(--map-line);
+  color: var(--map-surface);
+  background: var(--map-line);
+  box-shadow: 0 3px 10px var(--map-label-shadow);
+}
+
+.money-map-flow-label-wrap[data-selected="true"] .money-map-flow-label {
+  outline: 3px solid var(--map-accent);
+  outline-offset: 2px;
+}
+
+.money-map-flow-label:focus-visible,
+.relationship-properties button:focus-visible,
+.relationship-properties input:focus-visible,
+.relationship-properties select:focus-visible,
+.cadence-filter button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+.cadence-filter {
+  position: absolute;
+  z-index: 6;
+  top: 16px;
+  left: 18px;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 5px;
+  border: 1px solid var(--map-hairline);
+  border-radius: 4px;
+  background: var(--map-cadence-bg);
+  box-shadow: 0 4px 14px var(--map-cadence-shadow);
+}
+
+.cadence-filter > span {
+  padding: 0 7px;
+  color: var(--map-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cadence-filter button {
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 2px;
+  color: #43423c;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cadence-filter button[aria-pressed="true"] {
+  color: var(--map-surface);
+  background: var(--map-control-selected-bg);
+}
+
+.relationship-properties {
+  position: fixed;
+  z-index: 21;
+  top: 92px;
+  right: 20px;
+  width: min(368px, calc(100vw - 40px));
+  max-height: calc(100vh - 116px);
+  padding: 16px;
+  border: 1px solid var(--map-popover-border);
+  border-radius: 4px;
+  overflow: auto;
+  background: var(--map-surface);
+  box-shadow: 0 16px 44px var(--map-panel-shadow);
+}
+
+.relationship-properties > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.relationship-properties h2 {
+  margin: 3px 0 12px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 20px;
+}
+
+.relationship-properties label {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: var(--map-text-secondary);
+  font-size: 11px;
+}
+
+.relationship-properties input,
+.relationship-properties select,
+.advanced-properties select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 1px solid var(--map-hairline);
+  color: var(--map-ink);
+  background: var(--map-surface);
+  font: inherit;
+}
+
+.relationship-properties fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 9px;
+  border: 1px solid #c0b6a5;
+}
+
+.relationship-properties legend {
+  padding: 0 5px;
+  color: var(--map-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.relationship-properties button {
+  min-height: 28px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 2px;
+  color: var(--map-icon-button-ink);
+  background: #ece5d8;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.relationship-properties button[aria-pressed="true"] {
+  color: var(--map-surface);
+  background: var(--map-control-selected-bg);
+}
+
+.relationship-endpoints {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (pointer: coarse) {
+  .money-map-canvas .react-flow__edge-interaction {
+    stroke-width: 44px !important;
+  }
+
+  .react-flow__node:hover .money-map-handle,
+  .react-flow__node.selected .money-map-handle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .money-map-flow-label,
+  .cadence-filter button,
+  .relationship-properties button,
+  .relationship-properties input,
+  .relationship-properties select,
+  .advanced-properties select {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-map-flow-label,
+  .money-map-relationship-path,
+  .money-map-handle {
+    transition: none !important;
+  }
+}
+
+/* Shared read-only presentation system */
+.money-map-presentation {
+  display: grid;
+  /* Explicit single column, not the implicit default: with no
+     grid-template-columns, the lone auto-sized implicit column takes its
+     content's own preferred (max-content) width rather than being locked
+     to this grid's own 100vw. .presentation-header is itself a 3-column
+     grid whose preferred width varies with each story's title text — for
+     three of the four starters that preferred width exceeded the
+     viewport, so the header silently rendered wider than its parent and
+     had its right edge (Exit presentation) clipped by the overflow:
+     hidden below, with no scrollbar to reveal it. Locking the column to
+     minmax(0, 1fr) forces every row (header, stage, nav) to negotiate
+     within the true 100vw budget instead of growing past it. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 68px minmax(0, 1fr) 64px;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--map-ink);
+  background: var(--map-canvas);
+  outline: none;
+}
+
+.presentation-header {
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(150px, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--map-presentation-divider);
+  background: var(--map-presentation-chrome-bg);
+}
+
+/* Grid items default to min-width: auto, which refuses to shrink a track
+   below the item's own max-content size. .presentation-title's h1 has no
+   wrap/ellipsis constraint, so without this override each story's own
+   title text (a fixed string, "RMD & Withholding" vs "Retirement Income")
+   was silently resizing this 1fr column — and, by squeezing the leftover
+   space split with the equally-flexible actions column, pushing Exit
+   presentation past the viewport at 1180/1280 for three of the four
+   starters even though the grid's own minmax(280px, 1fr) floor was never
+   the binding constraint. min-width: 0 restores the intended
+   content-independent 1fr split; every authored title comfortably fits
+   the generous share that split leaves it. */
+.presentation-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.presentation-title .brand-mark {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+.presentation-title h1 {
+  margin: 1px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.presentation-meta {
+  display: grid;
+  gap: 2px;
+  color: var(--map-text-secondary);
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.presentation-exit,
+.presentation-overview,
+.presentation-dots button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--map-button-border);
+  border-radius: 999px;
+  color: var(--map-button-ink);
+  background: var(--map-presentation-control-bg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.presentation-exit {
+  justify-self: end;
+  min-height: 44px;
+  padding: 7px 14px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.presentation-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--map-canvas);
+}
+
+.money-map-canvas--presentation {
+  /* No in-stage chrome to clear here, and the authoring reserve costs enough
+     fit scale to push rendered type under its tested legibility floor.
+     fitView's own padding argument does the framing instead. */
+  padding: 0;
+  background-color: var(--map-canvas);
+  background-image: none;
+  pointer-events: none;
+}
+
+/* Presentation inherits the authored type ramp and 20px inset verbatim: the
+   composed card IS the output. Legibility is a camera property — fitStep()
+   frames each story step's participants — never a typography property.
+   Inflating type against fixed authored card geometry is what collapsed the
+   12/13/23 hierarchy, pushed values flush to the border, and drove labels
+   into the row rules. Only interaction and story emphasis change below. */
+.money-map-presentation .money-map-module {
+  cursor: default;
+  transition:
+    opacity 200ms ease-out,
+    filter 200ms ease-out,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+/* Story focus reads as editorial emphasis, not editor selection: the
+   focused module gains presence through elevation (a lifted cast shadow),
+   weight (translateY), and surface warmth (a light saturation lift) rather
+   than the double accent ring used for canvas selection. No accent-colored
+   outline, so it never reads as "something is selected in the software."
+   The redundant [data-primitive] bumps specificity above the per-theme
+   [data-primitive="…"] box-shadow rules in themes.css (loaded after this
+   file), which otherwise tie and win on source order for shapes like
+   ledger that set their own box-shadow. */
+.money-map-presentation .money-map-module[data-presentation-focus="true"][data-primitive] {
+  box-shadow:
+    0 10px 20px var(--map-presentation-focus-shadow),
+    0 28px 48px var(--map-presentation-focus-shadow);
+  filter: saturate(1.12);
+  transform: translateY(-4px);
+}
+
+/* Focused story steps: participants stay at full strength, everything else
+   quietly recedes so a step reads as its own view instead of Overview plus
+   a highlight. Geometry is untouched — only opacity/saturation change.
+   Lowered from 0.3 (ghosted-but-still-readable) so non-focused content
+   recedes cleanly instead of competing with the focused participants. */
+.money-map-presentation .money-map-module[data-presentation-dim="true"] {
+  opacity: 0.15;
+  filter: saturate(0.5);
+}
+
+.money-map-presentation .react-flow__edge.presentation-focus .money-map-relationship-path {
+  stroke: var(--map-accent);
+  stroke-width: 3;
+}
+
+.money-map-presentation .react-flow__edge,
+.money-map-presentation .money-map-relationship-casing {
+  transition:
+    opacity 200ms ease-out,
+    filter 200ms ease-out;
+}
+
+.money-map-presentation .react-flow__edge.presentation-dim {
+  opacity: 0.15;
+  filter: saturate(0.5);
+}
+
+/* Presentation sheds the cadence/detail lines below, so a label is a single
+   line of authored text and nowrap keeps it that way. Everything else — the
+   grid stack, 96px floor, 6px 10px inset, 12px strong — is inherited from
+   authoring, so a label reads identically in both modes.
+   The plain-treatment canvas knockout is no longer restated here: it now
+   lives unscoped at .money-map-flow-label-wrap[data-treatment="plain"]
+   above and applies to both modes. */
+.money-map-presentation .money-map-flow-label {
+  cursor: default;
+  white-space: nowrap;
+  transition:
+    font-weight 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+/* Same editorial-emphasis grammar as the module focus treatment above:
+   weight and a lifted shadow read as "this is the labeled figure the story
+   is on," without borrowing the accent outline canvas selection uses. */
+.money-map-presentation
+  .money-map-flow-label-wrap[data-presentation-focus="true"]
+  .money-map-flow-label {
+  box-shadow: 0 10px 22px var(--map-label-shadow);
+  font-weight: 760;
+  transform: translateY(-2px);
+}
+
+.money-map-presentation .money-map-flow-label-wrap {
+  transition:
+    opacity 200ms ease-out,
+    filter 200ms ease-out;
+}
+
+.money-map-presentation .money-map-flow-label-wrap[data-presentation-dim="true"] {
+  opacity: 0.15;
+  filter: saturate(0.5);
+}
+
+/* Presentation sheds the label's cadence and detail lines — a presented flow
+   is named, not annotated — but the remaining strong keeps its authored
+   12px. This is the only content presentation removes. */
+.money-map-presentation .money-map-flow-label span,
+.money-map-presentation .money-map-flow-label small {
+  display: none;
+}
+
+/* A text primitive is pure annotation: its header carries no authored
+   content in presentation, so the note becomes the whole object. */
+.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__header {
+  display: none;
+}
+
+.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__note {
+  margin: 0;
+}
+
+.presentation-nav {
+  z-index: 10;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  border-top: 1px solid var(--map-presentation-divider);
+  background: var(--map-presentation-chrome-bg);
+}
+
+.presentation-overview {
+  min-width: 96px;
+  padding: 6px 14px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.presentation-step-copy {
+  display: grid;
+  min-width: 250px;
+  gap: 1px;
+  text-align: center;
+}
+
+.presentation-step-copy strong {
+  overflow: hidden;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presentation-step-copy span {
+  color: #6e685d;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.presentation-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.presentation-dots button {
+  position: relative;
+  border-color: transparent;
+  background: transparent;
+}
+
+.presentation-dots button::after {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #6d685d;
+  border-radius: 50%;
+  background: var(--map-presentation-control-bg);
+  content: "";
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+.presentation-overview[aria-current="step"],
+.presentation-dots button[aria-current="step"] {
+  border-color: var(--map-accent);
+  box-shadow: 0 0 0 2px var(--map-accent);
+}
+
+.presentation-dots button[aria-current="step"]::after {
+  border-color: var(--map-accent);
+  background: var(--map-accent);
+}
+
+.presentation-exit:focus-visible,
+.presentation-overview:focus-visible,
+.presentation-dots button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-map-presentation .money-map-module,
+  .money-map-presentation .money-map-flow-label,
+  .money-map-presentation .money-map-flow-label-wrap,
+  .money-map-presentation .react-flow__edge,
+  .money-map-presentation .money-map-relationship-path,
+  .money-map-presentation .money-map-relationship-casing {
+    transition: none !important;
+  }
+}
+
+/* Presentation camera recovery lives in the bottom chrome bar, never over the
+   stage, so it can never collide with authored story content. */
+.money-map-presentation .canvas-controls {
+  position: static;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+/* .presentation-rail (teaching.css) has flex: 1 1 auto and grows to fill
+   whatever room the toolbar leaves, so a plain margin-left: auto on the
+   toolbar has no free space left to consume — the rail already claims it
+   all. Taking the toolbar out of that flex flow entirely (absolute,
+   anchored to the nav's right edge) makes the rail's box the nav's full
+   width regardless of the toolbar's button count, so its own centered
+   step pills stop shifting. The reserved padding-right clears the
+   toolbar's widest (5-button: zoom trio + Fit story + Fit step) footprint
+   so the rail's rightmost pill never runs under it. */
+.presentation-nav {
+  position: relative;
+}
+
+/* Measured toolbar width is 210px at every supported viewport; 360px
+   reserved 150px of rail the step names could have used. */
+.presentation-nav .presentation-rail {
+  padding-right: 240px;
+}
+
+.money-map-presentation .canvas-controls {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-map-presentation .canvas-controls * {
+    transition: none !important;
+  }
+}
+
+/* Overrides teaching.css's .presentation-rail__step base rule (not owned by
+   this file). Its word-safe clamp — display:-webkit-box;
+   -webkit-box-orient:vertical; -webkit-line-clamp:1 — does not engage in
+   current Chromium: computed display resolves to flow-root and
+   CSS.supports("line-clamp","1") is false, so the pill falls back to
+   normal wrapping inside a fixed max-width with overflow:hidden, clipping
+   text.overflow.mid-phrase with the second line sitting on the pill's own
+   rounded border. Two adjacent steps ("Reserve withdrawals" / "Reserve
+   replenishment") then both render as the identical fragment "Reserve...",
+   an advisor-facing comprehension failure, not just a clipping one.
+   A compound selector (two classes) here outranks teaching.css's
+   single-class rule on specificity regardless of load order, so this
+   fixes the rendering without editing a file this stylesheet does not own.
+   Single-line text-overflow: ellipsis is a mechanism that actually works;
+   the wider floor (vs. the base rule's 100px) keeps neighboring steps
+   that share a first word from truncating to the same fragment.
+
+   The cap is deliberately larger than the longest authored step name
+   ("Direct qualified charitable distribution", ~284px) so it never
+   truncates a name that the rail actually had room for: at 1920 the rail
+   is 1880px wide against a 210px toolbar and the old 168px cap still
+   clipped five of six chips, which is a fixed ceiling masquerading as a
+   space constraint. Flex shrink on .presentation-rail__item now decides
+   when a name gives way, so ellipsis appears only where the viewport
+   genuinely cannot seat the story's full spine. */
+.money-map-presentation .presentation-rail__step {
+  display: block;
+  overflow: hidden;
+  min-width: 64px;
+  max-width: 300px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+}
+
+/* The active step is what the advisor and client read together while
+   presenting — it must render in full, never truncated. Cancels this
+   file's own overflow:hidden/max-width above for the current step only;
+   teaching.css's own active-step rule (width: max-content, flex-shrink: 0)
+   already sizes the pill to its full text. */
+.money-map-presentation .presentation-rail__step[aria-current="step"] {
+  overflow: visible;
+  max-width: 60vw;
+}

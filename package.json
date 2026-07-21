@@ -1,23 +1,48 @@
 {
-  "name": "money-map",
+  "name": "cairn-money-map",
   "version": "0.1.0",
   "private": true,
-  "description": "Desktop advisor meeting canvas for visualizing accounts and money movement.",
+  "description": "A presentation-quality financial story canvas for advisors.",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
   "scripts": {
-    "dev": "http-server -p 54217 --silent",
-    "audit:layout": "node tests/audit/inspect-layout.js",
-    "audit:layout:strict": "node tests/audit/inspect-layout.js --strict",
-    "test": "playwright test",
-    "test:full": "playwright test",
-    "test:attack": "playwright test --project=chromium-1440",
-    "test:attack:headed": "playwright test --project=chromium-1440 --headed",
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit --pretty false",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "test:visual": "playwright test --project=screenshots",
-    "test:visual:update": "playwright test --project=screenshots --update-snapshots"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run check:pages && npm run test:e2e",
+    "check:pages": "node tools/check-pages-build.mjs"
+  },
+  "dependencies": {
+    "@xyflow/react": "12.11.2",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.45.0",
-    "http-server": "^14.1.1"
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.61.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "eslint": "10.7.0",
+    "globals": "17.7.0",
+    "jsdom": "29.1.1",
+    "prettier": "3.9.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
   }
 }

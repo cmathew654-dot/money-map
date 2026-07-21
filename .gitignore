@@ -1,16 +1,23 @@
 # Node
 node_modules/
 npm-debug.log*
+*.log
+dist/
+coverage/
 
 # Audit harness output (investigation only, not test artifacts)
 tests/audit/screenshots/
 tests/e2e/verification-screenshots/
 audit-screenshots/
 
+# Agent workflow state
+.superpowers/
+
 # Editor / OS
 .vscode/
 .idea/
 .claude/
+.impeccable/
 .DS_Store
 Thumbs.db
 
@@ -26,3 +33,7 @@ playwright/.cache/
 
 # Archives
 *.zip
+
+# Local project and agent context
+PROJECT.md
+AGENTS.md
