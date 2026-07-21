@@ -284,6 +284,10 @@ test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow
   await page.getByRole("button", { name: "Draw flow" }).click();
   await expect(page.getByRole("complementary", { name: "Draw flow" })).toBeVisible();
   await page.getByRole("button", { name: /Core lifestyle/ }).click();
+  // The picker path lands as a resting pill too; renaming is a double-click.
+  const newPill = page.locator("button.money-map-flow-label").filter({ hasText: /New transfer/ });
+  await expect(newPill).toBeVisible();
+  await newPill.dblclick();
   const relationshipLabel = page.getByRole("textbox", { name: "Edit relationship label" });
   await relationshipLabel.fill("Advisor-authored relationship — exact");
   await relationshipLabel.press("Enter");
@@ -427,6 +431,14 @@ test("draws a relationship by dragging a visible port onto an existing module", 
   });
   await page.mouse.up();
 
+  // A drawn relationship lands as its resting pill, selected — no editor
+  // erupts. Renaming is the same double-click every other edit uses.
+  const restingLabel = page.getByRole("button", {
+    name: /relationship from annuity-source to annuity-policy/i,
+  });
+  await expect(restingLabel).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Edit relationship label" })).toHaveCount(0);
+  await restingLabel.dblclick();
   const label = page.getByRole("textbox", { name: "Edit relationship label" });
   await expect(label).toBeFocused();
   await label.fill("Direct port relationship — exact");
@@ -465,6 +477,14 @@ test("completes a dragged connection released over the middle of a card", async 
   });
   await page.mouse.up();
 
+  // A drawn relationship lands as its resting pill, selected — no editor
+  // erupts. Renaming is the same double-click every other edit uses.
+  const restingLabel = page.getByRole("button", {
+    name: /relationship from annuity-source to annuity-policy/i,
+  });
+  await expect(restingLabel).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Edit relationship label" })).toHaveCount(0);
+  await restingLabel.dblclick();
   const label = page.getByRole("textbox", { name: "Edit relationship label" });
   await expect(label).toBeFocused();
   await label.fill("Card-body drop relationship — exact");

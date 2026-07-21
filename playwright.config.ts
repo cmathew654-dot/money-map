@@ -45,7 +45,11 @@ export default defineConfig({
     // standalone `npx playwright test` can never serve a stale dist.
     command: `npm run build && npm run preview -- --port ${port}`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse: on Windows an orphaned preview can outlive its parent and
+    // serve a stale bundle, which produced two false-green e2e runs on
+    // 2026-07-21 (one shipped to CI). A fresh build+server per run is the
+    // only result worth trusting.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [
