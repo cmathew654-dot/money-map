@@ -43,6 +43,8 @@ import { PresentationShell } from "./PresentationShell";
 import {
   findOpenModulePlacement,
   positionEditorSurface,
+  SURFACE_HEADER_FLOOR,
+  SURFACE_MARGIN,
   type EditorSurfacePosition,
   type PlacementViewport,
 } from "./surfacePosition";
@@ -362,6 +364,39 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     if (!propertiesTab && !drawFlowOpen) return;
     placeSurface(propertiesTab === "appearance" ? undefined : propertiesContentSize);
   }, [selectedModuleId]);
+
+  // The two tabs have different height budgets (Content 250px, Appearance the
+  // 400px default), and positionEditorSurface clamps `top` against the budget
+  // it is given. Switching tabs only changed which panel rendered, so a
+  // surface opened on Content kept Content's clamp: for a module low in the
+  // canvas that leaves `top` up to 150px further down than Appearance's
+  // budget allows, running its bottom off the viewport. Re-place on the tab
+  // that is actually about to render. Keyed on propertiesTab alone so it
+  // re-anchors once per tab change, matching the selection effect above.
+  useEffect(() => {
+    if (!selectedModuleId || !propertiesTab) return;
+    placeSurface(propertiesTab === "appearance" ? undefined : propertiesContentSize);
+  }, [propertiesTab]);
+
+  // The height budgets above are declarations, not measurements — Content
+  // declares 250px and renders 274px — so positionEditorSurface can clamp
+  // against a number the panel does not honour and still leave it hanging
+  // past the viewport. Rather than keep re-tuning the constants (the same
+  // drift that produced the tab-switch bug), correct against what actually
+  // rendered. Settles in one pass: the corrected top produces no overflow,
+  // so the guard returns early on the next run rather than oscillating.
+  useEffect(() => {
+    if (!surfacePosition) return;
+    const surface = document.querySelector<HTMLElement>(
+      ".advanced-properties, .relationship-properties, .flow-target-picker",
+    );
+    if (!surface) return;
+    const overflow = surface.getBoundingClientRect().bottom - (window.innerHeight - SURFACE_MARGIN);
+    if (overflow <= 0) return;
+    const top = Math.max(SURFACE_HEADER_FLOOR, surfacePosition.top - overflow);
+    if (top === surfacePosition.top) return;
+    setSurfacePosition({ ...surfacePosition, top });
+  }, [surfacePosition, propertiesTab, relationshipOpen, drawFlowOpen]);
 
   // Same re-anchoring for relationship properties: it stays open across a plain
   // click on a different flow (see the `selectedFlowId` effect above), so its

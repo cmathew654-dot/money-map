@@ -1725,8 +1725,10 @@
   position: relative;
 }
 
+/* Measured toolbar width is 210px at every supported viewport; 360px
+   reserved 150px of rail the step names could have used. */
 .presentation-nav .presentation-rail {
-  padding-right: 360px;
+  padding-right: 240px;
 }
 
 .money-map-presentation .canvas-controls {
@@ -1759,12 +1761,21 @@
    fixes the rendering without editing a file this stylesheet does not own.
    Single-line text-overflow: ellipsis is a mechanism that actually works;
    the wider floor (vs. the base rule's 100px) keeps neighboring steps
-   that share a first word from truncating to the same fragment. */
+   that share a first word from truncating to the same fragment.
+
+   The cap is deliberately larger than the longest authored step name
+   ("Direct qualified charitable distribution", ~284px) so it never
+   truncates a name that the rail actually had room for: at 1920 the rail
+   is 1880px wide against a 210px toolbar and the old 168px cap still
+   clipped five of six chips, which is a fixed ceiling masquerading as a
+   space constraint. Flex shrink on .presentation-rail__item now decides
+   when a name gives way, so ellipsis appears only where the viewport
+   genuinely cannot seat the story's full spine. */
 .money-map-presentation .presentation-rail__step {
   display: block;
   overflow: hidden;
   min-width: 64px;
-  max-width: 168px;
+  max-width: 300px;
   white-space: nowrap;
   text-overflow: ellipsis;
   -webkit-line-clamp: unset;

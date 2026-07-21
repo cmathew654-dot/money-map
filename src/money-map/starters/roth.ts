@@ -62,7 +62,7 @@ const modules: MoneyMapModule[] = [
     primitive: "roundel",
     position: { x: 430, y: 420 },
     width: 250,
-    height: 180,
+    height: 210,
     rotation: 0,
     priority: "standard",
     density: "standard",

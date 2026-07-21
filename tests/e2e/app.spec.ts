@@ -829,3 +829,53 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   ).toBeVisible();
   await page.evaluate(() => localStorage.clear());
 });
+
+// positionEditorSurface clamps `top` against the height budget it is handed,
+// and the two properties tabs declare different budgets (Content 250px,
+// Appearance the 400px default). Switching tabs used to re-render the panel
+// without re-placing it, so Appearance inherited Content's clamp and its
+// bottom ran off the viewport for a module low in the canvas. The budgets are
+// also declarations rather than measurements — Content renders 274px, not the
+// 250px it declares — so both tabs are asserted against the real box.
+test("properties surface stays on screen across tab switches for a low module", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/ }).click();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+
+  const lowestModuleId = await page.evaluate(
+    () =>
+      [...document.querySelectorAll<HTMLElement>(".react-flow__node")].sort(
+        (first, second) =>
+          second.getBoundingClientRect().bottom - first.getBoundingClientRect().bottom,
+      )[0]?.dataset.id,
+  );
+  expect(lowestModuleId).toBeTruthy();
+  await page.locator(`.react-flow__node[data-id="${lowestModuleId}"]`).click();
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("more properties");
+  await page.getByRole("option", { name: "More properties", exact: true }).click();
+
+  const panel = page.locator(".advanced-properties");
+  await expect(panel).toBeVisible();
+
+  const bottomOf = async () => panel.evaluate((element) => element.getBoundingClientRect().bottom);
+
+  expect(await bottomOf(), "Content tab hangs past the viewport").toBeLessThanOrEqual(720);
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  await expect(page.getByRole("tab", { name: "Appearance" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  expect(await bottomOf(), "Appearance tab hangs past the viewport").toBeLessThanOrEqual(720);
+  await page.getByRole("tab", { name: "Content" }).click();
+  expect(await bottomOf(), "Content tab hangs past the viewport on return").toBeLessThanOrEqual(
+    720,
+  );
+  await page.evaluate(() => localStorage.clear());
+});

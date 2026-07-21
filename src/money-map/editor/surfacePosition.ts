@@ -23,8 +23,14 @@ export interface EditorSurfacePosition {
   side: "left" | "right" | "clamped";
 }
 
-const margin = 16;
-const headerFloor = 88;
+/** Viewport inset every anchored surface keeps. Exported so callers
+ *  correcting a placement against a measured height use the same value. */
+export const SURFACE_MARGIN = 16;
+/** Lowest `top` a surface may be lifted to: clears the editor header. */
+export const SURFACE_HEADER_FLOOR = 88;
+
+const margin = SURFACE_MARGIN;
+const headerFloor = SURFACE_HEADER_FLOOR;
 const defaultSize: SurfaceSize = { width: 352, height: 400 };
 
 function clamp(value: number, minimum: number, maximum: number): number {

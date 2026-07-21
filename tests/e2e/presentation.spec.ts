@@ -13,6 +13,52 @@ const viewports = [
   { width: 1920, height: 1080 },
 ] as const;
 
+interface CameraState {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+/**
+ * Reads the presentation camera once it has stopped moving.
+ *
+ * fitStep()/fitView animate for 220ms and re-register a resize listener on
+ * every step change, so camera assertions used to sleep a fixed 400ms and
+ * hope the animation had finished — the classic ingredient of a flake, and
+ * one that was masked rather than fixed by enabling local retries. Polling
+ * until two consecutive reads agree waits exactly as long as the machine
+ * needs, and fails loudly if the camera never settles.
+ */
+async function settledCamera(page: Page): Promise<CameraState> {
+  const read = (): Promise<CameraState> =>
+    page.locator(".react-flow__viewport").evaluate((element) => {
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+      return { x: matrix.e, y: matrix.f, scale: matrix.a };
+    });
+
+  let previous = await read();
+  let stableRuns = 0;
+  await expect
+    .poll(
+      async () => {
+        const current = await read();
+        const stable =
+          Math.abs(current.x - previous.x) < 0.5 &&
+          Math.abs(current.y - previous.y) < 0.5 &&
+          Math.abs(current.scale - previous.scale) < 0.001;
+        previous = current;
+        // Two consecutive stable reads, not one. A single comparison can be
+        // satisfied by a camera that has not started animating yet, which
+        // would return the pre-move framing and read as "never reframed".
+        stableRuns = stable ? stableRuns + 1 : 0;
+        return stableRuns >= 2;
+      },
+      { timeout: 5000, intervals: [100] },
+    )
+    .toBe(true);
+  return previous;
+}
+
 async function openPresentation(page: Page, story: (typeof stories)[number]) {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -179,24 +225,38 @@ test("story steps reframe the camera automatically without clicking Fit story", 
   page,
 }) => {
   await openPresentation(page, "Retirement Income");
-  await page.waitForTimeout(400);
-  const readTransform = () =>
-    page.locator(".react-flow__viewport").evaluate((element) => element.style.transform);
 
-  const overviewTransform = await readTransform();
+  const overview = await settledCamera(page);
 
   await page.locator(".presentation-rail__step").nth(1).click();
-  await page.waitForTimeout(400);
-  const stepTransform = await readTransform();
   // This is what would have caught defect 4: the camera must visibly move
   // onto the step's participants, not silently keep the Overview framing.
-  expect(stepTransform).not.toBe(overviewTransform);
+  // Polled on the distance itself rather than sampled once after a settle,
+  // so the assertion waits for the reframe instead of racing its start, and
+  // measured in pixels/scale rather than by string inequality.
+  const distanceFrom = (from: CameraState) =>
+    page.locator(".react-flow__viewport").evaluate((element, origin) => {
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+      return (
+        Math.abs(matrix.e - origin.x) +
+        Math.abs(matrix.f - origin.y) +
+        Math.abs(matrix.a - origin.scale) * 1000
+      );
+    }, from);
+
+  await expect
+    .poll(() => distanceFrom(overview), { timeout: 5000, intervals: [100] })
+    .toBeGreaterThan(10);
+  await settledCamera(page);
 
   await page.getByRole("button", { name: "Overview" }).click();
-  await page.waitForTimeout(400);
-  const overviewTransformAgain = await readTransform();
-  // Overview always fits the whole story back.
-  expect(overviewTransformAgain).toBe(overviewTransform);
+  // Overview always fits the whole story back. Polled and compared with a
+  // tolerance: this is a float matrix produced by an animated fitView, and
+  // asserting exact equality on its serialised form made a real behavioural
+  // check hostage to sub-pixel rounding.
+  await expect
+    .poll(() => distanceFrom(overview), { timeout: 5000, intervals: [100] })
+    .toBeLessThan(2);
 });
 
 test("author shortcuts cannot mutate a selected document behind presentation", async ({ page }) => {
@@ -227,7 +287,9 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     for (const story of stories) {
       await openPresentation(page, story);
-      await page.waitForTimeout(300);
+      // Every measurement below is scale-dependent, so read them against a
+      // camera that has finished animating rather than a fixed sleep.
+      await settledCamera(page);
       const audit = await page.locator(".money-map-presentation").evaluate((shell) => {
         const stage = shell
           .querySelector<HTMLElement>(".presentation-stage")
@@ -391,10 +453,23 @@ for (const viewport of viewports) {
             : [];
         });
         // Ellipse-aware containment: a roundel's content box is a rectangle,
-        // but the module renders as an ellipse inscribed in that rectangle.
-        // Sample each text element's corners against the inscribed ellipse
-        // instead of the rectangle so text tucked in a corner (geometrically
-        // outside the ellipse, inside the box) is still caught.
+        // but the module renders as an ellipse inscribed in that rectangle,
+        // so text tucked in a corner is inside the box and outside the shape.
+        //
+        // This samples text INK, not element boxes. An element's
+        // getBoundingClientRect is the block box — full content width
+        // regardless of how short the text is — plus line-height leading
+        // above and below the glyphs. Measuring that overstates the ink so
+        // badly that containment could only be expressed as a tolerance
+        // (previously <= 1.46, a ~3% band against the known-bad value, on a
+        // quantity sensitive to font loading and line-height rounding: a
+        // font-version bump flipped it either way with no real change).
+        //
+        // Range.getClientRects returns one rect per rendered LINE, width
+        // being the actual text advance. Insetting each to its em box drops
+        // the half-leading. What remains is close enough to real ink that
+        // the assertion is plain geometric containment (<= 1) with no
+        // tolerance to calibrate. Authored worst case measures 0.918.
         const roundelTextOverflow = [
           ...shell.querySelectorAll<HTMLElement>('.money-map-module[data-primitive="roundel"]'),
         ].flatMap((roundel) => {
@@ -404,23 +479,10 @@ for (const viewport of viewports) {
           const rx = box.width / 2;
           const ry = box.height / 2;
           if (rx === 0 || ry === 0) return [];
-          const insideEllipse = (x: number, y: number) => {
+          const outside = (x: number, y: number) => {
             const nx = (x - cx) / rx;
             const ny = (y - cy) / ry;
-            // 46% tolerance: a text element's measured bounding box includes
-            // line-height/leading around the glyphs, which pads it past the
-            // visible ink, so a pure-geometric ellipse test always reports
-            // some overshoot even when nothing visibly crosses the stroke
-            // (verified by direct screenshot on every flagged case below
-            // this threshold). Calibrated against the actual unpadded
-            // defect (roundel content with no ellipse-aware inset at all):
-            // that measures ~1.50-1.52 consistently across every starter.
-            // 1.46 sits clear of that floor so a real regression back
-            // toward "no inscribing padding" still fails, while accepting
-            // the bounding-box slack on today's single most content-dense
-            // authored roundel (eyebrow + 2-line title + row + 4-line note
-            // in a 250x180 card).
-            return nx * nx + ny * ny <= 1.46;
+            return nx * nx + ny * ny > 1;
           };
           const textElements = [
             ...roundel.querySelectorAll<HTMLElement>(
@@ -428,17 +490,24 @@ for (const viewport of viewports) {
             ),
           ];
           return textElements.flatMap((element) => {
-            const textBox = element.getBoundingClientRect();
-            if (textBox.width === 0 || textBox.height === 0) return [];
-            const corners: Array<[number, number]> = [
-              [textBox.left, textBox.top],
-              [textBox.right, textBox.top],
-              [textBox.left, textBox.bottom],
-              [textBox.right, textBox.bottom],
-            ];
-            return corners.some(([x, y]) => !insideEllipse(x, y))
-              ? [`${roundel.getAttribute("data-kind") ?? ""}:${element.textContent ?? ""}`]
-              : [];
+            const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            return [...range.getClientRects()].flatMap((line) => {
+              if (line.width === 0 || line.height === 0) return [];
+              const leading = Math.max(0, (line.height - fontSize) / 2);
+              const top = line.top + leading;
+              const bottom = line.bottom - leading;
+              const corners: Array<[number, number]> = [
+                [line.left, top],
+                [line.right, top],
+                [line.left, bottom],
+                [line.right, bottom],
+              ];
+              return corners.some(([x, y]) => outside(x, y))
+                ? [`${roundel.getAttribute("data-kind") ?? ""}:${element.textContent ?? ""}`]
+                : [];
+            });
           });
         });
         return {
@@ -555,7 +624,7 @@ for (const viewport of viewports) {
       // step's participants, which is what buys legibility here.
       await page.getByRole("main", { name: `${story} presentation` }).press("ArrowRight");
       await expect(page.locator("[aria-current='step']")).toHaveCount(1);
-      await page.waitForTimeout(600);
+      await settledCamera(page);
 
       const audit = await page.locator(".money-map-presentation").evaluate((shell) => {
         const viewportElement = shell.querySelector<HTMLElement>(".react-flow__viewport");
@@ -758,6 +827,34 @@ for (const viewport of viewports) {
     expect(geometry.overlapsContent, JSON.stringify(geometry)).toBe(false);
     expect(geometry.overlapsToolbar).toBe(false);
     expect(geometry.overlapsRail).toBe(false);
+  });
+}
+
+// The step names are the advisor's narrative spine and the only navigation
+// in presentation, so a chip must not truncate while the rail still has room
+// for it. A fixed max-width cap did exactly that: at 1920, with a 1880px rail
+// and a 210px toolbar, five of six chips still clipped. Asserted from 1440 up
+// — at 1280 the three verbose stories genuinely exceed the rail, and ellipsis
+// there is a real constraint rather than a self-inflicted ceiling.
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+] as const) {
+  test(`shows every story step name in full at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    for (const story of stories) {
+      await openPresentation(page, story);
+      const clipped = await page
+        .locator(".presentation-nav")
+        .evaluate((nav) =>
+          [...nav.querySelectorAll<HTMLElement>(".presentation-rail__step")]
+            .filter((chip) => chip.scrollWidth > chip.clientWidth + 1)
+            .map((chip) => chip.textContent),
+        );
+      expect(clipped, `${story} truncated step names`).toEqual([]);
+    }
   });
 }
 
