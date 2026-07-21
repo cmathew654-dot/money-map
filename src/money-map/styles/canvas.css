@@ -405,6 +405,28 @@
   pointer-events: none;
 }
 
+/* A selected relationship shows its full anatomy; the endpoint grips are the
+   re-anchor affordance. React Flow ships these circles fully transparent —
+   46px of grab area, zero pixels drawn — so re-anchoring meant dragging
+   blind. The hit area stays the library's; only the drawing changes. */
+.react-flow__edgeupdater {
+  r: 7px;
+  fill: var(--map-accent);
+  stroke: var(--map-surface);
+  stroke-width: 2.5px;
+  cursor: grab;
+}
+
+/* The rubber band for any connection or re-anchor drag. The library default
+   is 1px light grey — indistinguishable from the canvas, so failed drops read
+   as random reverts instead of missed targets. */
+.react-flow__connection-path {
+  stroke: var(--map-accent);
+  stroke-width: 1.75px;
+  stroke-dasharray: 6 4;
+  fill: none;
+}
+
 .money-map-handle-surface.connectionindicator {
   pointer-events: all;
 }

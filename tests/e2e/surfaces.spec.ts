@@ -235,3 +235,54 @@ test("the selected-flow toolbar lands on screen for a relationship created by dr
 
   await page.evaluate(() => localStorage.clear());
 });
+
+// A selected relationship must show its re-anchor grips and preview a drag.
+// React Flow ships the edgeupdater circles fully transparent — 46px of grab
+// area, zero pixels drawn — and its default connection line is 1px light grey,
+// invisible on this canvas. Users re-anchored blind and read failed drops as
+// random reverts.
+test("a selected relationship draws its endpoint grips and previews a reconnect drag", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
+  await settledCanvasCamera(page);
+
+  await page
+    .getByRole("button", { name: /planned relationship from annuity-source to annuity-plan/i })
+    .click();
+
+  const updaters = page.locator(".react-flow__edgeupdater");
+  await expect(updaters).toHaveCount(2);
+  for (const updater of await updaters.all()) {
+    const paint = await updater.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { fill: style.fill, stroke: style.stroke };
+    });
+    expect(paint.fill, "endpoint grip must be drawn, not transparent").not.toBe("rgba(0, 0, 0, 0)");
+    expect(paint.fill).not.toBe("none");
+    expect(paint.stroke).not.toBe("rgba(0, 0, 0, 0)");
+  }
+
+  const grip = updaters.first();
+  const gripBox = await grip.boundingBox();
+  if (!gripBox) throw new Error("Expected grip geometry");
+  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gripBox.x + 120, gripBox.y + 90, { steps: 6 });
+
+  const preview = page.locator(".react-flow__connection-path");
+  // Not toBeVisible: a near-straight svg path has a zero-height bounding box,
+  // which Playwright reports as hidden even while it paints on screen.
+  await expect(preview, "a reconnect drag must render a rubber band").toHaveCount(1);
+  await expect(preview).toHaveAttribute("d", /M.+C.+/);
+  const previewPaint = await preview.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { stroke: style.stroke, width: parseFloat(style.strokeWidth) };
+  });
+  expect(previewPaint.width).toBeGreaterThanOrEqual(1.5);
+  expect(previewPaint.stroke).not.toBe("rgb(177, 177, 183)");
+  await page.mouse.up();
+});
