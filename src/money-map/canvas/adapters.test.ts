@@ -227,4 +227,34 @@ describe("canvas document adapters", () => {
     ).toBe(true);
     expect(edges.find(({ id }) => id === step.flowIds[0])?.data?.presentationFocus).toBe(true);
   });
+
+  it("dims non-participating modules and relationships for a focused step, but not Overview", () => {
+    const document = createTestDocument();
+    const step = {
+      id: "focus",
+      title: "Focused state",
+      moduleIds: [document.modules[0].id],
+      flowIds: [document.flows[0].id],
+    };
+    const nodes = documentToNodes(document, { moduleIds: [], flowIds: [] }, step);
+    const edges = documentToEdges(document, { moduleIds: [], flowIds: [] }, "all", step);
+
+    expect(nodes.find(({ id }) => id === step.moduleIds[0])?.data.presentationDim).toBe(false);
+    expect(nodes.find(({ id }) => id !== step.moduleIds[0])?.data.presentationDim).toBe(true);
+    expect(edges.find(({ id }) => id === step.flowIds[0])?.data?.presentationDim).toBe(false);
+    const otherEdge = edges.find(({ id }) => id !== step.flowIds[0]);
+    expect(otherEdge?.data?.presentationDim).toBe(true);
+    expect(otherEdge?.className).toContain("presentation-dim");
+
+    const overviewStep = { ...step, moduleIds: [], flowIds: [] };
+    const overviewNodes = documentToNodes(document, { moduleIds: [], flowIds: [] }, overviewStep);
+    const overviewEdges = documentToEdges(
+      document,
+      { moduleIds: [], flowIds: [] },
+      "all",
+      overviewStep,
+    );
+    expect(overviewNodes.every(({ data }) => data.presentationDim === false)).toBe(true);
+    expect(overviewEdges.every(({ data }) => data?.presentationDim === false)).toBe(true);
+  });
 });

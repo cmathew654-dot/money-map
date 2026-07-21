@@ -109,7 +109,7 @@ describe("RMD & Withholding starter", () => {
     );
   });
 
-  it("covers every route, relationship, label treatment, cadence filter, and all six primitives", () => {
+  it("covers every route, relationship, cadence filter, and all six primitives", () => {
     const { modules, flows } = rmdStarter.document;
 
     expect(new Set(flows.map(({ route }) => route))).toEqual(
@@ -118,8 +118,11 @@ describe("RMD & Withholding starter", () => {
     expect(new Set(flows.map(({ relationship }) => relationship))).toEqual(
       new Set(["transfer", "planned"]),
     );
+    // Treatment follows relationship type (see starters.test.ts). This story
+    // is entirely transfers and planned instructions, so it has no filled
+    // label; requiring one is what made the treatments arbitrary.
     expect(new Set(flows.map(({ labelTreatment }) => labelTreatment))).toEqual(
-      new Set(["plain", "plate", "filled"]),
+      new Set(["plain", "plate"]),
     );
     expect(new Set(flows.map(({ cadence }) => cadence.kind))).toEqual(
       new Set(["monthly", "annual", "custom"]),
@@ -146,7 +149,7 @@ describe("RMD & Withholding starter", () => {
           target: "rmd-need",
           relationship: "transfer",
           route: "curved",
-          labelTreatment: "plain",
+          labelTreatment: "plate",
           cadence: { kind: "monthly", label: "Monthly" },
         }),
         expect.objectContaining({

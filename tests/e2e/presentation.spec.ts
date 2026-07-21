@@ -37,15 +37,22 @@ test("all four starters retain metadata and the same Overview plus five-step sys
       "aria-current",
       "step",
     );
-    await expect(page.getByRole("button", { name: /^Go to / })).toHaveCount(5);
+    // Overview plus five named steps in the rail.
+    await expect(page.locator(".presentation-rail__step")).toHaveCount(6);
 
     await page.keyboard.press("ArrowRight");
-    await expect(page.locator(".presentation-step-copy span")).toHaveText("Step 1 of 5");
+    await expect(page.locator(".presentation-rail__step").nth(1)).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
     await expect(page.locator(".money-map-presentation > [role='status']")).toContainText(
       "step 1 of 5",
     );
     await page.keyboard.press("Space");
-    await expect(page.locator(".presentation-step-copy span")).toHaveText("Step 2 of 5");
+    await expect(page.locator(".presentation-rail__step").nth(2)).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
   }
 });
 
@@ -55,7 +62,7 @@ test("presentation focus, tab order, direct navigation, and Escape stay presenta
   await openPresentation(page, "Retirement Income");
   await expect(page.getByRole("button", { name: /Actions/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Back to stories" })).toHaveCount(0);
-  await expect(page.getByRole("toolbar", { name: "Canvas camera" })).toHaveCount(0);
+  await expect(page.getByRole("toolbar", { name: "Canvas camera" })).toHaveCount(1);
   await expect(page.getByRole("toolbar", { name: /cadence/i })).toHaveCount(0);
   await expect(page.locator(".selection-halo, .advanced-properties, .add-menu")).toHaveCount(0);
 
@@ -66,22 +73,130 @@ test("presentation focus, tab order, direct navigation, and Escape stay presenta
         .filter((element) => element.tabIndex >= 0 && !element.hasAttribute("disabled"))
         .map((element) => element.getAttribute("aria-label") ?? element.textContent?.trim()),
     );
-  expect(tabbableLabels).toHaveLength(7);
-  expect(tabbableLabels.slice(0, 2)).toEqual(["Exit presentation", "Overview"]);
-  expect(tabbableLabels.slice(2).every((label) => label?.startsWith("Go to "))).toBe(true);
+  const railTitles = await page
+    .locator(".presentation-rail__step")
+    .evaluateAll((buttons) => buttons.map((button) => button.textContent?.trim()));
+  // The camera recovery toolbar is a deliberate, roving-tabindex addition:
+  // exactly one of its buttons is tabbable at a time. Tab order follows DOM
+  // order: the optional relationship-legend toggle (header chrome, closed by
+  // default so only its toggle is tabbable), then Exit, then the rail
+  // (Overview, then the five named steps), then the camera toolbar.
+  expect(tabbableLabels).toHaveLength(9);
+  expect(tabbableLabels[0]).toBe("Legend");
+  expect(tabbableLabels[1]).toBe("Exit presentation");
+  expect(tabbableLabels.slice(2, 8)).toEqual(railTitles);
+  expect(tabbableLabels[8]).toBe("Zoom out");
 
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Legend" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Exit presentation" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Overview" })).toBeFocused();
   await page.keyboard.press("Tab");
-  const firstStep = page.getByRole("button", { name: /^Go to / }).first();
+  const firstStep = page.locator(".presentation-rail__step").nth(1);
   await expect(firstStep).toBeFocused();
   await firstStep.press("Space");
   await expect(firstStep).toHaveAttribute("aria-current", "step");
 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Present" })).toBeFocused();
+});
+
+test("a focused step de-emphasizes non-participants without hiding them or moving the camera onto blank space", async ({
+  page,
+}) => {
+  await openPresentation(page, "Retirement Income");
+  const totalModules = await page.locator(".money-map-module").count();
+
+  // Overview shows everything at full strength: nothing is dimmed.
+  expect(await page.locator('.money-map-module[data-presentation-dim="true"]').count()).toBe(0);
+
+  await page.locator(".presentation-rail__step").nth(1).click();
+  await expect(page.locator(".presentation-rail__step").nth(1)).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await expect(page.locator(".money-map-presentation > [role='status']")).toContainText(
+    "step 1 of 5",
+  );
+
+  // This starter's first step focuses exactly two modules (income, need); every
+  // other authored module recedes, but none disappear from the DOM.
+  const focused = page.locator('.money-map-module[data-presentation-focus="true"]');
+  const dimmed = page.locator('.money-map-module[data-presentation-dim="true"]');
+  await expect(focused).toHaveCount(2);
+  await expect(dimmed).toHaveCount(totalModules - 2);
+
+  await expect(focused.first()).toHaveCSS("opacity", "1");
+  // Lowered from 0.3 to 0.15 (canvas.css) so non-focused content recedes
+  // cleanly instead of competing with the focused participants.
+  await expect(dimmed.first()).toHaveCSS("opacity", "0.15");
+  // Dimmed content still occupies its authored geometry (visual-only de-emphasis).
+  const dimmedBox = await dimmed.first().boundingBox();
+  expect(dimmedBox?.width ?? 0).toBeGreaterThan(0);
+  expect(dimmedBox?.height ?? 0).toBeGreaterThan(0);
+
+  // The camera reframed onto the step's participants: a focused module is
+  // visible on stage rather than left off-screen.
+  await expect(focused.first()).toBeInViewport();
+});
+
+test("presentation camera recovery controls and shortcuts restore a lost view", async ({
+  page,
+}) => {
+  await openPresentation(page, "Retirement Income");
+  const toolbar = page.getByRole("toolbar", { name: "Canvas camera" });
+  await expect(toolbar.getByRole("button", { name: "Zoom out" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Zoom in" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Fit story" })).toBeVisible();
+  const zoomLabel = toolbar.getByRole("button", { name: /Reset zoom to/ });
+
+  // The toolbar lives in the chrome bar, never overlapping the stage or its
+  // authored content (regression: it previously floated over bottom-right cards).
+  const toolbarBox = await toolbar.boundingBox();
+  const stageBox = await page.locator(".presentation-stage").boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(stageBox).not.toBeNull();
+  if (toolbarBox && stageBox) {
+    expect(toolbarBox.y >= stageBox.y + stageBox.height - 1).toBe(true);
+  }
+
+  await toolbar.getByRole("button", { name: "Zoom in" }).click();
+  await expect(zoomLabel).not.toHaveText("100%");
+
+  await toolbar.getByRole("button", { name: "Fit story" }).click();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+
+  // Ctrl/Cmd +/- work while the presentation shell (not the canvas) holds focus.
+  await page.getByRole("main", { name: "Retirement Income presentation" }).focus();
+  const before = await zoomLabel.textContent();
+  await page.keyboard.press("Control+=");
+  await expect(zoomLabel).not.toHaveText(before ?? "");
+});
+
+test("story steps reframe the camera automatically without clicking Fit story", async ({
+  page,
+}) => {
+  await openPresentation(page, "Retirement Income");
+  await page.waitForTimeout(400);
+  const readTransform = () =>
+    page.locator(".react-flow__viewport").evaluate((element) => element.style.transform);
+
+  const overviewTransform = await readTransform();
+
+  await page.locator(".presentation-rail__step").nth(1).click();
+  await page.waitForTimeout(400);
+  const stepTransform = await readTransform();
+  // This is what would have caught defect 4: the camera must visibly move
+  // onto the step's participants, not silently keep the Overview framing.
+  expect(stepTransform).not.toBe(overviewTransform);
+
+  await page.getByRole("button", { name: "Overview" }).click();
+  await page.waitForTimeout(400);
+  const overviewTransformAgain = await readTransform();
+  // Overview always fits the whole story back.
+  expect(overviewTransformAgain).toBe(overviewTransform);
 });
 
 test("author shortcuts cannot mutate a selected document behind presentation", async ({ page }) => {
@@ -256,6 +371,76 @@ for (const viewport of viewports) {
           );
           return values.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...values);
         };
+        // Ink-level check: a row's own label and value must never share ink,
+        // even if the row's outer box is fine. Rectangle intersection of the
+        // dt/dd elements themselves (not the row container) catches the
+        // "Balanc$185,000" overprint that box-overflow probes miss.
+        const rowInkOverlapPairs = [
+          ...shell.querySelectorAll<HTMLElement>(
+            ".money-map-module__row, .money-map-module__total > div",
+          ),
+        ].flatMap((row) => {
+          const label = row.querySelector<HTMLElement>("dt");
+          const value = row.querySelector<HTMLElement>("dd");
+          if (!label || !value) return [];
+          const labelBox = label.getBoundingClientRect();
+          const valueBox = value.getBoundingClientRect();
+          if (labelBox.width === 0 || valueBox.width === 0) return [];
+          return intersects(labelBox, valueBox)
+            ? [`${label.textContent ?? ""}/${value.textContent ?? ""}`]
+            : [];
+        });
+        // Ellipse-aware containment: a roundel's content box is a rectangle,
+        // but the module renders as an ellipse inscribed in that rectangle.
+        // Sample each text element's corners against the inscribed ellipse
+        // instead of the rectangle so text tucked in a corner (geometrically
+        // outside the ellipse, inside the box) is still caught.
+        const roundelTextOverflow = [
+          ...shell.querySelectorAll<HTMLElement>('.money-map-module[data-primitive="roundel"]'),
+        ].flatMap((roundel) => {
+          const box = roundel.getBoundingClientRect();
+          const cx = box.left + box.width / 2;
+          const cy = box.top + box.height / 2;
+          const rx = box.width / 2;
+          const ry = box.height / 2;
+          if (rx === 0 || ry === 0) return [];
+          const insideEllipse = (x: number, y: number) => {
+            const nx = (x - cx) / rx;
+            const ny = (y - cy) / ry;
+            // 46% tolerance: a text element's measured bounding box includes
+            // line-height/leading around the glyphs, which pads it past the
+            // visible ink, so a pure-geometric ellipse test always reports
+            // some overshoot even when nothing visibly crosses the stroke
+            // (verified by direct screenshot on every flagged case below
+            // this threshold). Calibrated against the actual unpadded
+            // defect (roundel content with no ellipse-aware inset at all):
+            // that measures ~1.50-1.52 consistently across every starter.
+            // 1.46 sits clear of that floor so a real regression back
+            // toward "no inscribing padding" still fails, while accepting
+            // the bounding-box slack on today's single most content-dense
+            // authored roundel (eyebrow + 2-line title + row + 4-line note
+            // in a 250x180 card).
+            return nx * nx + ny * ny <= 1.46;
+          };
+          const textElements = [
+            ...roundel.querySelectorAll<HTMLElement>(
+              ".money-map-module__header h2, .money-map-module__eyebrow, .money-map-module__subtitle, .money-map-module dt, .money-map-module dd, .money-map-module__note",
+            ),
+          ];
+          return textElements.flatMap((element) => {
+            const textBox = element.getBoundingClientRect();
+            if (textBox.width === 0 || textBox.height === 0) return [];
+            const corners: Array<[number, number]> = [
+              [textBox.left, textBox.top],
+              [textBox.right, textBox.top],
+              [textBox.left, textBox.bottom],
+              [textBox.right, textBox.bottom],
+            ];
+            return corners.some(([x, y]) => !insideEllipse(x, y))
+              ? [`${roundel.getAttribute("data-kind") ?? ""}:${element.textContent ?? ""}`]
+              : [];
+          });
+        });
         return {
           scale,
           overlaps,
@@ -263,6 +448,8 @@ for (const viewport of viewports) {
           contentOverflows,
           visualModulePairs,
           deepEndpointPairs,
+          rowInkOverlapPairs,
+          roundelTextOverflow,
           labelsBounded: labelEntries.every(
             ({ box }) =>
               box.left >= stage.left - 1 &&
@@ -318,6 +505,8 @@ for (const viewport of viewports) {
       expect(audit.visualModulePairs, story + " rendered module collisions").toEqual([]);
       expect(audit.deepEndpointPairs, story + " deep endpoint/label collisions").toEqual([]);
       expect(audit.overlaps, `${story} node collisions ${JSON.stringify(audit)}`).toBe(0);
+      expect(audit.rowInkOverlapPairs, `${story} row label/value ink overlap`).toEqual([]);
+      expect(audit.roundelTextOverflow, `${story} roundel text escapes ellipse`).toEqual([]);
       expect(
         audit.labelLabelOverlaps,
         `${story} label/label collisions ${JSON.stringify(audit)}`,
@@ -330,28 +519,85 @@ for (const viewport of viewports) {
         audit.unrelatedPathModuleIntersections,
         `${story} unrelated path/module intersections ${JSON.stringify(audit)}`,
       ).toBe(0);
+      // Overview is an orientation poster: it fits the whole authored story,
+      // so it is responsible for composition and for the levels a presenter
+      // actually reads at fit scale — the shape titles and the headline
+      // figures. Row detail is present but deliberately not readable here;
+      // the named steps are the reading views and carry the full ramp (see
+      // the focused-step spec below).
+      //
+      // The eyebrow >= 12 and detail >= 13 floors used to be asserted at THIS
+      // scale. Satisfying them at ~0.65x forced a >= 20px world font, which
+      // against fixed authored card geometry is what collapsed the type
+      // hierarchy and produced the collisions the checks above now guard.
       expect(
-        audit.eyebrow,
-        `${story} eyebrow rendered px at scale ${audit.scale}`,
-      ).toBeGreaterThanOrEqual(12);
-      expect(
-        audit.detail,
-        `${story} detail rendered px at scale ${audit.scale}`,
-      ).toBeGreaterThanOrEqual(13);
+        audit.title,
+        `${story} title rendered px at scale ${audit.scale}`,
+      ).toBeGreaterThanOrEqual(14);
       if (audit.primaryValue !== null) {
         expect(
           audit.primaryValue,
           story + " primary value rendered px at scale " + audit.scale,
-        ).toBeGreaterThanOrEqual(24);
+        ).toBeGreaterThanOrEqual(14);
       }
-      expect(
-        audit.flow,
-        `${story} flow rendered px at scale ${audit.scale}`,
-      ).toBeGreaterThanOrEqual(12);
+    }
+  });
+}
+
+for (const viewport of viewports) {
+  test(`renders the full type ramp legibly on a focused step at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    for (const story of stories) {
+      await openPresentation(page, story);
+      // Step 1 is the first named story step; fitStep() frames only that
+      // step's participants, which is what buys legibility here.
+      await page.getByRole("main", { name: `${story} presentation` }).press("ArrowRight");
+      await expect(page.locator("[aria-current='step']")).toHaveCount(1);
+      await page.waitForTimeout(600);
+
+      const audit = await page.locator(".money-map-presentation").evaluate((shell) => {
+        const viewportElement = shell.querySelector<HTMLElement>(".react-flow__viewport");
+        const transform = viewportElement ? getComputedStyle(viewportElement).transform : "none";
+        const scale = transform === "none" ? 1 : new DOMMatrixReadOnly(transform).a;
+        // Only participants are readable on a focused step; the rest is
+        // intentionally dimmed to 0.15 and must not hold the floor down.
+        const focused = [
+          ...shell.querySelectorAll<HTMLElement>(
+            '.money-map-module:not([data-presentation-dim="true"])',
+          ),
+        ];
+        const minimumIn = (selector: string) => {
+          const values = focused
+            .flatMap((module) => [...module.querySelectorAll<HTMLElement>(selector)])
+            .map((element) => Number.parseFloat(getComputedStyle(element).fontSize) * scale);
+          return values.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...values);
+        };
+        return {
+          scale,
+          focusedCount: focused.length,
+          total: minimumIn(".money-map-module__total dd"),
+          title: minimumIn(".money-map-module__header h2"),
+        };
+      });
+
+      expect(audit.focusedCount, `${story} focused participants`).toBeGreaterThan(0);
+      // The narrative spine — what the room reads off the screen. Measured
+      // step scales run 0.72-1.67 (vertically constrained by the stage at
+      // 1280x720, where fitView padding costs 22% of 588px), so these floors
+      // are what the authored ramp actually delivers at the worst framing,
+      // not an aspiration. Row detail is supporting texture the advisor
+      // reads from their own screen; asserting a floor on it is what forced
+      // the type inflation this change removed.
       expect(
         audit.title,
-        `${story} title rendered px at scale ${audit.scale}`,
-      ).toBeGreaterThanOrEqual(18);
+        `${story} title rendered px at step scale ${audit.scale}`,
+      ).toBeGreaterThanOrEqual(16);
+      expect(
+        audit.total,
+        `${story} total rendered px at step scale ${audit.scale}`,
+      ).toBeGreaterThanOrEqual(14);
     }
   });
 }
@@ -417,6 +663,103 @@ test("Retirement overview avoids blanket focus, wrapped totals, and deep endpoin
   expect(audit.wrappedTotals).toEqual([]);
   expect(audit.deepEndpointOverlaps).toEqual([]);
 });
+
+test("relationship legend is off by default, opens to only the kinds actually present, and its samples match the real edge strokes", async ({
+  page,
+}) => {
+  await openPresentation(page, "Retirement Income");
+
+  const toggle = page.getByRole("button", { name: "Legend" });
+  await expect(toggle).toBeVisible();
+  await expect(page.locator(".relationship-legend__list")).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const list = page.locator(".relationship-legend__list");
+  await expect(list).toBeVisible();
+
+  // Retirement Income authors all four relationship kinds, so all four rows show.
+  await expect(list.locator("li")).toHaveCount(4);
+  await expect(list.getByText("Income", { exact: true })).toBeVisible();
+  await expect(list.getByText("Transfer", { exact: true })).toBeVisible();
+  await expect(list.getByText("Replenishment", { exact: true })).toBeVisible();
+  await expect(list.getByText("Planned", { exact: true })).toBeVisible();
+
+  // Cross-check the legend's inline sample strokes against a real rendered
+  // edge of each kind, so the samples cannot silently drift from reality.
+  const drift = await page.evaluate(() => {
+    const kinds = ["income", "transfer", "replenishment", "planned"] as const;
+    const legendRows = [...document.querySelectorAll(".relationship-legend__list li")];
+    return kinds.flatMap((kind) => {
+      const realPath = document.querySelector(`.relationship--${kind}`);
+      const label = kind[0].toUpperCase() + kind.slice(1);
+      const sampleLine = legendRows
+        .find((row) => row.querySelector("span")?.textContent === label)
+        ?.querySelector("line");
+      if (!realPath || !sampleLine) return [`missing sample or edge for ${kind}`];
+      const real = getComputedStyle(realPath).strokeDasharray;
+      const sample = getComputedStyle(sampleLine).strokeDasharray;
+      return real === sample ? [] : [`${kind}: real=${real} sample=${sample}`];
+    });
+  });
+  expect(drift).toEqual([]);
+
+  // Escape closes the disclosure without exiting presentation, and returns
+  // focus to the toggle rather than leaking to the shell.
+  await page.keyboard.press("Escape");
+  await expect(list).toHaveCount(0);
+  await expect(toggle).toBeFocused();
+  await expect(
+    page.getByRole("main", { name: "Retirement Income presentation" }),
+  ).not.toBeFocused();
+});
+
+for (const viewport of viewports) {
+  test(`relationship legend never overlaps authored content or the camera chrome at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await openPresentation(page, "Retirement Income");
+    await page.getByRole("button", { name: "Legend" }).click();
+    await expect(page.locator(".relationship-legend__list")).toBeVisible();
+
+    const geometry = await page.locator(".money-map-presentation").evaluate((shell) => {
+      const header = shell.querySelector(".presentation-header")?.getBoundingClientRect();
+      const legend = shell.querySelector(".relationship-legend")?.getBoundingClientRect();
+      const stageContent = [...shell.querySelectorAll<HTMLElement>(".react-flow__node")].map(
+        (node) => node.getBoundingClientRect(),
+      );
+      const toolbar = shell.querySelector(".canvas-controls")?.getBoundingClientRect();
+      const rail = shell.querySelector(".presentation-rail")?.getBoundingClientRect();
+      if (!header || !legend) throw new Error("Expected the header and legend to render");
+      const intersects = (a: DOMRect, b: DOMRect) =>
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      return {
+        legend,
+        header,
+        // The legend is in-flow chrome inside the header row (not a floating
+        // overlay), so the real invariant is that opening it never pushes the
+        // header wider than the viewport or taller than its own fixed track —
+        // either of those would be the only way it could spill onto the stage.
+        headerWithinViewport: header.left >= 0 && header.right <= innerWidth,
+        legendWithinHeader:
+          legend.top >= header.top - 1 &&
+          legend.bottom <= header.bottom + 1 &&
+          legend.right <= header.right + 1,
+        overlapsContent: stageContent.some((box) => intersects(legend, box)),
+        overlapsToolbar: toolbar ? intersects(legend, toolbar) : false,
+        overlapsRail: rail ? intersects(legend, rail) : false,
+      };
+    });
+
+    expect(geometry.headerWithinViewport, JSON.stringify(geometry)).toBe(true);
+    expect(geometry.legendWithinHeader, JSON.stringify(geometry)).toBe(true);
+    expect(geometry.overlapsContent, JSON.stringify(geometry)).toBe(false);
+    expect(geometry.overlapsToolbar).toBe(false);
+    expect(geometry.overlapsRail).toBe(false);
+  });
+}
 
 test("author header keeps the story identity clear of metadata and actions", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });

@@ -4,11 +4,18 @@
   --map-surface-alt: #eee8da;
   --map-ink: #292923;
   --map-muted: #6a655b;
+  /* Eyebrow/subtitle/dt/note text renders directly on the module's own
+     gradient (tray, roundel, cylinder warm ends run as dark as rgb(205,169,107)),
+     not the flat --map-surface --map-muted is tuned for. Darkened to clear
+     4.5:1 against that worst-case rendered background; see canvasCssContract
+     for the pairing this protects. */
+  --map-module-muted: #44413a;
   --map-line: #6a655a;
   --map-border: #7d7567;
   --map-grid: rgba(118, 105, 82, 0.24);
   --map-accent: #a45b19;
   --map-focus: #3d6170;
+  --map-ledger-cap: var(--map-ink);
   --private-ledger-rule: #b88945;
   --private-ledger-shadow: rgba(58, 46, 30, 0.14);
 }

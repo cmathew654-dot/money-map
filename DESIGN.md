@@ -11,6 +11,12 @@ Money Map is an advisor authoring canvas with presentation-quality output. It mu
 - World geometry does not reflow when the viewport changes.
 - Authoring minimum is 1180×660; narrower viewports receive an honest cover.
 - Presentation retains story title, as-of date, and synthetic-data provenance.
+- Presentation renders the authored composition unchanged: the same type ramp, inset, and spacing as the canvas. It never re-types or re-spaces a module. The only content it sheds is the relationship label's cadence and detail lines.
+- Legibility in presentation is a camera property, not a typography property. Overview is an orientation view — composition, titles, and headline figures read at fit scale; row detail is supporting texture. The five named steps are the reading views, framed by fit-to-step. Authored card geometry is fixed, so inflating type to force detail-level reading at fit scale can only come out of padding and hierarchy.
+
+## Module type ramp
+
+One ramp, both modes: note 11, rows and eyebrow 12, subtitle 13, total 20, title 23 serif. The total is the figure the card exists to communicate and carries its own step in the ramp; it stacks its label above the figure at full card width rather than sharing the row's label/value split, which would squeeze the label into a wrapped column.
 
 ## Camera and selection
 
@@ -45,10 +51,10 @@ Eight shapes are available: `ledger`, `plate`, `tray`, `band`, `roundel`, `frame
 - The primary action is `Draw flow`; the user drags from a visible object port to a target object or empty canvas.
 - Route geometry: straight, orthogonal, or curved.
 - Relationship semantics: income, transfer, replenishment, or planned/conditional, redundantly conveyed by pattern and label.
-- Label treatment: plain, plate, or filled.
+- Label treatment: plain, plate, or filled. Authoring exposes all three; authored stories derive treatment from relationship type — income is filled, transfer is plate, replenishment and planned are plain — so treatment is a third redundant semantic channel rather than decoration. A story with no income relationship therefore has no filled label.
 - Color and weight never communicate amount or confidence.
 - Labels stay bound to their paths and have generous invisible hit targets.
-- Clicking or pressing Enter edits a label. Labels move independently from route waypoints; route bends, endpoints, and labels have separate hit targets.
+- Click selects a label; double-click or Enter edits it, matching module text. Labels move independently from route waypoints; route bends, endpoints, and labels have separate hit targets.
 - Routing uses all four attachment sides, removes needless doglegs, and keeps authored bends independent from labels. Background-colored edge casing clarifies genuine crossings without a hidden obstacle-avoidance engine.
 
 ## Cadence

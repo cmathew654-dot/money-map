@@ -48,6 +48,13 @@ interface MoneyMapCanvasProps {
   cadenceFilter?: CadenceFilter;
   mode?: "author" | "presentation";
   presentationStep?: PresentationStep;
+  /** Exposes the live camera controller so a host (e.g. PresentationShell)
+   * can drive zoom/fit from outside the canvas, such as Ctrl/Cmd +/- while
+   * focus sits on the surrounding presentation shell. */
+  onControllerChange?(controller: CanvasController): void;
+  /** Reports zoom percentage changes so a host shell (e.g. presentation
+   * chrome) can render camera controls outside the stage. */
+  onZoomChange?(zoomPercentage: number): void;
 }
 
 const nodeTypes = { moneyMapModule: MoneyMapNode };
@@ -98,7 +105,7 @@ function selectionAnnouncement(document: MoneyMapDocument, selection: Selection)
     if (flow) return `${flow.label} relationship selected.`;
   }
 
-  const modulePhrase = `${moduleCount} ${moduleCount === 1 ? "module" : "modules"}`;
+  const modulePhrase = `${moduleCount} ${moduleCount === 1 ? "shape" : "shapes"}`;
   const relationshipPhrase = `${relationshipCount} ${
     relationshipCount === 1 ? "relationship" : "relationships"
   }`;
@@ -115,6 +122,8 @@ function MoneyMapCanvasInner({
   cadenceFilter = "all",
   mode = "author",
   presentationStep,
+  onControllerChange,
+  onZoomChange,
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const editor = useEditorInteraction();
@@ -243,8 +252,9 @@ function MoneyMapCanvasInner({
   );
 
   const fitMap = useCallback(() => {
-    void flow.fitView({ padding: 0.16, duration: cameraDuration(180) });
-  }, [flow]);
+    const padding = presenting ? 0.08 : 0.16;
+    void flow.fitView({ padding, duration: cameraDuration(presenting ? 220 : 180) });
+  }, [flow, presenting]);
 
   useEffect(() => {
     if (presenting) return;
@@ -252,15 +262,33 @@ function MoneyMapCanvasInner({
     return () => cancelAnimationFrame(frame);
   }, [document.id, fitMap, presenting]);
 
+  const stepHasMembers = Boolean(
+    presentationStep &&
+    (presentationStep.moduleIds.length > 0 || presentationStep.flowIds.length > 0),
+  );
+
+  // Reframes the camera to the active step's participants (comfortable
+  // padding, same fitView machinery as the author "Fit selection" pattern),
+  // falling back to the full fit-story framing for Overview or any step
+  // with no members.
+  const fitStep = useCallback(() => {
+    if (!presenting || !stepHasMembers) {
+      fitMap();
+      return;
+    }
+    void flow.fitView({
+      nodes: presentationStep!.moduleIds.map((id) => ({ id })),
+      padding: 0.22,
+      duration: cameraDuration(220),
+    });
+  }, [fitMap, flow, presentationStep, presenting, stepHasMembers]);
+
   useEffect(() => {
     if (!presenting) return;
-    const fitPresentation = () => {
-      void flow.fitView({ padding: 0.08, duration: cameraDuration(220) });
-    };
-    fitPresentation();
-    window.addEventListener("resize", fitPresentation);
-    return () => window.removeEventListener("resize", fitPresentation);
-  }, [document.id, flow, presenting]);
+    fitStep();
+    window.addEventListener("resize", fitStep);
+    return () => window.removeEventListener("resize", fitStep);
+  }, [document.id, fitStep, presenting]);
 
   const fitSelection = useCallback(() => {
     if (selection.moduleIds.length === 0) {
@@ -282,9 +310,14 @@ function MoneyMapCanvasInner({
       zoomIn: () => void flow.zoomIn({ duration: cameraDuration(140) }),
       fitMap,
       fitSelection,
+      fitStep,
     }),
-    [fitMap, fitSelection, flow],
+    [fitMap, fitSelection, fitStep, flow],
   );
+
+  useEffect(() => {
+    onControllerChange?.(controller);
+  }, [controller, onControllerChange]);
 
   const handleNodesChange = useCallback<OnNodesChange<MoneyMapCanvasNode>>(
     (changes: NodeChange<MoneyMapCanvasNode>[]) => {
@@ -506,7 +539,12 @@ function MoneyMapCanvasInner({
       onKeyDown={presenting ? undefined : handleKeyDown}
       onPointerDownCapture={presenting ? undefined : handlePointerDownCapture}
     >
+      {/* React Flow hard-codes role="application" on its own wrapper, which
+          switches assistive tech out of browse mode. Unnamed, that gives a
+          screen-reader user no announcement of what they just entered. The
+          label lands on that element via React Flow's prop spread. */}
       <ReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>
+        aria-label={`${document.title} ${presenting ? "story" : "map"}, ${document.modules.length} objects and ${document.flows.length} relationships`}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -518,11 +556,13 @@ function MoneyMapCanvasInner({
         onConnect={presenting ? undefined : handleConnect}
         onConnectEnd={presenting ? undefined : handleConnectEnd}
         onReconnect={presenting ? undefined : handleReconnect}
-        onViewportChange={(viewport) => setZoomPercentage(Math.round(viewport.zoom * 100))}
+        onViewportChange={(viewport) => {
+          const percentage = Math.round(viewport.zoom * 100);
+          setZoomPercentage(percentage);
+          onZoomChange?.(percentage);
+        }}
         minZoom={0.3}
         maxZoom={2}
-        fitView={presenting}
-        fitViewOptions={presenting ? { padding: 0.08 } : undefined}
         zoomOnScroll={!presenting}
         zoomOnPinch={!presenting}
         panOnDrag={presenting ? false : [0, 1]}
@@ -537,7 +577,11 @@ function MoneyMapCanvasInner({
         edgesReconnectable={!presenting}
         reconnectRadius={26}
         deleteKeyCode={null}
-        proOptions={{ hideAttribution: presenting }}
+        // The attribution watermark measures 2.51-2.57:1 contrast against the
+        // 4.5:1 requirement and sits in the tab order between the canvas and
+        // zoom controls. React Flow's MIT license permits hiding it; credit
+        // lives in README.md's Stack section instead.
+        proOptions={{ hideAttribution: true }}
       />
       {presenting ? null : (
         <CanvasControls controller={controller} zoomPercentage={zoomPercentage} />

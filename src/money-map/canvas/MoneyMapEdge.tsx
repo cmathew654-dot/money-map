@@ -2,7 +2,7 @@ import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 
 import { InlineField } from "../editor/InlineField";
-import type { Point } from "../model/types";
+import { type Point } from "../model/types";
 import type { MoneyMapCanvasEdge } from "./adapters";
 import { relationshipGeometry } from "./relationshipGeometry";
 
@@ -172,6 +172,7 @@ export function MoneyMapEdge({
           data-treatment={flow.labelTreatment}
           data-selected={selected ? "true" : "false"}
           data-presentation-focus={data.presentationFocus ? "true" : "false"}
+          data-presentation-dim={data.presentationDim ? "true" : "false"}
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${flow.labelPosition.x}px, ${flow.labelPosition.y}px)`,
@@ -202,6 +203,10 @@ export function MoneyMapEdge({
                   suppressClick.current = false;
                   return;
                 }
+                handlers?.select();
+              }}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
                 handlers?.select();
                 handlers?.beginEdit();
               }}

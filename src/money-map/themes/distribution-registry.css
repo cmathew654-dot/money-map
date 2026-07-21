@@ -4,11 +4,16 @@
   --map-surface-alt: #e2e8e3;
   --map-ink: #202b27;
   --map-muted: #4f5b56;
+  /* See private-ledger.css: module-internal muted text (eyebrow/subtitle/dt/
+     note) needs to clear 4.5:1 against tinted swatch mixes, not just the
+     flat --map-surface --map-muted is safe on. */
+  --map-module-muted: #414b46;
   --map-line: #3f4f49;
   --map-border: #69756f;
   --map-grid: rgba(54, 74, 65, 0.18);
   --map-accent: #984c2e;
   --map-focus: #245b45;
+  --map-ledger-cap: #344a41;
 }
 
 .theme-distribution-registry .money-map-module {

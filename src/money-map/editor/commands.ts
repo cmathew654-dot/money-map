@@ -32,11 +32,17 @@ export interface WorkspaceCommandContext {
 export type WorkspaceSurface =
   "inline" | "appearance" | "properties" | "draw-flow" | "flow-inline" | "flow-properties";
 
+export type CameraAction = "fit-story" | "fit-selection" | "reset-zoom";
+
 export type WorkspaceCommandResult =
   | { kind: "mutation"; mutation: EditorMutation; nextSelection?: Selection }
   | { kind: "surface"; surface: WorkspaceSurface }
   | { kind: "history"; action: "undo" | "redo" }
-  | { kind: "reset" };
+  | { kind: "camera"; action: CameraAction }
+  | { kind: "reset" }
+  | { kind: "add" }
+  | { kind: "present" }
+  | { kind: "legend" };
 
 export type WorkspaceCommandDefinition = CommandDefinition<
   WorkspaceCommandContext,
@@ -53,14 +59,14 @@ const primitives: PrimitiveStyle[] = [
   "cylinder",
   "text",
 ];
-const primitiveLabels: Record<PrimitiveStyle, string> = {
-  ledger: "Income ledger",
-  plate: "Account plate",
-  tray: "Liquidity tray",
-  band: "Statement band",
-  roundel: "Target roundel",
-  frame: "Planning frame",
-  cylinder: "Portfolio cylinder",
+export const primitiveLabels: Record<PrimitiveStyle, string> = {
+  ledger: "Ledger",
+  plate: "Plate",
+  tray: "Tray",
+  band: "Band",
+  roundel: "Roundel",
+  frame: "Frame",
+  cylinder: "Cylinder",
   text: "Text note",
 };
 const widths = [
@@ -192,8 +198,8 @@ export function createWorkspaceCommands(
   const registry = new CommandRegistry<WorkspaceCommandContext, WorkspaceCommandResult>();
 
   for (const [id, label, surface] of [
-    ["module.edit", "Edit module", "inline"],
-    ["module.style", "Style module", "appearance"],
+    ["module.edit", "Edit shape", "inline"],
+    ["module.style", "Style shape", "appearance"],
     ["module.draw-flow", "Draw flow", "draw-flow"],
     ["module.properties", "More properties", "properties"],
   ] as const) {
@@ -308,6 +314,54 @@ export function createWorkspaceCommands(
     shortcut: "Ctrl/Cmd+Shift+Z",
     isAvailable: ({ canRedo }) => canRedo,
     execute: () => ({ kind: "history", action: "redo" }),
+  });
+
+  registry.register({
+    id: "camera.fit-story",
+    label: "Fit story",
+    keywords: ["camera", "zoom", "frame all", "fit view"],
+    isAvailable: () => true,
+    execute: () => ({ kind: "camera", action: "fit-story" }),
+  });
+
+  registry.register({
+    id: "camera.fit-selection",
+    label: "Fit selection",
+    keywords: ["camera", "zoom", "frame selection", "fit view"],
+    isAvailable: () => true,
+    execute: () => ({ kind: "camera", action: "fit-selection" }),
+  });
+
+  registry.register({
+    id: "camera.reset-zoom",
+    label: "Reset zoom to 100%",
+    keywords: ["camera", "zoom", "100%"],
+    isAvailable: () => true,
+    execute: () => ({ kind: "camera", action: "reset-zoom" }),
+  });
+
+  registry.register({
+    id: "workspace.add",
+    label: "Add to map",
+    keywords: ["shape", "module", "new", "create"],
+    isAvailable: () => true,
+    execute: () => ({ kind: "add" }),
+  });
+
+  registry.register({
+    id: "workspace.present",
+    label: "Present story",
+    keywords: ["presentation", "slideshow", "client view"],
+    isAvailable: () => true,
+    execute: () => ({ kind: "present" }),
+  });
+
+  registry.register({
+    id: "workspace.legend",
+    label: "Legend",
+    keywords: ["relationships", "key", "flows", "colors"],
+    isAvailable: (context) => context.document.flows.length > 0,
+    execute: () => ({ kind: "legend" }),
   });
 
   registry.register({

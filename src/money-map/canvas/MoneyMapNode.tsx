@@ -80,6 +80,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-selected={selected ? "true" : "false"}
         data-reconnect-mode={data.reconnectMode ? "true" : "false"}
         data-presentation-focus={data.presentationFocus ? "true" : "false"}
+        data-presentation-dim={data.presentationDim ? "true" : "false"}
         style={{ transform: `rotate(${module.rotation}deg)` }}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
       >
@@ -135,7 +136,7 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
           <h2 onDoubleClick={beginTitle}>
             {active?.moduleId === module.id && active.field === "title" ? (
               <InlineField
-                ariaLabel="Edit module title"
+                ariaLabel="Edit shape title"
                 value={active.original}
                 onCancel={editor?.cancelInlineEdit ?? (() => undefined)}
                 onCommit={editor?.commitInlineEdit ?? (() => undefined)}

@@ -1,3 +1,64 @@
+:root {
+  /* Role accents (data-color-role) */
+  --map-role-income: #a45b19;
+  --map-role-account: #3d6170;
+  --map-role-reserve: #9a7137;
+  --map-role-need: #3d392f;
+  --map-role-specialty: #76536d;
+  --map-role-charitable: #496755;
+  --map-role-note: #726c61;
+
+  /* Relationship label chrome */
+  --map-label-ink: #3f3b34;
+  --map-label-border: #a89d8a;
+
+  /* Shared neutral borders */
+  --map-hairline: #aaa18f;
+  --map-panel-outline: #b6ad9d;
+  --map-popover-border: #8f8573;
+  --map-panel-divider: #c6bdad;
+  --map-zoom-divider: #bbb19f;
+  --map-button-border: #958b79;
+
+  /* Shared text ink */
+  --map-text-secondary: #625d53;
+  --map-button-ink: #373b36;
+  --map-icon-button-ink: #353b36;
+
+  /* Selection / control state */
+  --map-control-selected-bg: #4b514b;
+  --map-presentation-control-bg: #fbf8f0;
+  --map-row-divider: rgba(100, 92, 77, 0.3);
+
+  /* Overlays and scrims */
+  --map-scrim: rgba(39, 36, 30, 0.22);
+  --map-presentation-chrome-bg: rgba(248, 244, 235, 0.98);
+  --map-presentation-divider: rgba(99, 88, 69, 0.3);
+  --map-cadence-bg: rgba(251, 248, 240, 0.96);
+  --map-attribution-bg: rgba(246, 241, 231, 0.8);
+  --map-cover-grid: rgba(118, 105, 82, 0.2);
+
+  /* Tinted shadows */
+  --map-module-shadow-quiet: rgba(65, 57, 43, 0.08);
+  --map-module-shadow-selected: rgba(65, 57, 43, 0.12);
+  --map-module-shadow-spotlight: rgba(65, 57, 43, 0.2);
+  --map-panel-shadow: rgba(43, 38, 30, 0.22);
+  --map-menu-shadow: rgba(43, 38, 30, 0.24);
+  --map-label-plate-shadow: rgba(49, 43, 34, 0.12);
+  --map-label-shadow: rgba(49, 43, 34, 0.18);
+  --map-presentation-focus-shadow: rgba(49, 43, 34, 0.16);
+  --map-toolbar-shadow: rgba(66, 58, 44, 0.14);
+  --map-cadence-shadow: rgba(66, 58, 44, 0.12);
+  --map-selection-shadow: rgba(45, 40, 32, 0.18);
+  --map-resize-shadow: rgba(42, 36, 27, 0.24);
+  --map-command-palette-shadow: rgba(41, 36, 28, 0.3);
+
+  /* Destructive state */
+  --map-destructive-border: #d9c4b8;
+  --map-destructive-ink: #8a3324;
+  --map-destructive-hover-bg: #f4e4dd;
+}
+
 .money-map-workspace {
   display: flex;
   min-width: 320px;
@@ -18,6 +79,18 @@
   text-align: right;
 }
 
+.money-map-workspace .workspace-meta span {
+  /* Defensive fallback only: the auto/1fr/auto header grid (styles.css) gives
+     the actions column enough room to render the meta stack, including the
+     full synthetic-data disclosure, on one line at every supported width
+     (1180-1920). This never actually triggers there; it just keeps a
+     pathologically long future value from blowing out the header instead of
+     silently truncating the DESIGN.md-required disclosure. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .workspace-stage {
   position: relative;
   display: block;
@@ -31,6 +104,14 @@
   position: relative;
   width: 100%;
   height: 100%;
+  /* Safe-area reserve so fitted content (and anything anchored to it, like
+     the selection halo) never renders under the fixed cadence strip
+     (top-left) or gets clipped flush against the true canvas edges. Padding
+     shrinks the React Flow pane itself, so fitView's own framing already
+     respects this margin instead of the app layering chrome on top of it.
+     Authoring only: presentation has no in-stage chrome to clear, and the
+     reserve would cost enough fit scale to push type under its floor. */
+  padding: 64px 32px 32px 48px;
   outline: none;
   background-color: var(--map-canvas);
   background-image: radial-gradient(var(--map-grid) 0.75px, transparent 0.75px);
@@ -72,37 +153,37 @@
 }
 
 .money-map-module[data-color-role="income"] {
-  --module-accent: #a45b19;
+  --module-accent: var(--map-role-income);
 }
 .money-map-module[data-color-role="account"] {
-  --module-accent: #3d6170;
+  --module-accent: var(--map-role-account);
 }
 .money-map-module[data-color-role="reserve"] {
-  --module-accent: #9a7137;
+  --module-accent: var(--map-role-reserve);
 }
 .money-map-module[data-color-role="need"] {
-  --module-accent: #3d392f;
+  --module-accent: var(--map-role-need);
 }
 .money-map-module[data-color-role="specialty"] {
-  --module-accent: #76536d;
+  --module-accent: var(--map-role-specialty);
 }
 .money-map-module[data-color-role="charitable"] {
-  --module-accent: #496755;
+  --module-accent: var(--map-role-charitable);
 }
 .money-map-module[data-color-role="note"] {
-  --module-accent: #726c61;
+  --module-accent: var(--map-role-note);
 }
 
 .money-map-module[data-priority="quiet"] {
   border-color: color-mix(in srgb, var(--module-accent) 34%, var(--map-border));
-  box-shadow: 0 2px 5px rgba(65, 57, 43, 0.08);
+  box-shadow: 0 2px 5px var(--map-module-shadow-quiet);
 }
 
 .money-map-module[data-priority="spotlight"] {
   border: 2px solid var(--module-accent);
   box-shadow:
     0 0 0 4px color-mix(in srgb, var(--module-accent) 12%, transparent),
-    0 14px 30px rgba(65, 57, 43, 0.2);
+    0 14px 30px var(--map-module-shadow-spotlight);
 }
 
 .money-map-module[data-swatch="muted"] {
@@ -119,8 +200,11 @@
   background: color-mix(in srgb, var(--map-surface) 66%, var(--module-accent) 34%);
 }
 
+/* The ledger cap is a per-art-direction role, not a fixed carbon. Each theme
+   sets --map-ledger-cap; the fallback keeps the primitive rendering if a new
+   theme forgets to. */
 .money-map-module[data-primitive="ledger"] {
-  border-top: 4px solid #47473f;
+  border-top: 4px solid var(--map-ledger-cap, var(--map-line));
 }
 
 .money-map-module[data-primitive="plate"] {
@@ -139,7 +223,13 @@
 }
 
 .money-map-module[data-primitive="roundel"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4% 17%;
   border-radius: 50% / 40%;
+  text-align: center;
 }
 
 .money-map-module[data-primitive="cylinder"] {
@@ -165,7 +255,7 @@
   box-shadow:
     0 0 0 3px var(--map-canvas),
     0 0 0 6px var(--map-accent),
-    0 8px 20px rgba(65, 57, 43, 0.12);
+    0 8px 20px var(--map-module-shadow-selected);
 }
 
 .react-flow__node:focus-visible .money-map-module {
@@ -189,7 +279,7 @@
 }
 
 .money-map-module__eyebrow {
-  color: var(--map-muted);
+  color: var(--map-module-muted);
   font-size: 12px;
   font-weight: 720;
   letter-spacing: 0.025em;
@@ -197,17 +287,24 @@
 
 .money-map-module__subtitle {
   margin-top: 6px;
-  color: var(--map-muted);
+  color: var(--map-module-muted);
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   font-size: 13px;
   line-height: 1.4;
 }
 
-.money-map-module__rows,
-.money-map-module__total {
+.money-map-module__rows {
   display: grid;
   gap: 0;
   margin: 16px 0 0;
+}
+
+/* A 20px figure separates itself; it needs less clearance above than the
+   uniform 16px the row block uses. */
+.money-map-module__total {
+  display: grid;
+  gap: 0;
+  margin: 8px 0 0;
 }
 
 .money-map-module__row,
@@ -216,7 +313,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   padding: 8px 0;
-  border-top: 1px solid rgba(100, 92, 77, 0.3);
+  border-top: 1px solid var(--map-row-divider);
 }
 
 .money-map-module dt,
@@ -227,7 +324,7 @@
 }
 
 .money-map-module dt {
-  color: var(--map-muted);
+  color: var(--map-module-muted);
 }
 
 .money-map-module dd {
@@ -240,9 +337,42 @@
   font-weight: 750;
 }
 
+/* The total is the figure the card exists to communicate, so it gets its own
+   step in the ramp (11 note / 12 rows / 13 subtitle / 20 total / 23 serif
+   title) rather than sitting at row size and relying on weight alone. This
+   is authored, not presentation-only: both modes render the same card, and
+   at presentation's 0.72-0.98 fit scales it is the difference between a
+   headline figure that reads and one that doesn't.
+   The label keeps row size — the contrast between them is the hierarchy. */
+/* A total stacks its label above the figure instead of sharing the row's
+   label|value split. Side by side, a 20px value claims ~125px of a 248px
+   card, squeezing the label track until "Total monthly income" wraps to
+   three lines — the row then grows by ~30px and overflows authored card
+   heights, and the stretched value box reads as loosely associated with its
+   label. Stacked, the label gets the full card width on one line and the
+   figure sits directly beneath it, which is how a financial document
+   presents a headline number anyway. */
+.money-map-module__total > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding-top: 6px;
+}
+
+.money-map-module__total dd {
+  /* The 150px cap and anywhere-breaking are tuned for 12px row values; at
+     20px they split a single authored figure across lines, which misreads
+     as two values. A headline figure is one literal string. */
+  max-width: none;
+  overflow-wrap: normal;
+  font-size: 20px;
+  line-height: 1.15;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .money-map-module__note {
   margin-top: 12px;
-  color: var(--map-muted);
+  color: var(--map-module-muted);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -310,15 +440,15 @@
   gap: 8px;
   align-items: center;
   padding: 6px;
-  border: 1px solid #aaa18f;
+  border: 1px solid var(--map-hairline);
   border-radius: 4px;
   background: var(--map-surface);
-  box-shadow: 0 6px 20px rgba(66, 58, 44, 0.14);
+  box-shadow: 0 6px 20px var(--map-toolbar-shadow);
 }
 
 .canvas-controls__zoom {
   display: flex;
-  border: 1px solid #bbb19f;
+  border: 1px solid var(--map-zoom-divider);
   border-radius: 3px;
 }
 
@@ -338,7 +468,7 @@
 }
 
 .canvas-controls__zoom button + button {
-  border-left: 1px solid #bbb19f;
+  border-left: 1px solid var(--map-zoom-divider);
 }
 
 .canvas-controls .canvas-controls__percentage {
@@ -350,7 +480,7 @@
   right: 8px;
   bottom: 6px;
   color: var(--map-muted);
-  background: rgba(246, 241, 231, 0.8);
+  background: var(--map-attribution-bg);
   font-size: 9px;
 }
 
@@ -368,14 +498,14 @@
   place-items: center;
   padding: 40px;
   background-color: var(--map-canvas);
-  background-image: radial-gradient(rgba(118, 105, 82, 0.2) 0.75px, transparent 0.75px);
+  background-image: radial-gradient(var(--map-cover-grid) 0.75px, transparent 0.75px);
   background-size: 24px 24px;
 }
 
 .authoring-cover > div {
   max-width: 560px;
   padding: 42px;
-  border: 1px solid #aaa18f;
+  border: 1px solid var(--map-hairline);
   background: var(--map-surface);
 }
 
@@ -420,6 +550,16 @@
   justify-self: end;
 }
 
+/* Chrome button vocabulary: one height (36px, the zoom cluster's own
+   .canvas-controls button already lands here — see above), one weight per
+   role, one border treatment per role. Add and Actions are the same role
+   (outlined secondary, opens a panel) and now render identically instead
+   of an arbitrary 740-vs-720 split that made two visually-identical
+   controls look like they meant different things. Present is the sole
+   filled-primary control, one weight step heavier than the outlined tier
+   to read as the primary action without inventing a third arbitrary
+   number. Back to stories (.text-button, styles.css) is the ghost tier:
+   no border, body weight, same 36px height. */
 .actions-button,
 .add-button {
   display: inline-flex;
@@ -427,33 +567,34 @@
   gap: 12px;
   align-items: center;
   padding: 7px 10px;
-  border: 1px solid #958b79;
+  border: 1px solid var(--map-button-border);
   border-radius: 3px;
-  color: #373b36;
+  color: var(--map-button-ink);
   background: var(--map-surface);
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .add-button {
   min-width: 66px;
   justify-content: center;
-  font-weight: 740;
 }
 
 .present-button {
-  min-height: 38px;
-  padding: 8px 14px;
+  min-height: 36px;
+  padding: 7px 14px;
   border: 1px solid var(--map-focus);
   border-radius: 3px;
   color: var(--map-surface);
   background: var(--map-focus);
   font: inherit;
-  font-weight: 720;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .present-button:focus-visible {
-  outline: 3px solid var(--map-accent);
+  outline: 3px solid var(--map-focus);
   outline-offset: 2px;
 }
 
@@ -462,6 +603,7 @@
   color: #756e61;
   font-family: inherit;
   font-size: 10px;
+  white-space: nowrap;
 }
 
 .selection-halo {
@@ -471,7 +613,7 @@
   border: 1px solid #8e8575;
   border-radius: 4px;
   background: var(--map-surface);
-  box-shadow: 0 7px 20px rgba(45, 40, 32, 0.18);
+  box-shadow: 0 7px 20px var(--map-selection-shadow);
 }
 
 .selection-halo button,
@@ -482,7 +624,7 @@
   min-height: 24px;
   border: 0;
   border-radius: 2px;
-  color: #353b36;
+  color: var(--map-icon-button-ink);
   background: transparent;
   font: inherit;
   font-size: 11px;
@@ -504,6 +646,7 @@
 }
 
 .actions-button:focus-visible,
+.add-button:focus-visible,
 .selection-halo button:focus-visible,
 .add-menu button:focus-visible,
 .advanced-properties button:focus-visible,
@@ -524,7 +667,7 @@
   border: 2px solid var(--map-canvas) !important;
   border-radius: 50% !important;
   background: var(--map-accent) !important;
-  box-shadow: 0 2px 7px rgba(42, 36, 27, 0.24);
+  box-shadow: 0 2px 7px var(--map-resize-shadow);
 }
 
 .money-map-resize-control span {
@@ -562,16 +705,18 @@
   align-items: start;
   justify-items: center;
   padding-top: min(16vh, 140px);
-  background: rgba(39, 36, 30, 0.22);
+  background: var(--map-scrim);
 }
 
 .command-palette {
   width: min(520px, calc(100vw - 40px));
+  max-height: calc(100vh - 32px);
   padding: 14px;
   border: 1px solid #837968;
   border-radius: 4px;
+  overflow: auto;
   background: var(--map-surface);
-  box-shadow: 0 22px 70px rgba(41, 36, 28, 0.3);
+  box-shadow: 0 22px 70px var(--map-command-palette-shadow);
 }
 
 .command-palette > label {
@@ -611,6 +756,18 @@
   text-align: left;
 }
 
+.command-palette [role="option"].command-palette__option--destructive {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--map-destructive-border);
+  color: var(--map-destructive-ink);
+}
+
+.command-palette [role="option"].command-palette__option--destructive:hover,
+.command-palette [role="option"].command-palette__option--destructive[aria-selected="true"] {
+  background: var(--map-destructive-hover-bg);
+}
+
 .advanced-properties,
 .flow-target-picker {
   position: fixed;
@@ -618,13 +775,20 @@
   top: 92px;
   right: 20px;
   width: min(352px, calc(100vw - 40px));
-  max-height: calc(100vh - 116px);
+  /* positionEditorSurface() (surfacePosition.ts) clamps its dynamic `top` so
+     the surface never needs more than defaultSize.height (400px) of
+     headroom below it. Matching that constant here — instead of a vh-based
+     guess keyed to this rule's own static top:92 — keeps the panel inside
+     the viewport even when `top` is pushed down near a low-positioned
+     module. Do not raise this above 400px without raising the JS constant
+     too. */
+  max-height: 400px;
   padding: 16px;
-  border: 1px solid #8f8573;
+  border: 1px solid var(--map-popover-border);
   border-radius: 4px;
   overflow: auto;
   background: var(--map-surface);
-  box-shadow: 0 16px 44px rgba(43, 38, 30, 0.22);
+  box-shadow: 0 16px 44px var(--map-panel-shadow);
 }
 
 .advanced-properties > header,
@@ -645,7 +809,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   margin: 0 -4px 14px;
-  border-bottom: 1px solid #b6ad9d;
+  border-bottom: 1px solid var(--map-panel-outline);
 }
 
 .advanced-properties [role="tab"] {
@@ -671,7 +835,7 @@
   width: 100%;
   min-height: 34px;
   padding: 7px 8px;
-  border: 1px solid #aaa18f;
+  border: 1px solid var(--map-hairline);
   color: var(--map-ink);
   background: var(--map-surface);
   font: inherit;
@@ -679,7 +843,7 @@
 
 .advanced-properties details {
   margin-top: 12px;
-  border-top: 1px solid #c6bdad;
+  border-top: 1px solid var(--map-panel-divider);
   padding-top: 12px;
 }
 
@@ -705,7 +869,7 @@
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px;
-  border: 1px solid #b6ad9d;
+  border: 1px solid var(--map-panel-outline);
   margin: 0 0 12px;
 }
 
@@ -740,9 +904,20 @@
 
 .flow-target-picker__targets {
   display: grid;
-  gap: 4px;
-  max-height: 318px;
+  gap: 10px;
+  max-height: 240px;
   overflow: auto;
+}
+
+.flow-target-picker__group {
+  display: grid;
+  gap: 4px;
+}
+
+.flow-target-picker__targets p.flow-target-picker__group-label {
+  margin: 0 0 2px;
+  color: var(--map-muted);
+  font-size: 10px;
 }
 
 .flow-target-picker__targets button {
@@ -750,7 +925,7 @@
   gap: 2px;
   min-height: 42px;
   padding: 7px 9px;
-  border: 1px solid #b6ad9d;
+  border: 1px solid var(--map-panel-outline);
   color: var(--map-ink);
   background: var(--map-surface);
   text-align: left;
@@ -778,11 +953,13 @@
   top: 66px;
   right: 174px;
   width: min(440px, calc(100vw - 40px));
+  max-height: calc(100vh - 90px);
   padding: 16px;
-  border: 1px solid #8f8573;
+  border: 1px solid var(--map-popover-border);
   border-radius: 5px;
+  overflow: auto;
   background: var(--map-surface);
-  box-shadow: 0 18px 52px rgba(43, 38, 30, 0.24);
+  box-shadow: 0 18px 52px var(--map-menu-shadow);
 }
 
 .add-menu > header {
@@ -791,7 +968,7 @@
   gap: 14px;
   align-items: start;
   padding-bottom: 12px;
-  border-bottom: 1px solid #c6bdad;
+  border-bottom: 1px solid var(--map-panel-divider);
 }
 
 .add-menu__grid {
@@ -813,7 +990,7 @@
 }
 
 .add-menu__grid > button:hover {
-  border-color: #b6ad9d;
+  border-color: var(--map-panel-outline);
   background: #eee7db;
 }
 
@@ -934,6 +1111,22 @@
   stroke-width: 2.4;
 }
 
+/* Keyboard focus on a route (WCAG 2.4.11). React Flow sets outline: none on
+   .react-flow__edge:focus-visible and only re-colors the stroke, so a
+   focused route otherwise had no indicator of its own and was not distinct
+   from selection — DESIGN.md requires both.
+   The halo rides the casing, which is a separate solid path already painted
+   beneath the route, so the route's own stroke-dasharray is untouched and a
+   focused replenishment edge still reads as replenishment. (The audit
+   reported focus "swaps the semantic dash pattern for a solid stroke"; that
+   does not reproduce — no rule here or in React Flow's stylesheet sets
+   stroke-dasharray on focus. The missing indicator was the real defect.)
+   --map-focus, not --map-accent: selection stays accent, focus stays focus. */
+.money-map-canvas .react-flow__edge:focus-visible .money-map-relationship-casing {
+  stroke: var(--map-focus);
+  stroke-width: 9;
+}
+
 .money-map-flow-label-wrap {
   z-index: 4;
 }
@@ -968,7 +1161,7 @@
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: 3px;
-  color: #3f3b34;
+  color: var(--map-label-ink);
   background: transparent;
   box-shadow: none;
   font: inherit;
@@ -987,17 +1180,32 @@
   font-weight: 540;
 }
 
+/* Background-colored edge casing (DESIGN.md: "clarifies genuine
+   crossings") for the plain label treatment. Plate and filled already
+   carry their own opaque background below, so a route passing behind them
+   is hidden; plain previously had none — background: transparent from the
+   base rule above — so a route drawn behind a plain label struck straight
+   through the glyphs. On a dollar figure that reads as a voided amount.
+   Using the canvas token (not a surface color) keeps this a knockout that
+   reads as "the line stops here," not a card pinned to the canvas — the
+   same treatment already scoped to .money-map-presentation below; this
+   unscoped rule is what extends it to authoring, where it was missing. */
+.money-map-flow-label-wrap[data-treatment="plain"] .money-map-flow-label {
+  background: var(--map-canvas);
+  border-radius: 2px;
+}
+
 .money-map-flow-label-wrap[data-treatment="plate"] .money-map-flow-label {
-  border-color: #a89d8a;
+  border-color: var(--map-label-border);
   background: var(--map-surface);
-  box-shadow: 0 3px 10px rgba(49, 43, 34, 0.12);
+  box-shadow: 0 3px 10px var(--map-label-plate-shadow);
 }
 
 .money-map-flow-label-wrap[data-treatment="filled"] .money-map-flow-label {
   border-color: var(--map-line);
   color: var(--map-surface);
   background: var(--map-line);
-  box-shadow: 0 3px 10px rgba(49, 43, 34, 0.18);
+  box-shadow: 0 3px 10px var(--map-label-shadow);
 }
 
 .money-map-flow-label-wrap[data-selected="true"] .money-map-flow-label {
@@ -1023,10 +1231,10 @@
   gap: 3px;
   align-items: center;
   padding: 5px;
-  border: 1px solid #aaa18f;
+  border: 1px solid var(--map-hairline);
   border-radius: 4px;
-  background: rgba(251, 248, 240, 0.96);
-  box-shadow: 0 4px 14px rgba(66, 58, 44, 0.12);
+  background: var(--map-cadence-bg);
+  box-shadow: 0 4px 14px var(--map-cadence-shadow);
 }
 
 .cadence-filter > span {
@@ -1052,7 +1260,7 @@
 
 .cadence-filter button[aria-pressed="true"] {
   color: var(--map-surface);
-  background: #4b514b;
+  background: var(--map-control-selected-bg);
 }
 
 .relationship-properties {
@@ -1063,11 +1271,11 @@
   width: min(368px, calc(100vw - 40px));
   max-height: calc(100vh - 116px);
   padding: 16px;
-  border: 1px solid #8f8573;
+  border: 1px solid var(--map-popover-border);
   border-radius: 4px;
   overflow: auto;
   background: var(--map-surface);
-  box-shadow: 0 16px 44px rgba(43, 38, 30, 0.22);
+  box-shadow: 0 16px 44px var(--map-panel-shadow);
 }
 
 .relationship-properties > header {
@@ -1087,7 +1295,7 @@
   display: grid;
   gap: 5px;
   margin-bottom: 10px;
-  color: #625d53;
+  color: var(--map-text-secondary);
   font-size: 11px;
 }
 
@@ -1098,7 +1306,7 @@
   width: 100%;
   min-height: 36px;
   padding: 7px 8px;
-  border: 1px solid #aaa18f;
+  border: 1px solid var(--map-hairline);
   color: var(--map-ink);
   background: var(--map-surface);
   font: inherit;
@@ -1127,7 +1335,7 @@
   padding: 6px 8px;
   border: 0;
   border-radius: 2px;
-  color: #353b36;
+  color: var(--map-icon-button-ink);
   background: #ece5d8;
   font: inherit;
   font-size: 11px;
@@ -1136,7 +1344,7 @@
 
 .relationship-properties button[aria-pressed="true"] {
   color: var(--map-surface);
-  background: #4b514b;
+  background: var(--map-control-selected-bg);
 }
 
 .relationship-endpoints {
@@ -1177,6 +1385,18 @@
 /* Shared read-only presentation system */
 .money-map-presentation {
   display: grid;
+  /* Explicit single column, not the implicit default: with no
+     grid-template-columns, the lone auto-sized implicit column takes its
+     content's own preferred (max-content) width rather than being locked
+     to this grid's own 100vw. .presentation-header is itself a 3-column
+     grid whose preferred width varies with each story's title text — for
+     three of the four starters that preferred width exceeded the
+     viewport, so the header silently rendered wider than its parent and
+     had its right edge (Exit presentation) clipped by the overflow:
+     hidden below, with no scrollbar to reveal it. Locking the column to
+     minmax(0, 1fr) forces every row (header, stage, nav) to negotiate
+     within the true 100vw budget instead of growing past it. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 68px minmax(0, 1fr) 64px;
   width: 100vw;
   height: 100vh;
@@ -1193,10 +1413,21 @@
   gap: 24px;
   align-items: center;
   padding: 8px 22px;
-  border-bottom: 1px solid rgba(99, 88, 69, 0.3);
-  background: rgba(248, 244, 235, 0.98);
+  border-bottom: 1px solid var(--map-presentation-divider);
+  background: var(--map-presentation-chrome-bg);
 }
 
+/* Grid items default to min-width: auto, which refuses to shrink a track
+   below the item's own max-content size. .presentation-title's h1 has no
+   wrap/ellipsis constraint, so without this override each story's own
+   title text (a fixed string, "RMD & Withholding" vs "Retirement Income")
+   was silently resizing this 1fr column — and, by squeezing the leftover
+   space split with the equally-flexible actions column, pushing Exit
+   presentation past the viewport at 1180/1280 for three of the four
+   starters even though the grid's own minmax(280px, 1fr) floor was never
+   the binding constraint. min-width: 0 restores the intended
+   content-independent 1fr split; every authored title comfortably fits
+   the generous share that split leaves it. */
 .presentation-title {
   display: flex;
   gap: 12px;
@@ -1218,7 +1449,7 @@
 .presentation-meta {
   display: grid;
   gap: 2px;
-  color: #625d53;
+  color: var(--map-text-secondary);
   font-size: 12px;
   line-height: 1.25;
   text-align: center;
@@ -1229,10 +1460,10 @@
 .presentation-dots button {
   min-width: 44px;
   min-height: 44px;
-  border: 1px solid #958b79;
+  border: 1px solid var(--map-button-border);
   border-radius: 999px;
-  color: #373b36;
-  background: #fbf8f0;
+  color: var(--map-button-ink);
+  background: var(--map-presentation-control-bg);
   font: inherit;
   cursor: pointer;
 }
@@ -1253,25 +1484,55 @@
 }
 
 .money-map-canvas--presentation {
+  /* No in-stage chrome to clear here, and the authoring reserve costs enough
+     fit scale to push rendered type under its tested legibility floor.
+     fitView's own padding argument does the framing instead. */
+  padding: 0;
   background-color: var(--map-canvas);
   background-image: none;
   pointer-events: none;
 }
 
+/* Presentation inherits the authored type ramp and 20px inset verbatim: the
+   composed card IS the output. Legibility is a camera property — fitStep()
+   frames each story step's participants — never a typography property.
+   Inflating type against fixed authored card geometry is what collapsed the
+   12/13/23 hierarchy, pushed values flush to the border, and drove labels
+   into the row rules. Only interaction and story emphasis change below. */
 .money-map-presentation .money-map-module {
-  padding: 9px;
   cursor: default;
   transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+    opacity 200ms ease-out,
+    filter 200ms ease-out,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
-.money-map-presentation .money-map-module[data-presentation-focus="true"] {
-  border-color: var(--map-accent);
+/* Story focus reads as editorial emphasis, not editor selection: the
+   focused module gains presence through elevation (a lifted cast shadow),
+   weight (translateY), and surface warmth (a light saturation lift) rather
+   than the double accent ring used for canvas selection. No accent-colored
+   outline, so it never reads as "something is selected in the software."
+   The redundant [data-primitive] bumps specificity above the per-theme
+   [data-primitive="…"] box-shadow rules in themes.css (loaded after this
+   file), which otherwise tie and win on source order for shapes like
+   ledger that set their own box-shadow. */
+.money-map-presentation .money-map-module[data-presentation-focus="true"][data-primitive] {
   box-shadow:
-    0 0 0 4px var(--map-canvas),
-    0 0 0 8px var(--map-accent),
-    0 8px 22px rgba(49, 43, 34, 0.16);
+    0 10px 20px var(--map-presentation-focus-shadow),
+    0 28px 48px var(--map-presentation-focus-shadow);
+  filter: saturate(1.12);
+  transform: translateY(-4px);
+}
+
+/* Focused story steps: participants stay at full strength, everything else
+   quietly recedes so a step reads as its own view instead of Overview plus
+   a highlight. Geometry is untouched — only opacity/saturation change.
+   Lowered from 0.3 (ghosted-but-still-readable) so non-focused content
+   recedes cleanly instead of competing with the focused participants. */
+.money-map-presentation .money-map-module[data-presentation-dim="true"] {
+  opacity: 0.15;
+  filter: saturate(0.5);
 }
 
 .money-map-presentation .react-flow__edge.presentation-focus .money-map-relationship-path {
@@ -1279,153 +1540,74 @@
   stroke-width: 3;
 }
 
-.money-map-presentation .money-map-flow-label {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  gap: 4px;
-  align-items: baseline;
-  padding: 3px 6px;
-  cursor: default;
-  line-height: 1.05;
-  white-space: nowrap;
+.money-map-presentation .react-flow__edge,
+.money-map-presentation .money-map-relationship-casing {
   transition:
-    outline-color 180ms ease,
-    box-shadow 180ms ease;
+    opacity 200ms ease-out,
+    filter 200ms ease-out;
 }
 
+.money-map-presentation .react-flow__edge.presentation-dim {
+  opacity: 0.15;
+  filter: saturate(0.5);
+}
+
+/* Presentation sheds the cadence/detail lines below, so a label is a single
+   line of authored text and nowrap keeps it that way. Everything else — the
+   grid stack, 96px floor, 6px 10px inset, 12px strong — is inherited from
+   authoring, so a label reads identically in both modes.
+   The plain-treatment canvas knockout is no longer restated here: it now
+   lives unscoped at .money-map-flow-label-wrap[data-treatment="plain"]
+   above and applies to both modes. */
+.money-map-presentation .money-map-flow-label {
+  cursor: default;
+  white-space: nowrap;
+  transition:
+    font-weight 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+/* Same editorial-emphasis grammar as the module focus treatment above:
+   weight and a lifted shadow read as "this is the labeled figure the story
+   is on," without borrowing the accent outline canvas selection uses. */
 .money-map-presentation
   .money-map-flow-label-wrap[data-presentation-focus="true"]
   .money-map-flow-label {
-  outline: 4px solid var(--map-accent);
-  outline-offset: 3px;
-  box-shadow: 0 5px 16px rgba(49, 43, 34, 0.18);
+  box-shadow: 0 10px 22px var(--map-label-shadow);
+  font-weight: 760;
+  transform: translateY(-2px);
 }
 
-.money-map-presentation .money-map-module__header h2 {
-  margin-top: 2px;
-  font-size: 29px;
-  line-height: 1;
+.money-map-presentation .money-map-flow-label-wrap {
+  transition:
+    opacity 200ms ease-out,
+    filter 200ms ease-out;
 }
 
-.money-map-presentation .money-map-module__eyebrow {
-  color: var(--map-muted);
-  font-size: 16.2px;
-  font-weight: 720;
-  letter-spacing: 0.025em;
+.money-map-presentation .money-map-flow-label-wrap[data-presentation-dim="true"] {
+  opacity: 0.15;
+  filter: saturate(0.5);
 }
 
-.money-map-presentation .money-map-module__subtitle {
-  margin-top: 3px;
-  font-size: 19px;
-  line-height: 1.15;
-}
-
-.money-map-presentation .money-map-module__rows,
-.money-map-presentation .money-map-module__total {
-  margin-top: 8px;
-}
-
-.money-map-presentation .money-map-module__row,
-.money-map-presentation .money-map-module__total > div {
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.money-map-presentation .money-map-module dt,
-.money-map-presentation .money-map-module dd {
-  font-size: 20px;
-  line-height: 1.1;
-}
-
-.money-map-presentation .money-map-module__total dd {
-  max-width: none;
-  overflow-wrap: normal;
-  font-size: 34px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.money-map-presentation .money-map-module[data-kind="income"] .money-map-module__total > div,
-.money-map-presentation .money-map-module[data-kind="need"] .money-map-module__total > div {
-  grid-template-columns: 1fr;
-  gap: 4px;
-}
-
-.money-map-presentation .money-map-module[data-kind="income"] .money-map-module__total dd,
-.money-map-presentation .money-map-module[data-kind="need"] .money-map-module__total dd {
-  text-align: left;
-}
-
-.money-map-presentation .money-map-module__note {
-  margin-top: 6px;
-  font-size: 20px;
-  line-height: 1.2;
-}
-
-.money-map-presentation .money-map-flow-label strong {
-  font-size: 16.2px;
-}
-
-.money-map-presentation .money-map-flow-label span {
-  display: none;
-  font-size: 16.2px;
-}
-
+/* Presentation sheds the label's cadence and detail lines — a presented flow
+   is named, not annotated — but the remaining strong keeps its authored
+   12px. This is the only content presentation removes. */
+.money-map-presentation .money-map-flow-label span,
 .money-map-presentation .money-map-flow-label small {
   display: none;
-  font-size: 16.2px;
 }
 
+/* A text primitive is pure annotation: its header carries no authored
+   content in presentation, so the note becomes the whole object. */
 .money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__header {
   display: none;
 }
 
 .money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__note {
   margin: 0;
-  font-size: 17.5px;
-  line-height: 1.2;
-}
-/* Compact the fixed authored geometry without shrinking presentation type below its tested floor. */
-.money-map-presentation .money-map-module {
-  padding: 5px;
 }
 
-.money-map-presentation .money-map-module__header h2 {
-  margin-top: 0;
-  line-height: 0.95;
-}
-
-.money-map-presentation .money-map-module__subtitle {
-  margin-top: 1px;
-  line-height: 1;
-}
-
-.money-map-presentation .money-map-module__rows,
-.money-map-presentation .money-map-module__total {
-  margin-top: 2px;
-}
-
-.money-map-presentation .money-map-module__row,
-.money-map-presentation .money-map-module__total > div {
-  gap: 6px;
-  padding: 1px 0;
-}
-
-.money-map-presentation .money-map-module dt,
-.money-map-presentation .money-map-module dd {
-  line-height: 1;
-}
-
-.money-map-presentation .money-map-module__total dd {
-  font-size: 32.2px;
-  line-height: 0.95;
-}
-
-.money-map-presentation .money-map-module__note {
-  margin-top: 2px;
-  line-height: 1;
-}
 .presentation-nav {
   z-index: 10;
   display: flex;
@@ -1433,8 +1615,8 @@
   align-items: center;
   justify-content: center;
   padding: 8px 20px;
-  border-top: 1px solid rgba(99, 88, 69, 0.3);
-  background: rgba(248, 244, 235, 0.98);
+  border-top: 1px solid var(--map-presentation-divider);
+  background: var(--map-presentation-chrome-bg);
 }
 
 .presentation-overview {
@@ -1484,7 +1666,7 @@
   height: 9px;
   border: 1px solid #6d685d;
   border-radius: 50%;
-  background: #fbf8f0;
+  background: var(--map-presentation-control-bg);
   content: "";
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
@@ -1511,7 +1693,90 @@
 @media (prefers-reduced-motion: reduce) {
   .money-map-presentation .money-map-module,
   .money-map-presentation .money-map-flow-label,
-  .money-map-presentation .money-map-relationship-path {
+  .money-map-presentation .money-map-flow-label-wrap,
+  .money-map-presentation .react-flow__edge,
+  .money-map-presentation .money-map-relationship-path,
+  .money-map-presentation .money-map-relationship-casing {
     transition: none !important;
   }
+}
+
+/* Presentation camera recovery lives in the bottom chrome bar, never over the
+   stage, so it can never collide with authored story content. */
+.money-map-presentation .canvas-controls {
+  position: static;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+/* .presentation-rail (teaching.css) has flex: 1 1 auto and grows to fill
+   whatever room the toolbar leaves, so a plain margin-left: auto on the
+   toolbar has no free space left to consume — the rail already claims it
+   all. Taking the toolbar out of that flex flow entirely (absolute,
+   anchored to the nav's right edge) makes the rail's box the nav's full
+   width regardless of the toolbar's button count, so its own centered
+   step pills stop shifting. The reserved padding-right clears the
+   toolbar's widest (5-button: zoom trio + Fit story + Fit step) footprint
+   so the rail's rightmost pill never runs under it. */
+.presentation-nav {
+  position: relative;
+}
+
+.presentation-nav .presentation-rail {
+  padding-right: 360px;
+}
+
+.money-map-presentation .canvas-controls {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-map-presentation .canvas-controls * {
+    transition: none !important;
+  }
+}
+
+/* Overrides teaching.css's .presentation-rail__step base rule (not owned by
+   this file). Its word-safe clamp — display:-webkit-box;
+   -webkit-box-orient:vertical; -webkit-line-clamp:1 — does not engage in
+   current Chromium: computed display resolves to flow-root and
+   CSS.supports("line-clamp","1") is false, so the pill falls back to
+   normal wrapping inside a fixed max-width with overflow:hidden, clipping
+   text.overflow.mid-phrase with the second line sitting on the pill's own
+   rounded border. Two adjacent steps ("Reserve withdrawals" / "Reserve
+   replenishment") then both render as the identical fragment "Reserve...",
+   an advisor-facing comprehension failure, not just a clipping one.
+   A compound selector (two classes) here outranks teaching.css's
+   single-class rule on specificity regardless of load order, so this
+   fixes the rendering without editing a file this stylesheet does not own.
+   Single-line text-overflow: ellipsis is a mechanism that actually works;
+   the wider floor (vs. the base rule's 100px) keeps neighboring steps
+   that share a first word from truncating to the same fragment. */
+.money-map-presentation .presentation-rail__step {
+  display: block;
+  overflow: hidden;
+  min-width: 64px;
+  max-width: 168px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+}
+
+/* The active step is what the advisor and client read together while
+   presenting — it must render in full, never truncated. Cancels this
+   file's own overflow:hidden/max-width above for the current step only;
+   teaching.css's own active-step rule (width: max-content, flex-shrink: 0)
+   already sizes the pill to its full text. */
+.money-map-presentation .presentation-rail__step[aria-current="step"] {
+  overflow: visible;
+  max-width: 60vw;
 }

@@ -52,7 +52,7 @@ const expectedModules = [
 ] as const;
 
 const expectedFlows = [
-  ["roth-source", "roth-2026", "planned", "curved", "filled", "Annual", "annual"],
+  ["roth-source", "roth-2026", "planned", "curved", "plain", "Annual", "annual"],
   ["roth-2026", "roth-destination", "transfer", "straight", "plate", "One-time", "one-time"],
   [
     "roth-tax-reserve",
@@ -64,8 +64,8 @@ const expectedFlows = [
     "custom",
   ],
   ["roth-2026", "roth-guardrails", "planned", "straight", "plain", "Advisor tax review", "custom"],
-  ["roth-source", "roth-2027", "planned", "straight", "plate", "Annual", "annual"],
-  ["roth-2027", "roth-destination", "transfer", "curved", "filled", "One-time", "one-time"],
+  ["roth-source", "roth-2027", "planned", "straight", "plain", "Annual", "annual"],
+  ["roth-2027", "roth-destination", "transfer", "curved", "plate", "One-time", "one-time"],
   [
     "roth-liquidity",
     "roth-tax-reserve",
@@ -75,7 +75,7 @@ const expectedFlows = [
     "As needed",
     "as-needed",
   ],
-  ["roth-liquidity", "roth-source", "planned", "curved", "plate", "Monthly", "monthly"],
+  ["roth-liquidity", "roth-source", "planned", "curved", "plain", "Monthly", "monthly"],
 ] as const;
 
 const expectedSteps = [
@@ -103,7 +103,7 @@ describe("Roth Conversion Path starter", () => {
     }
   });
 
-  it("uses every route, relationship, and label treatment with all cadence filter buckets", () => {
+  it("round-trips every authored route, relationship, treatment, and cadence bucket", () => {
     const { flows } = rothStarter.document;
 
     expect(
@@ -124,8 +124,14 @@ describe("Roth Conversion Path starter", () => {
     expect(new Set(flows.map(({ relationship }) => relationship))).toEqual(
       new Set(["transfer", "replenishment", "planned"]),
     );
+    // Deliberately NOT asserting that all three treatments appear. That
+    // demand is what drove the starters to rotate filled/plate/plain for
+    // coverage, producing two identical "To Roth IRA" transfers rendered
+    // differently. Treatment now follows relationship type, which the
+    // shared invariant in starters.test.ts enforces across all four
+    // stories; this story simply has no income relationship to fill.
     expect(new Set(flows.map(({ labelTreatment }) => labelTreatment))).toEqual(
-      new Set(["plain", "plate", "filled"]),
+      new Set(["plain", "plate"]),
     );
     expect(new Set(flows.map(({ cadence }) => cadence.kind))).toEqual(
       new Set(["monthly", "annual", "one-time", "as-needed", "custom"]),
@@ -192,7 +198,7 @@ describe("Roth Conversion Path starter", () => {
       ["roth-destination", 180],
       ["roth-tax-reserve", 180],
       ["roth-guardrails", 240],
-      ["roth-2027", 180],
+      ["roth-2027", 240],
       ["roth-liquidity", 180],
     ]);
     const rectangles = rothStarter.document.modules.map((module) => ({

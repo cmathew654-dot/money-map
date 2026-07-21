@@ -216,7 +216,7 @@ describe("MoneyMapCanvas selection", () => {
       moduleIds: ["source-account", "annuity-policy"],
       flowIds: [],
     });
-    expect(screen.getByRole("status").textContent).toBe("2 modules selected.");
+    expect(screen.getByRole("status").textContent).toBe("2 shapes selected.");
 
     fireEvent.pointerDown(screen.getByTestId("react-flow-pane"));
     fireEvent.click(screen.getByTestId("react-flow-pane"));
@@ -290,7 +290,7 @@ describe("MoneyMapCanvas selection", () => {
       initial: { moduleIds: [], flowIds: [] },
       moduleIds: ["source-account"],
       flowIds: ["funding-flow"],
-      announcement: "1 module and 1 relationship selected.",
+      announcement: "1 shape and 1 relationship selected.",
     },
   ])(
     "commits $name selection once from one combined payload without a rerender",
@@ -316,7 +316,7 @@ describe("MoneyMapCanvas selection", () => {
 
     act(() => emitFlowSelection(combinedSelection.moduleIds, combinedSelection.flowIds));
     expect(onSelectionChange).toHaveBeenCalledWith(combinedSelection);
-    expect(screen.getByRole("status").textContent).toBe("1 module and 1 relationship selected.");
+    expect(screen.getByRole("status").textContent).toBe("1 shape and 1 relationship selected.");
 
     view.rerenderWith(combinedSelection);
     await waitFor(() => {
@@ -344,7 +344,7 @@ describe("MoneyMapCanvas selection", () => {
       moduleIds: ["source-account", "annuity-policy", "monthly-need"],
       flowIds: [],
     });
-    expect(screen.getByRole("status").textContent).toBe("3 modules selected.");
+    expect(screen.getByRole("status").textContent).toBe("3 shapes selected.");
   });
 
   it("retains content-driven measurements through an atomic selection update", () => {
@@ -597,17 +597,18 @@ describe("MoneyMapCanvas movement and camera", () => {
     expect(flowMock.fitView).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }));
   });
 
-  it("fits a presentation as one read-only map with no author camera or canvas tab stop", () => {
+  it("fits a presentation as one read-only map, leaving camera controls to the host chrome", () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: vi.fn().mockReturnValue({ matches: false }),
     });
     const document = createTestDocument();
+    const step = document.presentation[0];
     const { container } = render(
       <MoneyMapCanvas
         document={document}
         mode="presentation"
-        presentationStep={document.presentation[0]}
+        presentationStep={step}
         selection={{ moduleIds: [], flowIds: [] }}
         onSelectionChange={vi.fn()}
         onDocumentChange={vi.fn()}
@@ -621,7 +622,6 @@ describe("MoneyMapCanvas movement and camera", () => {
     expect(flowMock.props).toMatchObject({
       edgesReconnectable: false,
       elementsSelectable: false,
-      fitView: true,
       nodesConnectable: false,
       nodesDraggable: false,
       panOnDrag: false,
@@ -630,6 +630,35 @@ describe("MoneyMapCanvas movement and camera", () => {
       zoomOnPinch: false,
       zoomOnScroll: false,
     });
+    // A step with participants reframes to those participants with comfortable padding.
+    expect(flowMock.fitView).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nodes: step.moduleIds.map((id) => ({ id })),
+        padding: 0.22,
+        duration: 220,
+      }),
+    );
+  });
+
+  it("falls back to the full fit-story framing and hides Fit step when a step has no members", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false }),
+    });
+    const document = createTestDocument();
+    const overview = { ...document.presentation[0], moduleIds: [], flowIds: [] };
+    render(
+      <MoneyMapCanvas
+        document={document}
+        mode="presentation"
+        presentationStep={overview}
+        selection={{ moduleIds: [], flowIds: [] }}
+        onSelectionChange={vi.fn()}
+        onDocumentChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Fit step" })).toBeNull();
     expect(flowMock.fitView).toHaveBeenCalledWith(
       expect.objectContaining({ padding: 0.08, duration: 220 }),
     );

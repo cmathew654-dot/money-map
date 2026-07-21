@@ -35,6 +35,7 @@ export interface MoneyMapNodeData extends Record<string, unknown> {
   reconnectMode: boolean;
   presentation?: boolean;
   presentationFocus?: boolean;
+  presentationDim?: boolean;
 }
 
 export interface MoneyMapEdgeData extends Record<string, unknown> {
@@ -43,6 +44,11 @@ export interface MoneyMapEdgeData extends Record<string, unknown> {
   handlers?: MoneyMapEdgeHandlers;
   presentation?: boolean;
   presentationFocus?: boolean;
+  presentationDim?: boolean;
+}
+
+function presentationStepHasMembers(step?: PresentationStep): boolean {
+  return Boolean(step) && (step!.moduleIds.length > 0 || step!.flowIds.length > 0);
 }
 
 export type MoneyMapCanvasEdge = Edge<MoneyMapEdgeData, "moneyMapRelationship">;
@@ -121,9 +127,11 @@ export function documentToNodes(
   const haloAnchorId = selection.moduleIds.find((id) =>
     document.modules.some((module) => module.id === id),
   );
+  const stepFocused = presentationStepHasMembers(presentationStep);
 
   return document.modules.map((module) => {
     const outgoingCount = document.flows.filter((flow) => flow.source === module.id).length;
+    const inStep = presentationStep?.moduleIds.includes(module.id) ?? false;
     return {
       id: module.id,
       type: "moneyMapModule",
@@ -136,7 +144,8 @@ export function documentToNodes(
         haloAnchor: module.id === haloAnchorId,
         reconnectMode,
         presentation: Boolean(presentationStep),
-        presentationFocus: presentationStep?.moduleIds.includes(module.id) ?? false,
+        presentationFocus: inStep,
+        presentationDim: stepFocused && !inStep,
       },
       style: { width: module.width, height: module.height, zIndex: module.zIndex },
       selected: selected.has(module.id),
@@ -159,29 +168,35 @@ export function documentToEdges(
     selection.moduleIds.length === 0 && selection.flowIds.length === 1
       ? selection.flowIds[0]
       : null;
+  const stepFocused = presentationStepHasMembers(presentationStep);
 
-  return document.flows.map((flow) => ({
-    id: flow.id,
-    source: flow.source,
-    target: flow.target,
-    ...relationshipHandles(document, flow),
-    type: "moneyMapRelationship",
-    data: {
-      flow,
-      presentation: Boolean(presentationStep),
-      presentationFocus: presentationStep?.flowIds.includes(flow.id) ?? false,
-    },
-    selected: selected.has(flow.id),
-    selectable: !presentationStep,
-    focusable: !presentationStep,
-    reconnectable: !presentationStep && flow.id === reconnectableId,
-    hidden: !cadenceMatchesFilter(flow, filter),
-    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-    ariaLabel: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
-    className: `money-map-edge money-map-edge--${flow.relationship}${
-      presentationStep?.flowIds.includes(flow.id) ? " presentation-focus" : ""
-    }`,
-  }));
+  return document.flows.map((flow) => {
+    const inStep = presentationStep?.flowIds.includes(flow.id) ?? false;
+    const dim = stepFocused && !inStep;
+    return {
+      id: flow.id,
+      source: flow.source,
+      target: flow.target,
+      ...relationshipHandles(document, flow),
+      type: "moneyMapRelationship",
+      data: {
+        flow,
+        presentation: Boolean(presentationStep),
+        presentationFocus: inStep,
+        presentationDim: dim,
+      },
+      selected: selected.has(flow.id),
+      selectable: !presentationStep,
+      focusable: !presentationStep,
+      reconnectable: !presentationStep && flow.id === reconnectableId,
+      hidden: !cadenceMatchesFilter(flow, filter),
+      markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+      ariaLabel: `${flow.relationship} relationship from ${flow.source} to ${flow.target}: ${flow.label}; ${flow.cadence.label}`,
+      className: `money-map-edge money-map-edge--${flow.relationship}${
+        inStep ? " presentation-focus" : ""
+      }${dim ? " presentation-dim" : ""}`,
+    };
+  });
 }
 
 export function moveModule(

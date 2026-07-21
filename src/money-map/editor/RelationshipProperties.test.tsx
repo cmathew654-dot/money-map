@@ -57,8 +57,8 @@ describe("RelationshipProperties", () => {
 
   it("keeps current endpoints valid while excluding the opposing endpoint from each selector", () => {
     renderProperties();
-    const source = screen.getByRole("combobox", { name: "Source module" });
-    const target = screen.getByRole("combobox", { name: "Target module" });
+    const source = screen.getByRole("combobox", { name: "Source shape" });
+    const target = screen.getByRole("combobox", { name: "Target shape" });
     expect(source.querySelector('option[value="source-account"]')).toBeTruthy();
     expect(source.querySelector('option[value="annuity-policy"]')).toBeNull();
     expect(target.querySelector('option[value="annuity-policy"]')).toBeTruthy();
@@ -74,7 +74,7 @@ describe("RelationshipProperties", () => {
       { field: "secondaryLabel" },
       "$20,000–? — exact",
     );
-    fireEvent.change(screen.getByRole("combobox", { name: "Target module" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Target shape" }), {
       target: { value: "monthly-need" },
     });
     expect(props.onReconnect).toHaveBeenCalledWith({

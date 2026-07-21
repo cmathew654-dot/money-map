@@ -7,10 +7,10 @@ const stories = [
   "Roth Conversion",
 ] as const;
 const starterCadence = {
-  "Retirement Income": "Monthly",
+  "Retirement Income": "All",
   "RMD & Withholding": "Annual",
-  "Annuity Income Floor": "Monthly",
-  "Roth Conversion": "Annual",
+  "Annuity Income Floor": "All",
+  "Roth Conversion": "All",
 } as const;
 
 async function readPercentage(readout: Locator): Promise<number> {
@@ -104,6 +104,14 @@ test("selects a module, clears with Escape, and proves every camera command", as
   await page.keyboard.press("Shift+Digit2");
   await expect.poll(() => viewport.getAttribute("style")).not.toBe(beforeShiftTwo);
   await expect.poll(() => readPercentage(readout)).not.toBe(beforeShiftTwoPercentage);
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("fit");
+  await expect(page.getByRole("option", { name: "Fit story", exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Fit selection", exact: true })).toBeVisible();
+  await page.getByRole("combobox", { name: "Search actions" }).fill("100%");
+  await expect(page.getByRole("option", { name: "Reset zoom to 100%", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
 });
 
 test("shows the honest minimum cover instead of mounting React Flow", async ({ page }) => {
@@ -154,9 +162,9 @@ test("edits a title through one halo and preserves exact undo and redo", async (
 
   const module = page.locator(".money-map-module").filter({ hasText: "Illustrative annuity" });
   await module.click();
-  await expect(page.getByRole("toolbar", { name: "Selected module actions" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Edit module", exact: true }).click();
-  const title = page.getByRole("textbox", { name: "Edit module title" });
+  await expect(page.getByRole("toolbar", { name: "Selected shape actions" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Edit shape", exact: true }).click();
+  const title = page.getByRole("textbox", { name: "Edit shape title" });
   await title.fill("Income floor \u2014 exact");
   await title.press("Enter");
   await expect(page.getByRole("heading", { name: "Income floor \u2014 exact" })).toBeVisible();
@@ -192,13 +200,13 @@ test("restores an escaped literal, commits blur, and styles and resizes through 
   const fontSize = await module
     .locator("h2")
     .evaluate((element) => getComputedStyle(element).fontSize);
-  await page.getByRole("button", { name: "Style module" }).click();
-  await page.getByRole("button", { name: "Planning frame" }).click();
+  await page.getByRole("button", { name: "Style shape" }).click();
+  await page.getByRole("button", { name: "Frame", exact: true }).click();
   await expect(module).toHaveAttribute("data-primitive", "frame");
 
   await page.keyboard.press("Control+k");
-  await page.getByRole("combobox", { name: "Search actions" }).fill("income ledger");
-  await page.getByRole("option", { name: "Income ledger", exact: true }).click();
+  await page.getByRole("combobox", { name: "Search actions" }).fill("ledger");
+  await page.getByRole("option", { name: "Ledger", exact: true }).click();
   await expect(module).toHaveAttribute("data-primitive", "ledger");
 
   await page.keyboard.press("Control+k");
@@ -256,6 +264,29 @@ test("uses palette duplicate, keyboard remove, undo, compact tabs, and Draw flow
   ).toBeFocused();
 });
 
+test("opens Add to map from the command palette without a keyboard trap, and Escape closes it", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByRole("button", { name: /Retirement Income/i }).click();
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search actions" }).fill("add to map");
+  await page.getByRole("option", { name: "Add to map", exact: true }).click();
+
+  const menu = page.getByLabel("Add to money map");
+  await expect(menu).toBeVisible();
+  // The command palette's own focus-restore must not fight the surface the
+  // command itself just opened: focus has to land, and stay, inside the menu
+  // so its own Escape and arrow-key handling actually receives keys.
+  await expect(page.getByRole("button", { name: /^Ledger/ })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+});
+
 test("adds one purposeful shape with carried style and immediate literal title editing", async ({
   page,
 }) => {
@@ -266,15 +297,15 @@ test("adds one purposeful shape with carried style and immediate literal title e
 
   const account = page.locator(".money-map-module").filter({ hasText: "Joint After-Tax Account" });
   await account.click();
-  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Style shape" }).click();
   await page.getByRole("button", { name: "Spotlight priority" }).click();
   await page.getByRole("button", { name: "Accent color" }).click();
   await page.getByRole("button", { name: "Close properties" }).click();
 
   await page.getByRole("button", { name: "+ Add" }).click();
   await expect(page.getByLabel("Add to money map")).toBeVisible();
-  await page.getByRole("button", { name: /Account plate/ }).click();
-  const title = page.getByRole("textbox", { name: "Edit module title" });
+  await page.getByRole("button", { name: /^Plate/ }).click();
+  const title = page.getByRole("textbox", { name: "Edit shape title" });
   await expect(title).toBeFocused();
   await title.fill("Advisor-owned account — exact");
   await title.press("Enter");
@@ -282,10 +313,13 @@ test("adds one purposeful shape with carried style and immediate literal title e
   const created = page.locator(".money-map-module").filter({
     hasText: "Advisor-owned account — exact",
   });
+  // A new object is always visible with its title editor on screen — never
+  // placed off-camera with nothing to reveal it.
+  await expect(created).toBeInViewport();
   await expect(created).toHaveAttribute("data-primitive", "plate");
   await expect(created).toHaveAttribute("data-priority", "spotlight");
   await expect(created).toHaveAttribute("data-swatch", "accent");
-  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Style shape" }).click();
   await page.getByRole("button", { name: "Full detail" }).click();
   await page.getByRole("button", { name: "Close properties" }).click();
   await expect(created).toHaveAttribute("data-density", "full");
@@ -329,7 +363,7 @@ test("quick-creates a connected object by dropping a visible port on empty canva
   await page.mouse.move(drop.x, drop.y, { steps: 8 });
   await page.mouse.up();
 
-  const title = page.getByRole("textbox", { name: "Edit module title" });
+  const title = page.getByRole("textbox", { name: "Edit shape title" });
   await expect(title).toBeFocused();
   await title.fill("Connected advisor account");
   await title.press("Enter");
@@ -388,7 +422,7 @@ test("persists committed edits only for one starter and Reset restores its scaff
   const source = page.locator(".money-map-module").filter({ hasText: "Traditional IRA" });
   await source.click();
   await page.keyboard.press("Enter");
-  const title = page.getByRole("textbox", { name: "Edit module title" });
+  const title = page.getByRole("textbox", { name: "Edit shape title" });
   await title.fill("Saved Roth literal");
   await title.press("Enter");
   await page.reload();
@@ -419,7 +453,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
 
   const groupHalo = page.getByRole("toolbar", { name: "2 selected items" });
   await expect(groupHalo).toHaveCount(1);
-  await expect(groupHalo.getByRole("button", { name: "Edit module" })).toHaveCount(0);
+  await expect(groupHalo.getByRole("button", { name: "Edit shape" })).toHaveCount(0);
   await expect(groupHalo.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
   await expect(groupHalo.getByRole("button", { name: "Remove selection" })).toBeVisible();
   await groupHalo.getByRole("button", { name: "Duplicate selection" }).click();
@@ -434,7 +468,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
   await module.click({ modifiers: ["Shift"] });
   await expect(page.getByRole("toolbar", { name: "2 selected items" })).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Edit module" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Edit shape" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Duplicate selection" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remove selection" })).toBeVisible();
 
@@ -455,7 +489,7 @@ test("shows one actionable group halo for multi-module and mixed selections", as
   const fundingFlowLabel = page.getByRole("button", {
     name: /planned relationship from annuity-source/i,
   });
-  await fundingFlowLabel.click();
+  await fundingFlowLabel.dblclick();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
   await expect(fundingFlowLabel).toBeFocused();
   await page.keyboard.press("Escape");
@@ -501,7 +535,7 @@ test("keeps properties fresh and makes Draw flow, style, and properties exclusiv
   await expect(page.getByRole("tab", { name: "Connections" })).toHaveCount(0);
   await page.getByRole("button", { name: "Cancel draw flow" }).click();
 
-  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Style shape" }).click();
   await expect(page.getByLabel("Advanced properties")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Appearance" })).toHaveAttribute(
     "aria-selected",
@@ -571,7 +605,7 @@ test("invalid selections close editing surfaces and later singles do not reopen 
   await source.click();
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Style module" }).click();
+  await page.getByRole("button", { name: "Style shape" }).click();
   await annuity.click({ modifiers: ["Shift"] });
   await expect(page.getByLabel("Advanced properties")).toHaveCount(0);
   await source.click();
@@ -588,7 +622,7 @@ test("edits exact relationship text and appearance with undo and redo", async ({
   const originalPath = await page
     .locator('.react-flow__edge[data-id="annuity-plan-contract"] .money-map-relationship-path')
     .getAttribute("d");
-  await labelWrap.getByRole("button").click();
+  await labelWrap.getByRole("button").dblclick();
   const labelInput = page.getByRole("textbox", { name: "Edit relationship label" });
   const literal = "$20,000\u2013? \u2014 advisor-authored";
   await labelInput.fill(literal);
@@ -613,7 +647,9 @@ test("edits exact relationship text and appearance with undo and redo", async ({
   await expect(labelWrap).toHaveAttribute("data-treatment", "filled");
 
   await page.keyboard.press("Control+z");
-  await expect(labelWrap).toHaveAttribute("data-treatment", "plate");
+  // Back to the authored treatment: annuity-plan-contract is a planned
+  // relationship, and treatment now follows relationship type.
+  await expect(labelWrap).toHaveAttribute("data-treatment", "plain");
   await page.keyboard.press("Control+Shift+z");
   await expect(labelWrap).toHaveAttribute("data-treatment", "filled");
   await expect(page.locator(".money-map-module").filter({ hasText: "$250,000" })).toHaveCount(1);
@@ -668,7 +704,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-contract-need"]');
   const labelButton = labelWrap.getByRole("button");
-  await labelButton.click();
+  await labelButton.dblclick();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
   await expect(labelButton).toBeFocused();
   await page.keyboard.press("Control+k");
@@ -677,7 +713,7 @@ test("reconnects by keyboard and persists exact custom cadence across filters an
 
   const properties = page.getByLabel("Relationship properties");
   await expect(properties).toBeVisible();
-  await properties.getByRole("combobox", { name: "Source module" }).selectOption("annuity-source");
+  await properties.getByRole("combobox", { name: "Source shape" }).selectOption("annuity-source");
   await properties.getByRole("button", { name: "Custom cadence", exact: true }).click();
   const cadence = "Beginning in 2027 \u2014 after the sale closes";
   const customCadence = properties.getByRole("textbox", { name: "Custom cadence" });
@@ -710,7 +746,7 @@ test("clears a cadence-hidden relationship after command and redo", async ({ pag
 
   const labelWrap = page.locator('[data-flow-label-id="annuity-income-need"]');
   let labelButton = labelWrap.getByRole("button");
-  await labelButton.click();
+  await labelButton.dblclick();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
   await expect(labelButton).toBeFocused();
   await page.getByRole("button", { name: "Monthly", exact: true }).click();
@@ -728,7 +764,7 @@ test("clears a cadence-hidden relationship after command and redo", async ({ pag
   await page.keyboard.press("Control+z");
   await expect(labelWrap).toBeVisible();
   labelButton = labelWrap.getByRole("button");
-  await labelButton.click();
+  await labelButton.dblclick();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
   await expect(labelButton).toBeFocused();
   await page.keyboard.press("Control+Shift+z");
@@ -748,13 +784,13 @@ test("reconnects both relationship endpoints by pointer", async ({ page }) => {
   let relationshipLabel = page.getByRole("button", {
     name: /planned relationship from annuity-source to annuity-plan/i,
   });
-  await relationshipLabel.click();
+  await relationshipLabel.dblclick();
   await page.getByRole("textbox", { name: "Edit relationship label" }).press("Escape");
   await page.getByRole("button", { name: /Actions/ }).click();
   await page.getByRole("combobox", { name: "Search actions" }).fill("relationship properties");
   await page.getByRole("option", { name: "Relationship properties", exact: true }).click();
   const properties = page.getByLabel("Relationship properties");
-  await properties.getByRole("combobox", { name: "Target module" }).selectOption("annuity-policy");
+  await properties.getByRole("combobox", { name: "Target shape" }).selectOption("annuity-policy");
   await properties.getByRole("button", { name: "Close" }).click();
   relationshipLabel = page.getByRole("button", {
     name: /planned relationship from annuity-source to annuity-policy/i,

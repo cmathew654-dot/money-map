@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { CanvasController } from "../canvas/CanvasControls";
 import {
   commitHistory,
   createHistory,
@@ -7,7 +8,7 @@ import {
   undoHistory,
   type HistoryState,
 } from "../model/history";
-import { clearDraft, loadDraft, saveDraft, type StorageLike } from "../model/persistence";
+import { loadDraft, saveDraft, type StorageLike } from "../model/persistence";
 import type { MoneyMapDocument, Selection, StarterId } from "../model/types";
 import { createStarterDocument } from "../starters/registry";
 import {
@@ -111,14 +112,17 @@ export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions =
   }, [storage]);
 
   const reset = useCallback(() => {
-    clearDraft(storage, starterId);
-    const nextHistory = createHistory(createStarterDocument(starterId));
-    historyRef.current = nextHistory;
-    setHistory(nextHistory);
-    setSelection(emptySelection);
-    setAnnouncement("Starter scaffold restored.");
-    setLastHistoryStep(null);
-  }, [starterId, storage]);
+    applyDocument(
+      createStarterDocument(starterId),
+      "Starter scaffold restored. Undo to return to your version.",
+      "Reset story",
+    );
+  }, [applyDocument, starterId]);
+
+  const canvasControllerRef = useRef<CanvasController | null>(null);
+  const registerCanvasController = useCallback((controller: CanvasController) => {
+    canvasControllerRef.current = controller;
+  }, []);
 
   const commandContext: WorkspaceCommandContext = {
     document: history.present,
@@ -138,6 +142,11 @@ export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions =
       } else if (result.kind === "history") {
         if (result.action === "undo") undo();
         else redo();
+      } else if (result.kind === "camera") {
+        const controller = canvasControllerRef.current;
+        if (result.action === "fit-story") controller?.fitMap();
+        else if (result.action === "fit-selection") controller?.fitSelection();
+        else controller?.resetZoom();
       } else if (result.kind === "reset") {
         reset();
       }
@@ -162,5 +171,6 @@ export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions =
     redo,
     reset,
     executeCommand,
+    registerCanvasController,
   };
 }

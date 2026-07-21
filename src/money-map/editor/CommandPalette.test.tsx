@@ -90,6 +90,36 @@ describe("CommandPalette", () => {
     invoker.remove();
   });
 
+  it("groups commands under quiet, non-interactive headers and gives an unmapped command family its own group", () => {
+    // "camera.*" commands are registered by a concurrent workstream and are not
+    // in this palette's known-prefix map — this proves the grouping derives a
+    // group for them automatically instead of hardcoding an exhaustive list.
+    const registry = createWorkspaceCommands(() => "copy");
+    const invoker = document.createElement("button");
+    document.body.append(invoker);
+    render(
+      <CommandPalette
+        context={context}
+        invoker={invoker}
+        onClose={vi.fn()}
+        onExecute={vi.fn()}
+        registry={registry}
+      />,
+    );
+
+    const cameraHeader = screen.getByText("Camera");
+    expect(cameraHeader.tagName).toBe("P");
+    expect(cameraHeader.getAttribute("role")).toBe("presentation");
+    expect(cameraHeader.hasAttribute("tabindex")).toBe(false);
+
+    const fitStoryOption = screen.getByRole("option", { name: /Fit story/ });
+    expect(fitStoryOption.closest('[role="group"]')?.getAttribute("aria-labelledby")).toBe(
+      cameraHeader.id,
+    );
+
+    invoker.remove();
+  });
+
   it("closes and restores focus after executing an option", () => {
     const execute = vi.fn();
     const close = vi.fn();

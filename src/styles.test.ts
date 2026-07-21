@@ -17,12 +17,22 @@ function contrast(first: string, second: string): number {
 }
 
 describe("starter chooser visual contracts", () => {
-  it("keeps the small starter index above the WCAG AA text contrast floor", () => {
+  it("keeps the quiet starter meta label above the WCAG AA text contrast floor", () => {
     const css = readFileSync("src/styles.css", "utf8");
-    const color = css.match(/\.starter-number\s*\{[^}]*color:\s*(#[0-9a-f]{6})/i)?.[1];
+    const color = css.match(/\.starter-meta\s*\{[^}]*color:\s*(#[0-9a-f]{6})/i)?.[1];
 
     expect(color).toBeTruthy();
     expect(contrast(color ?? "#ffffff", "#eee7d8")).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("removes the decorative 01-04 starter numbering", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).not.toMatch(/\.starter-number/);
+  });
+
+  it("removes the banned colored side-stripe hover treatment", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    expect(css).not.toMatch(/box-shadow:\s*inset\s+4px\s+0/);
   });
 });
 describe("workspace composition contracts", () => {

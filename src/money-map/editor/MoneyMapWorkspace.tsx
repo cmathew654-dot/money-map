@@ -37,9 +37,15 @@ import {
   reconnectFlow,
   type FlowField,
 } from "./mutations";
+import { RelationshipLegend } from "./RelationshipLegend";
 import { RelationshipProperties } from "./RelationshipProperties";
 import { PresentationShell } from "./PresentationShell";
-import { positionEditorSurface, type EditorSurfacePosition } from "./surfacePosition";
+import {
+  findOpenModulePlacement,
+  positionEditorSurface,
+  type EditorSurfacePosition,
+  type PlacementViewport,
+} from "./surfacePosition";
 import { useMoneyMapEditor } from "./useMoneyMapEditor";
 
 interface MoneyMapWorkspaceProps {
@@ -54,6 +60,14 @@ interface Dimensions {
 
 const authoringMinimum = { width: 1180, height: 660 };
 const relationshipSurfaceSize = { width: 368, height: 604 };
+// The Content tab only ever shows the title field plus a *collapsed* details
+// disclosure (AdvancedProperties never renders it open) -- a fixed, modest height
+// regardless of which module is selected or how many rows/notes it carries, since
+// that variable-length content lives inside the collapsed summary. Reserving the
+// full appearance-tab budget (400px, sized for six always-expanded fieldsets) for
+// this much shorter tab needlessly forces the surface further from its natural
+// position than it ever needs to go.
+const propertiesContentSize = { width: 352, height: 250 };
 
 function carriedStyle(module: NewModuleStyle): NewModuleStyle {
   return {
@@ -74,7 +88,14 @@ function cadenceForNewRelationship(filter: CadenceFilterValue): MoneyMapCadence 
   return { kind: "as-needed", label: "As needed" };
 }
 
-function visibleCanvasPlacement(mapDocument: MoneyMapDocument): Point {
+interface CanvasPlacementContext {
+  point: Point;
+  viewport?: PlacementViewport;
+}
+
+const newModulePlacementSize = { width: 300, height: 200 };
+
+function visibleCanvasPlacement(mapDocument: MoneyMapDocument): CanvasPlacementContext {
   const viewport = globalThis.document.querySelector<HTMLElement>(
     ".money-map-canvas .react-flow__viewport",
   );
@@ -83,8 +104,16 @@ function visibleCanvasPlacement(mapDocument: MoneyMapDocument): Point {
     const transform = getComputedStyle(viewport).transform;
     const matrix = new DOMMatrixReadOnly(transform === "none" ? undefined : transform);
     return {
-      x: (pane.clientWidth / 2 - matrix.e) / matrix.a - 150,
-      y: (pane.clientHeight / 2 - matrix.f) / matrix.d - 95,
+      point: {
+        x: (pane.clientWidth / 2 - matrix.e) / matrix.a - 150,
+        y: (pane.clientHeight / 2 - matrix.f) / matrix.d - 95,
+      },
+      viewport: {
+        left: (0 - matrix.e) / matrix.a,
+        top: (0 - matrix.f) / matrix.d,
+        right: (pane.clientWidth - matrix.e) / matrix.a,
+        bottom: (pane.clientHeight - matrix.f) / matrix.d,
+      },
     };
   }
   const left = Math.min(...mapDocument.modules.map(({ position }) => position.x));
@@ -93,7 +122,7 @@ function visibleCanvasPlacement(mapDocument: MoneyMapDocument): Point {
   const bottom = Math.max(
     ...mapDocument.modules.map((module) => module.position.y + module.height),
   );
-  return { x: (left + right) / 2 - 150, y: (top + bottom) / 2 - 95 };
+  return { point: { x: (left + right) / 2 - 150, y: (top + bottom) / 2 - 95 } };
 }
 
 export function isAuthoringViewportSupported(width: number, height: number): boolean {
@@ -169,6 +198,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const [propertiesTab, setPropertiesTab] = useState<"content" | "appearance" | null>(null);
   const [drawFlowOpen, setDrawFlowOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const presentingRef = useRef(presenting);
   presentingRef.current = presenting;
@@ -177,6 +207,15 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const addRef = useRef<HTMLButtonElement>(null);
   const presentRef = useRef<HTMLButtonElement>(null);
   const lastModuleStyle = useRef<NewModuleStyle | null>(null);
+  // Set synchronously by executeCommand whenever a command opens another
+  // focus-owning surface (Add menu, Present, Legend, or any module/relationship
+  // panel). closePalette reads it to skip its own focus-restore so it never fights
+  // the surface the command itself just opened.
+  const suppressPaletteFocusRestore = useRef(false);
+  // Tracks a just-created module that landed outside the visible viewport, so the
+  // camera can be panned to it once the new selection has actually committed (the
+  // canvas controller closes over the previous render's selection until then).
+  const pendingRevealModuleId = useRef<string | null>(null);
   const { ref, dimensions } = useWorkspaceDimensions(!presenting);
   const supported = isAuthoringViewportSupported(dimensions.width, dimensions.height);
   const selectedModuleId =
@@ -187,6 +226,15 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     editor.selection.flowIds.length === 1 && editor.selection.moduleIds.length === 0
       ? editor.selection.flowIds[0]
       : null;
+  /* Declared here rather than beside focusSelectedModule below because
+     commitInlineEdit/cancelInlineEdit list it as a dependency and would hit
+     the temporal dead zone. */
+  const focusModule = useCallback((moduleId: string) => {
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`.react-flow__node[data-id="${moduleId}"]`)?.focus();
+    });
+  }, []);
+
   const availableCommands = editor.registry.available(editor.commandContext);
   const appearanceCommands = availableCommands.filter(
     ({ id }) =>
@@ -229,20 +277,62 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     editor.setSelection(nextSelection);
   }, [cadenceFilter, editor.document, editor.selection, editor.setSelection]);
 
-  const placeSurface = useCallback(() => {
-    if (!selectedModuleId) return;
-    const node = document.querySelector<HTMLElement>(
-      `.react-flow__node[data-id="${selectedModuleId}"]`,
-    );
-    if (!node) return;
-    const bounds = node.getBoundingClientRect();
-    setSurfacePosition(
-      positionEditorSurface(bounds, {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      }),
-    );
-  }, [selectedModuleId]);
+  // Every other clickable canvas object currently on screen -- modules and flow
+  // labels -- as plain rects, passed to positionEditorSurface so it can steer the
+  // surface clear of canvas content it isn't anchored to, not just the module or
+  // flow it's editing. `exceptModuleId`/`exceptFlowId` are the anchor itself
+  // (already handled separately, by offsetting instead of avoiding).
+  const otherCanvasObstacleRects = useCallback(
+    (exceptModuleId: string, exceptFlowId = ""): DOMRect[] => {
+      const rects: DOMRect[] = [];
+      document.querySelectorAll<HTMLElement>(".react-flow__node[data-id]").forEach((node) => {
+        if (node.dataset.id === exceptModuleId) return;
+        rects.push(node.getBoundingClientRect());
+      });
+      document.querySelectorAll<HTMLElement>("[data-flow-label-id]").forEach((label) => {
+        if (label.dataset.flowLabelId === exceptFlowId) return;
+        rects.push(label.getBoundingClientRect());
+      });
+      return rects;
+    },
+    [],
+  );
+
+  // The stage's permanent controls (cadence filter, zoom toolbar) -- always on
+  // screen, never tied to the open document. Unlike document content
+  // (otherCanvasObstacleRects), these are never an acceptable tradeoff to graze:
+  // positionEditorSurface treats them as a hard constraint, the same as the object
+  // being edited.
+  const permanentChromeRects = useCallback((): DOMRect[] => {
+    const rects: DOMRect[] = [];
+    document
+      .querySelectorAll<HTMLElement>(".cadence-filter, .canvas-controls")
+      .forEach((chrome) => {
+        rects.push(chrome.getBoundingClientRect());
+      });
+    return rects;
+  }, []);
+
+  const placeSurface = useCallback(
+    (size?: { width: number; height: number }) => {
+      if (!selectedModuleId) return;
+      const node = document.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${selectedModuleId}"]`,
+      );
+      if (!node) return;
+      const bounds = node.getBoundingClientRect();
+      setSurfacePosition(
+        positionEditorSurface(
+          bounds,
+          { width: window.innerWidth, height: window.innerHeight },
+          size,
+          otherCanvasObstacleRects(selectedModuleId),
+          permanentChromeRects(),
+        ),
+      );
+    },
+    [otherCanvasObstacleRects, permanentChromeRects, selectedModuleId],
+  );
   const placeFlowSurface = useCallback(() => {
     if (!selectedFlowId) return;
     const label = document.querySelector<HTMLElement>(`[data-flow-label-id="${selectedFlowId}"]`);
@@ -252,8 +342,34 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
         label.getBoundingClientRect(),
         { width: window.innerWidth, height: window.innerHeight },
         relationshipSurfaceSize,
+        otherCanvasObstacleRects("", selectedFlowId),
+        permanentChromeRects(),
       ),
     );
+  }, [otherCanvasObstacleRects, permanentChromeRects, selectedFlowId]);
+
+  // Properties (and Draw flow) intentionally stay open across a plain click on a
+  // different module -- the panel swaps in the newly selected module's data rather
+  // than closing (see the `selectedModuleId` effect above, which only closes it when
+  // selection drops to none). Without this, the surface stayed parked at the
+  // position computed for the *previous* module, which could now overlap the newly
+  // selected module's own selection halo. Re-anchoring keeps it beside whichever
+  // module it's actually showing.
+  // Intentionally keyed on selectedModuleId alone: it should re-anchor exactly
+  // once per selection change, not on every placeSurface/tab identity change.
+  useEffect(() => {
+    if (!selectedModuleId) return;
+    if (!propertiesTab && !drawFlowOpen) return;
+    placeSurface(propertiesTab === "appearance" ? undefined : propertiesContentSize);
+  }, [selectedModuleId]);
+
+  // Same re-anchoring for relationship properties: it stays open across a plain
+  // click on a different flow (see the `selectedFlowId` effect above), so its
+  // position has to follow. Keyed on selectedFlowId alone for the same reason.
+  useEffect(() => {
+    if (!selectedFlowId) return;
+    if (!relationshipOpen) return;
+    placeFlowSurface();
   }, [selectedFlowId]);
 
   const beginSelectedTitle = useCallback(() => {
@@ -268,10 +384,70 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     }
   }, [editor.document.modules, selectedModuleId]);
 
+  const openAdd = useCallback(() => {
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setDrawFlowOpen(false);
+    setRelationshipOpen(false);
+    setActiveFlowId(null);
+    setLegendOpen(false);
+    setAddOpen(true);
+  }, []);
+
+  const enterPresentation = useCallback(() => {
+    setActiveInlineField(null);
+    setActiveFlowId(null);
+    setRelationshipOpen(false);
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setDrawFlowOpen(false);
+    setAddOpen(false);
+    setLegendOpen(false);
+    setPresenting(true);
+  }, []);
+
+  const openLegend = useCallback(() => {
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setDrawFlowOpen(false);
+    setRelationshipOpen(false);
+    setActiveFlowId(null);
+    setAddOpen(false);
+    setLegendOpen(true);
+  }, []);
+
+  const closeLegend = useCallback(() => {
+    setLegendOpen(false);
+    requestAnimationFrame(() => actionsRef.current?.focus());
+  }, []);
+
   const executeCommand = useCallback(
     (id: string) => {
+      // Reset on every call (not just the surface-opening branches below) so a
+      // stale `true` from an earlier, non-palette-triggered command (e.g. the
+      // "L" shortcut) can never leak into a later palette close.
+      suppressPaletteFocusRestore.current = false;
       const result = editor.executeCommand(id);
+      if (result?.kind === "add") {
+        suppressPaletteFocusRestore.current = true;
+        openAdd();
+        return;
+      }
+      if (result?.kind === "present") {
+        suppressPaletteFocusRestore.current = true;
+        enterPresentation();
+        return;
+      }
+      if (result?.kind === "legend") {
+        suppressPaletteFocusRestore.current = true;
+        openLegend();
+        return;
+      }
       if (result?.kind !== "surface") return;
+      // Every surface below focuses itself on mount (InlineField autoFocus,
+      // FlowTargetPicker/RelationshipProperties/AdvancedProperties effects), so
+      // the palette's own focus-restore must not fight it. See closePalette.
+      suppressPaletteFocusRestore.current = true;
       setAddOpen(false);
       if (result.surface === "inline") {
         setPropertiesTab(null);
@@ -300,11 +476,20 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       }
 
       setRelationshipOpen(false);
-      placeSurface();
+      placeSurface(result.surface === "appearance" ? undefined : propertiesContentSize);
       setDrawFlowOpen(false);
       setPropertiesTab(result.surface === "appearance" ? "appearance" : "content");
     },
-    [beginSelectedTitle, editor, placeFlowSurface, placeSurface, selectedFlowId],
+    [
+      beginSelectedTitle,
+      editor,
+      enterPresentation,
+      openAdd,
+      openLegend,
+      placeFlowSurface,
+      placeSurface,
+      selectedFlowId,
+    ],
   );
   const commitInlineEdit = useCallback(
     (literal: string) => {
@@ -315,10 +500,20 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
           : { field: activeInlineField.field };
       const next = editModuleField(editor.document, activeInlineField.moduleId, target, literal);
       editor.applyDocument(next, "Inline edit committed.", `edit ${activeInlineField.field}`);
+      // DESIGN.md contracts focus restoration, and inline editing is the
+      // most-used dismissable surface. Without this the field unmounts and
+      // focus falls to <body>, costing a full re-Tab through the header,
+      // canvas, and every edge group to get back to the edited shape.
+      focusModule(activeInlineField.moduleId);
       setActiveInlineField(null);
     },
-    [activeInlineField, editor],
+    [activeInlineField, editor, focusModule],
   );
+
+  const cancelInlineEdit = useCallback(() => {
+    if (activeInlineField) focusModule(activeInlineField.moduleId);
+    setActiveInlineField(null);
+  }, [activeInlineField, focusModule]);
 
   const commitPropertyField = useCallback(
     (moduleId: string, field: PropertyField, literal: string) => {
@@ -331,7 +526,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const commitModuleSize = useCallback(
     (moduleId: string, size: { width: number; height: number }) => {
       const next = resizeModule(editor.document, moduleId, size);
-      editor.applyDocument(next, "Module resized.", "resize module");
+      editor.applyDocument(next, "Shape resized.", "resize module");
     },
     [editor],
   );
@@ -339,7 +534,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const commitModuleMove = useCallback(
     (moduleId: string, position: Point) => {
       const next = moveModule(editor.document, moduleId, position);
-      editor.applyDocument(next, "Module moved.", "move module");
+      editor.applyDocument(next, "Shape moved.", "move module");
     },
     [editor],
   );
@@ -468,10 +663,27 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   const createObject = useCallback(
     (primitive: PrimitiveStyle) => {
       const previousIds = new Set(editor.document.modules.map(({ id }) => id));
+      const carried = lastModuleStyle.current;
+      const approximateSize =
+        carried && carried.primitive === primitive
+          ? { width: carried.width, height: carried.height }
+          : newModulePlacementSize;
+      const { point: preferredPoint, viewport } = visibleCanvasPlacement(editor.document);
+      const placement = findOpenModulePlacement(
+        preferredPoint,
+        approximateSize,
+        editor.document.modules.map((module) => ({
+          x: module.position.x,
+          y: module.position.y,
+          width: module.width,
+          height: module.height,
+        })),
+        viewport,
+      );
       const next = createModule(
         editor.document,
         primitive,
-        visibleCanvasPlacement(editor.document),
+        placement.point,
         (kind) => `${kind}-${crypto.randomUUID()}`,
         lastModuleStyle.current ?? undefined,
       );
@@ -479,6 +691,11 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       if (!created) return;
       editor.applyDocument(next, `${created.title} added.`, "add module");
       editor.setSelection({ moduleIds: [created.id], flowIds: [] });
+      // Off-screen placements never happen silently: the camera pans to reveal
+      // the new object once the selection above has actually committed (see the
+      // pendingRevealModuleId effect — the canvas controller still closes over
+      // the previous render's selection at this exact point in the callback).
+      if (!placement.withinViewport) pendingRevealModuleId.current = created.id;
       lastModuleStyle.current = carriedStyle(created);
       setAddOpen(false);
       setActiveInlineField({ moduleId: created.id, field: "title", original: created.title });
@@ -486,6 +703,19 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     },
     [editor, focusNewModuleTitle],
   );
+
+  // Consumes a pending off-screen reveal exactly once, on the next selection
+  // change after createObject flags it. By the time this effect runs, both the
+  // selection state and the canvas controller (updated by MoneyMapCanvas's own
+  // child effect, which commits before this parent effect) reflect the new
+  // module, so fit-selection frames the right object instead of the stale one.
+  useEffect(() => {
+    const pendingId = pendingRevealModuleId.current;
+    if (!pendingId) return;
+    pendingRevealModuleId.current = null;
+    if (selectedModuleId !== pendingId) return;
+    editor.executeCommand("camera.fit-selection");
+  }, [selectedModuleId, editor]);
 
   const quickCreateConnection = useCallback(
     (sourceId: string, point: Point) => {
@@ -534,23 +764,23 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     setDrawFlowOpen(false);
     setRelationshipOpen(false);
     setActiveFlowId(null);
+    setLegendOpen(false);
     setPaletteInvoker(invoker);
   }, []);
 
   const closePalette = useCallback(() => {
     const invoker = paletteInvoker;
     setPaletteInvoker(null);
+    // A command executed from the palette may have just opened another surface
+    // (Add menu, Present, Legend, an inline/appearance/properties panel) that
+    // already focused itself. Restoring focus to the invoker here would steal
+    // it right back — see executeCommand's suppressPaletteFocusRestore branches.
+    if (suppressPaletteFocusRestore.current) {
+      suppressPaletteFocusRestore.current = false;
+      return;
+    }
     requestAnimationFrame(() => invoker?.focus());
   }, [paletteInvoker]);
-
-  const openAdd = useCallback(() => {
-    setPaletteInvoker(null);
-    setPropertiesTab(null);
-    setDrawFlowOpen(false);
-    setRelationshipOpen(false);
-    setActiveFlowId(null);
-    setAddOpen(true);
-  }, []);
 
   const closeAdd = useCallback(() => {
     setAddOpen(false);
@@ -559,13 +789,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
 
   const focusSelectedModule = useCallback(() => {
     if (!selectedModuleId) return;
-    requestAnimationFrame(() => {
-      const node = document.querySelector<HTMLElement>(
-        `.react-flow__node[data-id="${selectedModuleId}"]`,
-      );
-      node?.focus();
-    });
-  }, [selectedModuleId]);
+    focusModule(selectedModuleId);
+  }, [focusModule, selectedModuleId]);
 
   const closeRelationshipProperties = useCallback(() => {
     const flowId = selectedFlowId;
@@ -587,17 +812,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     requestAnimationFrame(() => presentRef.current?.focus());
   }, []);
 
-  const enterPresentation = useCallback(() => {
-    setActiveInlineField(null);
-    setActiveFlowId(null);
-    setRelationshipOpen(false);
-    setPaletteInvoker(null);
-    setPropertiesTab(null);
-    setDrawFlowOpen(false);
-    setAddOpen(false);
-    setPresenting(true);
-  }, []);
-
   const interaction = useMemo<EditorInteraction>(
     () => ({
       selectionCount: editor.selection.moduleIds.length + editor.selection.flowIds.length,
@@ -608,7 +822,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       activeFlowId,
       beginInlineEdit: setActiveInlineField,
       commitInlineEdit,
-      cancelInlineEdit: () => setActiveInlineField(null),
+      cancelInlineEdit,
       beginFlowEdit,
       cancelFlowEdit,
       commitFlowEdit,
@@ -630,6 +844,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       availableCommands,
       beginFlowEdit,
       cancelFlowEdit,
+      cancelInlineEdit,
       commitFlowEdit,
       commitFlowLabelPosition,
       commitFlowWaypoint,
@@ -752,6 +967,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               Actions
               <kbd>Ctrl K</kbd>
             </button>
+            {legendOpen ? (
+              <RelationshipLegend document={editor.document} open onClose={closeLegend} />
+            ) : null}
           </div>
         </header>
 
@@ -764,6 +982,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               onDocumentChange={(document) =>
                 editor.applyDocument(document, "Document changed.", "document mutation")
               }
+              onControllerChange={editor.registerCanvasController}
               cadenceFilter={cadenceFilter}
             />
             <CadenceFilter value={cadenceFilter} onChange={changeCadenceFilter} />

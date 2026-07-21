@@ -45,6 +45,15 @@ describe("InlineField", () => {
     expect(commit).toHaveBeenCalledWith("Blurred exact");
   });
 
+  it("sizes the field to fully show a long authored value instead of clipping it", () => {
+    const literal = "~$11,800 monthly — after tax";
+    render(<InlineField ariaLabel="Value" value={literal} onCommit={vi.fn()} onCancel={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "Value" }) as HTMLInputElement;
+    expect(input.value).toBe(literal);
+    const widthInCharacters = Number(input.style.width.replace("ch", ""));
+    expect(widthInCharacters).toBeGreaterThanOrEqual(literal.length);
+  });
+
   it("does not commit Enter while IME composition is active", () => {
     const commit = vi.fn();
     render(<InlineField ariaLabel="Title" value="prior" onCommit={commit} onCancel={vi.fn()} />);

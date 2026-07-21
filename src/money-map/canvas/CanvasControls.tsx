@@ -6,18 +6,32 @@ export interface CanvasController {
   zoomIn(): void;
   fitMap(): void;
   fitSelection(): void;
+  fitStep?(): void;
 }
 
 interface CanvasControlsProps {
   controller: CanvasController;
   zoomPercentage: number;
+  /** "author" (default) shows Fit story + Fit selection. "presentation" shows
+   * Fit story alone, plus Fit step when the active step has participants. */
+  variant?: "author" | "presentation";
+  hasStepFocus?: boolean;
 }
 
-export function CanvasControls({ controller, zoomPercentage }: CanvasControlsProps) {
-  const toolbar = useToolbarNavigation(5);
+export function CanvasControls({
+  controller,
+  zoomPercentage,
+  variant = "author",
+  hasStepFocus = false,
+}: CanvasControlsProps) {
+  const showFitStep = variant === "presentation" && hasStepFocus;
+  const itemCount = variant === "presentation" ? (showFitStep ? 5 : 4) : 5;
+  const toolbar = useToolbarNavigation(itemCount);
   return (
     <div
-      className="canvas-controls"
+      className={
+        variant === "presentation" ? "canvas-controls presentation-chrome" : "canvas-controls"
+      }
       role="toolbar"
       aria-label="Canvas camera"
       onKeyDown={toolbar.onKeyDown}
@@ -57,14 +71,27 @@ export function CanvasControls({ controller, zoomPercentage }: CanvasControlsPro
       >
         Fit story
       </button>
-      <button
-        {...toolbar.itemProps(4)}
-        type="button"
-        aria-label="Fit selection"
-        onClick={controller.fitSelection}
-      >
-        Fit selection
-      </button>
+      {variant === "presentation" ? (
+        showFitStep ? (
+          <button
+            {...toolbar.itemProps(4)}
+            type="button"
+            aria-label="Fit step"
+            onClick={controller.fitStep}
+          >
+            Fit step
+          </button>
+        ) : null
+      ) : (
+        <button
+          {...toolbar.itemProps(4)}
+          type="button"
+          aria-label="Fit selection"
+          onClick={controller.fitSelection}
+        >
+          Fit selection
+        </button>
+      )}
     </div>
   );
 }

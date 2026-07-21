@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { createTestDocument } from "../model/test-fixtures";
@@ -129,7 +129,7 @@ describe("MoneyMapWorkspace command lifecycle", () => {
 
   it("opens Style directly in Appearance and closes it with Escape", () => {
     render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
-    openCommand("style module");
+    openCommand("style shape");
     expect(screen.getByLabelText("Advanced properties")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Appearance" }).getAttribute("aria-selected")).toBe(
       "true",
@@ -145,11 +145,48 @@ describe("MoneyMapWorkspace command lifecycle", () => {
     const add = screen.getByRole("button", { name: "+ Add" });
     fireEvent.click(add);
     const menu = screen.getByLabelText("Add to money map");
-    expect(screen.getByRole("button", { name: /Income ledger/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ledger/ })).toBeTruthy();
 
     fireEvent.keyDown(menu, { key: "Escape" });
     expect(screen.queryByLabelText("Add to money map")).toBeNull();
     await waitFor(() => expect(globalThis.document.activeElement).toBe(add));
+  });
+
+  it("keeps focus inside the Add menu when opened via the palette instead of yanking it back to Actions (no keyboard trap)", async () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    openCommand("add to map");
+    const menu = screen.getByLabelText("Add to money map");
+
+    await waitFor(() => expect(menu.contains(globalThis.document.activeElement)).toBe(true));
+    // Flush the animation frame the pre-fix closePalette used to steal focus
+    // back to Actions on. If the regression returned, focus would have moved
+    // outside the menu by the time this settles.
+    await act(async () => {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+    });
+    expect(menu.contains(globalThis.document.activeElement)).toBe(true);
+
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.queryByLabelText("Add to money map")).toBeNull();
+  });
+
+  it("opens the Legend from the palette (no standing app-bar button) and Escape returns focus to Actions", async () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Legend" })).toBeNull();
+
+    openCommand("legend");
+    const list = screen.getByRole("list", { name: "Relationship legend" });
+    expect(list).toBeTruthy();
+
+    fireEvent.keyDown(list, { key: "Escape" });
+    expect(screen.queryByRole("list", { name: "Relationship legend" })).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Actions/ })).toBe(
+        globalThis.document.activeElement,
+      ),
+    );
   });
 
   it("clears a selected relationship and its panel when a cadence edit hides it", () => {
@@ -231,7 +268,7 @@ describe("MoneyMapWorkspace command lifecycle", () => {
       label: "Advanced properties",
     },
     {
-      surface: "style module",
+      surface: "style shape",
       invalid: { moduleIds: [], flowIds: [] },
       label: "Advanced properties",
     },

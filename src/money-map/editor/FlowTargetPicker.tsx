@@ -1,6 +1,29 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 
-import type { MoneyMapDocument } from "../model/types";
+import type { MoneyMapDocument, MoneyMapModule, ModuleKind } from "../model/types";
+
+// Grouped by the module's actual financial kind (`MoneyMapModule.kind`), which is a
+// required field present on every module — not by shape primitive. Shape is
+// deliberately independent of financial meaning (DESIGN.md), so a heading here must
+// describe what a destination financially IS, not what it looks like.
+const destinationGroups: Array<{ label: string; kind: ModuleKind }> = [
+  { label: "Income", kind: "income" },
+  { label: "Accounts", kind: "account" },
+  { label: "Reserves", kind: "reserve" },
+  { label: "Goals & needs", kind: "need" },
+  { label: "Specialty", kind: "specialty" },
+  { label: "Charitable", kind: "charitable" },
+  { label: "Notes", kind: "note" },
+];
+
+function groupTargets(targets: MoneyMapModule[]) {
+  return destinationGroups
+    .map((group) => ({
+      label: group.label,
+      members: targets.filter((target) => target.kind === group.kind),
+    }))
+    .filter((group) => group.members.length > 0);
+}
 
 interface FlowTargetPickerProps {
   document: MoneyMapDocument;
@@ -20,6 +43,8 @@ export function FlowTargetPicker({
   const firstTarget = useRef<HTMLButtonElement>(null);
   const source = document.modules.find(({ id }) => id === sourceId);
   const targets = document.modules.filter(({ id }) => id !== sourceId);
+  const groups = groupTargets(targets);
+  const firstTargetId = groups[0]?.members[0]?.id;
 
   useEffect(() => {
     firstTarget.current?.focus();
@@ -51,16 +76,21 @@ export function FlowTargetPicker({
       </header>
       <p>Choose a destination, or drag from any visible port on the canvas.</p>
       <div className="flow-target-picker__targets">
-        {targets.map((target, index) => (
-          <button
-            key={target.id}
-            onClick={() => onChoose(target.id)}
-            ref={index === 0 ? firstTarget : undefined}
-            type="button"
-          >
-            <span>{target.eyebrow}</span>
-            <strong>{target.title}</strong>
-          </button>
+        {groups.map((group) => (
+          <div className="flow-target-picker__group" key={group.label}>
+            <p className="flow-target-picker__group-label">{group.label}</p>
+            {group.members.map((target) => (
+              <button
+                key={target.id}
+                onClick={() => onChoose(target.id)}
+                ref={target.id === firstTargetId ? firstTarget : undefined}
+                type="button"
+              >
+                <span>{target.eyebrow}</span>
+                <strong>{target.title}</strong>
+              </button>
+            ))}
+          </div>
         ))}
       </div>
     </aside>

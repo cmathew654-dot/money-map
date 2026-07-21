@@ -200,4 +200,43 @@ describe("MoneyMapNode", () => {
     expect(container.querySelector(".selection-halo")).toBeNull();
     expect(container.querySelector("input, button")).toBeNull();
   });
+
+  it("marks a non-participating step module as dimmed while keeping its accessible name", () => {
+    const module = createTestDocument().modules[0];
+    const props = {
+      id: module.id,
+      data: {
+        module,
+        outgoingCount: 1,
+        selectionCount: 0,
+        selectionModuleIds: [],
+        haloAnchor: false,
+        reconnectMode: false,
+        presentation: true,
+        presentationFocus: false,
+        presentationDim: true,
+      },
+      selected: false,
+      dragging: false,
+      zIndex: 0,
+      selectable: false,
+      deletable: false,
+      draggable: false,
+      isConnectable: false,
+      positionAbsoluteX: module.position.x,
+      positionAbsoluteY: module.position.y,
+      type: "moneyMapModule",
+    } as NodeProps<MoneyMapCanvasNode>;
+
+    const { container } = render(
+      <ReactFlowProvider>
+        <MoneyMapNode {...props} />
+      </ReactFlowProvider>,
+    );
+
+    expect(container.querySelector('[data-presentation-dim="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-presentation-focus="true"]')).toBeNull();
+    expect(screen.getByText(module.title)).toBeTruthy();
+    expect(screen.getByLabelText(`${module.title}, 1 outgoing relationships`)).toBeTruthy();
+  });
 });

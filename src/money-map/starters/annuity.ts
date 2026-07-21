@@ -13,7 +13,7 @@ export const annuityStarter = {
     title: "Annuity Income Floor",
     asOf: "As of July 2026",
     style: "foundation",
-    defaultCadence: "monthly",
+    defaultCadence: "all",
     modules: [
       {
         id: "annuity-income",
@@ -180,7 +180,7 @@ export const annuityStarter = {
         target: "annuity-policy",
         relationship: "planned",
         route: "orthogonal",
-        labelTreatment: "plate",
+        labelTreatment: "plain",
         label: "Premium schedule",
         cadence: { kind: "custom", label: "Monthly installments — advisor entered" },
         labelPosition: { x: 650, y: 380 },

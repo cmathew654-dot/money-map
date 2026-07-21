@@ -129,15 +129,25 @@ describe("MoneyMapEdge", () => {
     );
   });
 
-  it("clicks to edit but a drag beyond six pixels moves a waypoint without editing", () => {
+  it("single click selects without editing, matching the node gesture vocabulary", () => {
     const { handlers } = renderEdge();
     const label = screen.getByRole("button");
     fireEvent.click(label);
     expect(handlers.select).toHaveBeenCalledTimes(1);
-    expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
+    expect(handlers.beginEdit).not.toHaveBeenCalled();
+  });
 
-    handlers.select.mockClear();
-    handlers.beginEdit.mockClear();
+  it("double-click selects and begins editing", () => {
+    const { handlers } = renderEdge();
+    const label = screen.getByRole("button");
+    fireEvent.doubleClick(label);
+    expect(handlers.select).toHaveBeenCalledTimes(1);
+    expect(handlers.beginEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it("a drag beyond six pixels moves the label without selecting or editing via click", () => {
+    const { handlers } = renderEdge();
+    const label = screen.getByRole("button");
     fireEvent.pointerDown(label, { clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(label, { clientX: 108, clientY: 100, pointerId: 1 });
     fireEvent.pointerUp(label, { clientX: 108, clientY: 100, pointerId: 1 });
@@ -254,5 +264,22 @@ describe("MoneyMapEdge", () => {
     fireEvent.click(screen.getByText(flow.label));
     expect(handlers.select).not.toHaveBeenCalled();
     expect(handlers.beginEdit).not.toHaveBeenCalled();
+  });
+
+  it("marks a non-participating step relationship as dimmed without hiding it", () => {
+    const { flow } = renderEdge({
+      presentation: true,
+      presentationFocus: false,
+      presentationDim: true,
+    });
+
+    expect(
+      screen
+        .getByText(flow.label)
+        .closest("[data-presentation-dim]")
+        ?.getAttribute("data-presentation-dim"),
+    ).toBe("true");
+    // Still present with its full accessible name — de-emphasis is visual only.
+    expect(screen.getByText(flow.label)).toBeTruthy();
   });
 });

@@ -116,7 +116,7 @@ describe("annuity foundation starter", () => {
         target: "annuity-policy",
         relationship: "planned",
         route: "orthogonal",
-        labelTreatment: "plate",
+        labelTreatment: "plain",
         cadence: { kind: "custom", label: "Monthly installments — advisor entered" },
         label: "Premium schedule",
       },

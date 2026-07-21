@@ -118,9 +118,9 @@ export function RelationshipProperties({
       />
       <div className="relationship-endpoints">
         <label>
-          <span>Source module</span>
+          <span>Source shape</span>
           <select
-            aria-label="Source module"
+            aria-label="Source shape"
             value={flow.source}
             onChange={(event) =>
               onReconnect({ source: event.currentTarget.value, target: flow.target })
@@ -136,9 +136,9 @@ export function RelationshipProperties({
           </select>
         </label>
         <label>
-          <span>Target module</span>
+          <span>Target shape</span>
           <select
-            aria-label="Target module"
+            aria-label="Target shape"
             value={flow.target}
             onChange={(event) =>
               onReconnect({ source: flow.source, target: event.currentTarget.value })

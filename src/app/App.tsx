@@ -30,7 +30,6 @@ export function App() {
             </span>
             <span>CAIRN</span>
           </div>
-          <p className="chooser-kicker">Advisor story canvas</p>
           <h1 id="chooser-title">Choose a story</h1>
           <p className="chooser-lede">
             Start with a composed financial narrative, then shape it around the household in front
@@ -38,7 +37,7 @@ export function App() {
           </p>
         </header>
         <div className="starter-grid">
-          {starters.map((starter, index) => (
+          {starters.map((starter) => (
             <button
               className="starter-entry"
               data-accent={starter.accent}
@@ -46,9 +45,13 @@ export function App() {
               type="button"
               onClick={() => setSelected(starter.id)}
             >
-              <span className="starter-number">0{index + 1}</span>
+              <span className="starter-mark" aria-hidden="true">
+                <span className="starter-mark-stone starter-mark-stone--base" />
+                <span className="starter-mark-stone starter-mark-stone--mid" />
+                <span className="starter-mark-stone starter-mark-stone--cap" />
+              </span>
               <span className="starter-copy">
-                <span className="starter-eyebrow">{starter.eyebrow}</span>
+                <span className="starter-meta">{starter.eyebrow}</span>
                 <strong>{starter.title}</strong>
                 <span>{starter.description}</span>
               </span>

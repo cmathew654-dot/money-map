@@ -1,5 +1,9 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 
+const inlineFieldWidthPadding = 2;
+const inlineFieldMinWidth = 8;
+const inlineFieldMaxWidth = 32;
+
 interface InlineFieldProps {
   ariaLabel: string;
   value: string;
@@ -46,10 +50,23 @@ export function InlineField({
     }
   };
 
+  // Size single-line fields to their own content in `ch` units. Without this,
+  // the shared width: 100% CSS rule collapses to the browser's default input
+  // width inside a shrink-to-fit positioned wrapper, clipping long authored
+  // values (e.g. an approximation-marked dollar figure) so only the tail is
+  // visible once autofocus + select() scrolls the caret into view. Capped so a
+  // long value cannot grow the field past its own node; multiline fields wrap
+  // instead and keep the stylesheet's width, so content sizing never applies.
+  const visibleWidth = Math.min(
+    Math.max(draft.length + inlineFieldWidthPadding, inlineFieldMinWidth),
+    inlineFieldMaxWidth,
+  );
+
   const shared = {
     "aria-label": ariaLabel,
     autoFocus: true,
     className: `inline-field nodrag nowheel ${className ?? ""}`.trim(),
+    style: multiline ? undefined : { width: `${visibleWidth}ch` },
     value: draft,
     onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft(event.currentTarget.value),

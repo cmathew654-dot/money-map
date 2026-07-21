@@ -157,4 +157,29 @@ describe("starter registry", () => {
       }
     }
   });
+
+  // DESIGN.md: label treatment is a third redundant channel for relationship
+  // semantics, alongside dash pattern and label text. Previously each starter
+  // rotated filled/plate/plain to satisfy per-story "uses every treatment"
+  // assertions, so two identical Roth transfers rendered differently and a
+  // viewer could reasonably infer the dark chip meant something it didn't.
+  // This invariant is what keeps treatment meaningful across all four.
+  it("derives every authored label treatment from its relationship type", () => {
+    const treatmentFor = {
+      income: "filled",
+      transfer: "plate",
+      replenishment: "plain",
+      planned: "plain",
+    } as const;
+
+    for (const id of STARTER_IDS) {
+      const { flows } = createStarterDocument(id);
+      expect(flows.length).toBeGreaterThan(0);
+      for (const flow of flows) {
+        expect(flow.labelTreatment, `${id}/${flow.id} is a ${flow.relationship} relationship`).toBe(
+          treatmentFor[flow.relationship],
+        );
+      }
+    }
+  });
 });

@@ -40,7 +40,7 @@ export function SelectionHalo({ selectionCount, commands, onExecute }: Selection
   const toolbar = useToolbarNavigation(projectedCommands.length);
   if (selectionCount < 1 || projectedCommands.length === 0) return null;
   const label =
-    selectionCount === 1 ? "Selected module actions" : `${selectionCount} selected items`;
+    selectionCount === 1 ? "Selected shape actions" : `${selectionCount} selected items`;
 
   return (
     <div className="selection-halo" role="toolbar" aria-label={label} onKeyDown={toolbar.onKeyDown}>

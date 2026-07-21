@@ -82,9 +82,7 @@ button:focus-visible {
   letter-spacing: 0;
 }
 
-.chooser-kicker,
-.workspace-kicker,
-.starter-eyebrow {
+.workspace-kicker {
   margin: 0;
   color: #6e6250;
   font-size: 11px;
@@ -112,82 +110,197 @@ h1 {
 }
 
 .starter-grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid #afa58f;
 }
 
 .starter-entry {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 40px;
-  gap: 24px;
-  align-items: start;
-  min-height: 150px;
-  padding: 28px 18px 30px 0;
+  --hover-canvas: #f6f1e7;
+  --hover-accent: #a45b19;
+  --mark-base: #a45b19;
+  --mark-mid: #3d6170;
+  --mark-cap: #292923;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 28px;
+  min-height: 0;
+  padding: 26px 8px;
   border: 0;
   border-bottom: 1px solid #afa58f;
   color: inherit;
   text-align: left;
-  background: transparent;
+  background: #eee7d8;
   cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    padding-left 160ms ease;
+  transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.starter-entry:hover {
-  padding-left: 18px;
-  background: rgba(255, 255, 255, 0.45);
+.starter-entry::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  box-shadow: inset 0 0 0 0 transparent;
+  transition: box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
 
-.starter-entry[data-accent="ochre"]:hover {
-  box-shadow: inset 4px 0 #a45b19;
+.starter-entry[data-accent="pine"] {
+  --hover-canvas: #f2f2ec;
+  --hover-accent: #984c2e;
+  --mark-base: #245b45;
+  --mark-mid: #984c2e;
+  --mark-cap: #202b27;
 }
 
-.starter-entry[data-accent="pine"]:hover {
-  box-shadow: inset 4px 0 #2f5b4b;
+.starter-entry[data-accent="mineral"] {
+  --hover-canvas: #eceae4;
+  --hover-accent: #a36f2c;
+  --mark-base: #486e7a;
+  --mark-mid: #a36f2c;
+  --mark-cap: #292e31;
 }
 
-.starter-entry[data-accent="mineral"]:hover {
-  box-shadow: inset 4px 0 #3d6170;
+.starter-entry[data-accent="aubergine"] {
+  --hover-canvas: #fbfaf8;
+  --hover-accent: #a7442f;
+  --mark-base: #a7442f;
+  --mark-mid: #5b334f;
+  --mark-cap: #30252d;
 }
 
-.starter-entry[data-accent="aubergine"]:hover {
-  box-shadow: inset 4px 0 #653d58;
+.starter-entry:hover,
+.starter-entry:focus-visible {
+  background: var(--hover-canvas);
 }
 
-.starter-number {
-  padding-top: 4px;
-  color: #625d53;
-  font-family: ui-monospace, "Cascadia Code", monospace;
-  font-size: 12px;
+.starter-entry:hover::after,
+.starter-entry:focus-visible::after {
+  box-shadow: inset 0 0 0 2px var(--hover-accent);
+}
+
+.starter-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 56px;
+  height: 60px;
+  flex: none;
+}
+
+.starter-mark-stone {
+  --stone-x: 0px;
+  --stone-y: 0px;
+  flex: none;
+  border-radius: 999px;
+  transform: translate(var(--stone-x), var(--stone-y));
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.starter-mark-stone--base {
+  width: 46px;
+  height: 16px;
+  background: var(--mark-base);
+}
+
+.starter-mark-stone--mid {
+  width: 32px;
+  height: 14px;
+  margin-top: 4px;
+  background: var(--mark-mid);
+}
+
+.starter-mark-stone--cap {
+  width: 19px;
+  height: 12px;
+  margin-top: 4px;
+  background: var(--mark-cap);
+}
+
+.starter-entry:hover .starter-mark-stone,
+.starter-entry:focus-visible .starter-mark-stone {
+  --stone-y: -4px;
+}
+
+/* Distribution Registry: flush-left register lines, squared strata */
+.starter-entry[data-accent="pine"] .starter-mark {
+  align-items: flex-start;
+}
+
+.starter-entry[data-accent="pine"] .starter-mark-stone {
+  border-radius: 4px;
+}
+
+/* Foundation: wide, blocky cornerstone courses */
+.starter-entry[data-accent="mineral"] .starter-mark-stone {
+  border-radius: 8px;
+}
+
+.starter-entry[data-accent="mineral"] .starter-mark-stone--base {
+  width: 56px;
+  height: 22px;
+}
+
+.starter-entry[data-accent="mineral"] .starter-mark-stone--mid {
+  width: 42px;
+  height: 16px;
+}
+
+.starter-entry[data-accent="mineral"] .starter-mark-stone--cap {
+  width: 28px;
+  height: 12px;
+}
+
+/* Conversion Path: ascending diagonal chips */
+.starter-entry[data-accent="aubergine"] .starter-mark-stone--mid {
+  --stone-x: 9px;
+}
+
+.starter-entry[data-accent="aubergine"] .starter-mark-stone--cap {
+  --stone-x: 18px;
+}
+
+.starter-meta {
+  margin: 0;
+  color: #6e6250;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .starter-copy {
   display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
   gap: 8px;
 }
 
 .starter-copy strong {
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  font-size: clamp(27px, 3vw, 40px);
+  font-size: clamp(24px, 2.4vw, 34px);
   font-weight: 500;
   letter-spacing: -0.025em;
 }
 
 .starter-copy > span:last-child {
-  max-width: 680px;
+  max-width: 46ch;
   color: #5f5b51;
   font-size: 15px;
   line-height: 1.55;
 }
 
 .starter-arrow {
-  padding-top: 28px;
-  font-size: 24px;
-  transition: transform 160ms ease;
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  font-size: 22px;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.starter-entry:hover .starter-arrow {
+.starter-entry:hover .starter-arrow,
+.starter-entry:focus-visible .starter-arrow {
   transform: translateX(6px);
 }
 
@@ -204,15 +317,35 @@ h1 {
   padding: 0;
 }
 
+/* The workspace shell re-skins with the active canvas theme: .money-map-workspace
+   carries the theme class and its --map-* custom properties (canvas.css), so
+   setting ink here lets every descendant (heading, meta, buttons) inherit it
+   instead of a warm-paper default frozen across all four art directions. */
+.money-map-workspace {
+  color: var(--map-ink);
+}
+
+/* Back / heading / actions used to share equal 1fr outer columns to keep the
+   heading visually centered, but that forces the actions column -- Back to
+   stories's mirror image -- into the same width as a single ghost-tier text
+   button. The actions column carries the meta stack (as-of date + the
+   required synthetic-data disclosure) plus three buttons; Back to stories is
+   a few words. At 1440px and below the equal-share column ran out of room
+   for the disclosure to stay on one line at full length, so it either
+   truncated (DESIGN.md forbids that) or had to wrap onto a second row,
+   which is what actually stole the canvas's vertical space at 1280x720.
+   auto 1fr auto lets each outer column claim only what its own content
+   needs, and hands every remaining pixel to the heading in the middle --
+   still a single row, at every supported width, with nothing clipped. */
 .workspace-header {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto 1fr auto;
   column-gap: 12px;
   align-items: center;
   min-height: 76px;
   padding: 10px 24px;
-  border-bottom: 1px solid #c9c0ad;
-  background: rgba(248, 244, 235, 0.96);
+  border-bottom: 1px solid color-mix(in srgb, var(--map-border) 55%, var(--map-surface));
+  background: var(--map-surface);
 }
 
 .workspace-heading h1 {
@@ -229,28 +362,35 @@ h1 {
 
 .workspace-meta {
   justify-self: end;
-  color: #6e685d;
+  color: var(--map-muted);
   font-size: 12px;
 }
 
 .text-button {
   justify-self: start;
-  min-height: 40px;
+  min-height: 36px;
   padding: 8px 12px;
   border: 0;
-  color: #3d5148;
+  color: var(--map-focus);
   background: transparent;
   cursor: pointer;
+}
+
+/* Part of the unified chrome button vocabulary (canvas.css): the app bar's
+   other controls already carry an explicit var(--map-focus) focus ring;
+   without this, Back to stories fell back to the generic button
+   rule above, a fixed color/offset that doesn't track the active theme. */
+.text-button:focus-visible {
+  outline: 3px solid var(--map-focus);
+  outline-offset: 2px;
 }
 
 .workspace-stage {
   display: grid;
   min-height: calc(100vh - 76px);
   place-items: center;
-  background-color: #f6f1e7;
-  background-image: radial-gradient(#c8bfab 0.7px, transparent 0.7px);
+  background-image: radial-gradient(var(--map-grid) 0.7px, transparent 0.7px);
   background-size: 24px 24px;
-  color: #6e685d;
 }
 
 @media (max-width: 720px) {
@@ -267,11 +407,15 @@ h1 {
   }
 
   .starter-entry {
-    grid-template-columns: 36px minmax(0, 1fr);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px 8px;
   }
 
   .starter-arrow {
-    display: none;
+    align-self: flex-end;
+    margin-left: 0;
   }
 
   .chooser-footer {

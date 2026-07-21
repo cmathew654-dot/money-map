@@ -127,7 +127,7 @@ export function AdvancedProperties({
     >
       <header>
         <div>
-          <p className="workspace-kicker">Module properties</p>
+          <p className="workspace-kicker">Shape properties</p>
           <h2>{module.title}</h2>
         </div>
         <button aria-label="Close properties" type="button" onClick={onClose}>

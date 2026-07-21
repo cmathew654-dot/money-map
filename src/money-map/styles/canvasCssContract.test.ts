@@ -25,22 +25,73 @@ describe("presentation CSS contract", () => {
     expect(css).toMatch(/\.money-map-canvas--presentation[^}]*background-image:\s*none/s);
     expect(css).toMatch(/\.money-map-presentation \.money-map-module[^}]*transition:[^;]*180ms/s);
     expect(css).toMatch(/data-presentation-focus="true"[^}]*box-shadow:/s);
-    expect(css).not.toMatch(/money-map-presentation[^}]*opacity:\s*0\./s);
+    expect(css).not.toMatch(/data-presentation-focus="true"[^}]*opacity:\s*0\./s);
   });
 
-  it("raises presentation detail and relationship label source sizes for fitted viewports", () => {
+  it("de-emphasizes non-participating step content without fading focused participants", () => {
+    // Lowered from 0.3 (ghosted-but-still-readable) to 0.15 so non-focused
+    // content recedes cleanly instead of competing with the focused
+    // participants (see canvas.css comment above each rule). NOTE for the
+    // tests/e2e/presentation.spec.ts owner: that spec still hardcodes
+    // toHaveCSS("opacity", "0.3") for dimmed modules and will need updating
+    // to "0.15" to match.
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-module__eyebrow[^}]*font-size:\s*16\.2px/s,
+      /\.money-map-presentation \.money-map-module\[data-presentation-dim="true"\][^}]*opacity:\s*0\.15/s,
     );
-    expect(css).toMatch(/\.money-map-presentation \.money-map-module dt,[\s\S]*font-size:\s*20px/s);
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label strong[^}]*font-size:\s*16\.2px/s,
+      /\.money-map-presentation \.react-flow__edge\.presentation-dim[^}]*opacity:\s*0\.15/s,
     );
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label span[^}]*display:\s*none;[^}]*font-size:\s*16\.2px/s,
+      /\.money-map-presentation \.money-map-flow-label-wrap\[data-presentation-dim="true"\][^}]*opacity:\s*0\.15/s,
     );
+    expect(css).toMatch(/\.money-map-presentation \.money-map-module[^}]*opacity 200ms ease-out/s);
+  });
+
+  it("gives story focus editorial emphasis instead of borrowing the editor's selection ring", () => {
+    const focusModule = css.match(
+      /\.money-map-presentation \.money-map-module\[data-presentation-focus="true"\]\[data-primitive\]\s*\{([^}]*)\}/s,
+    )?.[1];
+    expect(focusModule).toBeTruthy();
+    expect(focusModule).not.toMatch(/var\(--map-accent\)/);
+    expect(focusModule).toMatch(/box-shadow:/);
+
+    const focusLabel = css.match(
+      /\.money-map-flow-label-wrap\[data-presentation-focus="true"\]\s*\.money-map-flow-label\s*\{([^}]*)\}/s,
+    )?.[1];
+    expect(focusLabel).toBeTruthy();
+    expect(focusLabel).not.toMatch(/outline:/);
+  });
+
+  /* Presentation renders the authored composition, so it must not re-type or
+     re-space the module. This replaces an earlier contract that pinned
+     presentation to 16.2px/20px/34px: those sizes existed only to clear a
+     rendered-pixel floor measured on the fit-the-whole-map Overview, and
+     inflating type against fixed authored card geometry is what collapsed the
+     hierarchy, pushed values into the border, and drove labels into the row
+     rules. Legibility is now a camera property — see the focused-step floor
+     in tests/e2e/presentation.spec.ts. Asserting the ABSENCE of overrides is
+     deliberate: it stops a future "just bump it a little" patch from
+     reintroducing the inflation layer one declaration at a time. */
+  it("never re-types or re-spaces the module in presentation", () => {
+    const presentationModuleRules = [
+      ...css.matchAll(/^\.money-map-presentation[^{]*\.money-map-module[^{]*\{([^}]*)\}/gms),
+    ].map(([, body]) => body);
+
+    expect(presentationModuleRules.length).toBeGreaterThan(0);
+    for (const body of presentationModuleRules) {
+      expect(body).not.toMatch(/(^|[\s;])font-size:/);
+      expect(body).not.toMatch(/(^|[\s;])padding(-inline|-block)?:/);
+      expect(body).not.toMatch(/(^|[\s;])line-height:/);
+    }
+  });
+
+  it("sheds only the relationship label's cadence and detail lines in presentation", () => {
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-flow-label small[^}]*display:\s*none;[^}]*font-size:\s*16\.2px/s,
+      /\.money-map-presentation \.money-map-flow-label span,\s*\.money-map-presentation \.money-map-flow-label small \{[^}]*display:\s*none/s,
+    );
+    // The remaining strong keeps its authored 12px.
+    expect(css).not.toMatch(
+      /\.money-map-presentation \.money-map-flow-label strong[^}]*font-size:/s,
     );
   });
 
@@ -92,15 +143,65 @@ describe("Impeccable visual-system contracts", () => {
     );
   });
 
-  it("keeps presentation primary totals on one literal line with semantic focal stacking", () => {
+  /* The nowrap total and the income/need focal stacking were both
+     compensations for the 34px presentation total colliding with its own
+     label. With presentation on the authored ramp, the authoring rules
+     (150px dd cap, shared label/value grid) already hold, and keeping a
+     presentation-only variant would mean the same module composed
+     differently in the two modes. */
+  it("composes module totals identically in authoring and presentation", () => {
+    expect(css).not.toMatch(/\.money-map-presentation \.money-map-module__total/s);
+    expect(css).not.toMatch(/\.money-map-presentation \.money-map-module\[data-kind=/s);
+  });
+
+  it("keeps keyboard focus on a route visible without disturbing its dash pattern", () => {
+    const halo = css.match(
+      /react-flow__edge:focus-visible \.money-map-relationship-casing\s*\{([^}]*)\}/s,
+    )?.[1];
+    expect(halo).toBeTruthy();
+    expect(halo).toMatch(/stroke:\s*var\(--map-focus\)/);
+    // The casing is a separate solid path beneath the route; focus must never
+    // reach the route stroke itself, or a replenishment edge reads as income.
+    expect(css).not.toMatch(/focus-visible \.money-map-relationship-path[^}]*stroke-dasharray/s);
+  });
+});
+
+describe("shared theme token discipline", () => {
+  it("declares role, overlay, label, selection, and shadow tokens once with default values", () => {
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/s)?.[1] ?? "";
+    for (const token of [
+      "--map-role-income",
+      "--map-role-account",
+      "--map-role-reserve",
+      "--map-role-need",
+      "--map-role-specialty",
+      "--map-role-charitable",
+      "--map-role-note",
+      "--map-label-ink",
+      "--map-label-border",
+      "--map-control-selected-bg",
+      "--map-scrim",
+      "--map-module-shadow-selected",
+      "--map-module-shadow-spotlight",
+    ]) {
+      expect(rootBlock).toMatch(new RegExp(`${token}:\\s*`));
+    }
+  });
+
+  it("routes data-color-role accents through tokens instead of raw hex", () => {
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-module__total dd[^}]*white-space:\s*nowrap/s,
+      /data-color-role="income"\][^}]*--module-accent:\s*var\(--map-role-income\)/s,
     );
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-module\[data-kind="income"\][\s\S]*grid-template-columns:\s*1fr/s,
+      /data-color-role="account"\][^}]*--module-accent:\s*var\(--map-role-account\)/s,
     );
+    expect(css).not.toMatch(/data-color-role="[a-z]+"\][^}]*--module-accent:\s*#[0-9a-fA-F]/s);
+  });
+
+  it("routes the selected-control background and command-palette scrim through tokens", () => {
     expect(css).toMatch(
-      /\.money-map-presentation \.money-map-module\[data-kind="need"\][\s\S]*grid-template-columns:\s*1fr/s,
+      /button\[aria-pressed="true"\][^}]*background:\s*var\(--map-control-selected-bg\)/s,
     );
+    expect(css).toMatch(/command-palette-backdrop[^}]*background:\s*var\(--map-scrim\)/s);
   });
 });

@@ -23,7 +23,15 @@ describe("workspace command registry", () => {
   it("registers canonical commands in stable order and hides unavailable commands", () => {
     const registry = createWorkspaceCommands(() => "copy-id");
     const empty = { ...context([]), canUndo: false };
-    expect(registry.available(empty).map(({ id }) => id)).toEqual(["document.reset"]);
+    expect(registry.available(empty).map(({ id }) => id)).toEqual([
+      "camera.fit-story",
+      "camera.fit-selection",
+      "camera.reset-zoom",
+      "workspace.add",
+      "workspace.present",
+      "workspace.legend",
+      "document.reset",
+    ]);
     expect(registry.available(context()).map(({ id }) => id)).toEqual([
       "module.edit",
       "module.style",
@@ -34,6 +42,12 @@ describe("workspace command registry", () => {
       "module.order.back",
       "selection.remove",
       "history.undo",
+      "camera.fit-story",
+      "camera.fit-selection",
+      "camera.reset-zoom",
+      "workspace.add",
+      "workspace.present",
+      "workspace.legend",
       "document.reset",
       "module.width.small",
       "module.width.standard",
@@ -57,6 +71,24 @@ describe("workspace command registry", () => {
       "module.swatch.accent",
       "module.swatch.contrast",
     ]);
+  });
+
+  it("leads the empty-selection surface with constructive commands and puts Reset last", () => {
+    const registry = createWorkspaceCommands(() => "unused");
+    const empty = { ...context([]), canUndo: false };
+    const available = registry.available(empty);
+
+    expect(available.at(-1)?.id).toBe("document.reset");
+    expect(available.slice(0, -1).map(({ id }) => id)).toEqual([
+      "camera.fit-story",
+      "camera.fit-selection",
+      "camera.reset-zoom",
+      "workspace.add",
+      "workspace.present",
+      "workspace.legend",
+    ]);
+    expect(registry.get("workspace.add")?.execute(empty)).toEqual({ kind: "add" });
+    expect(registry.get("workspace.present")?.execute(empty)).toEqual({ kind: "present" });
   });
 
   it.each([
@@ -194,5 +226,26 @@ describe("workspace command registry", () => {
         })
         .some(({ id }) => id.startsWith("flow.")),
     ).toBe(false);
+  });
+
+  it("exposes camera commands in the registry regardless of selection or history state", () => {
+    const registry = createWorkspaceCommands(() => "unused");
+    const empty = { ...context([]), canUndo: false };
+    expect(registry.get("camera.fit-story")?.execute(empty)).toEqual({
+      kind: "camera",
+      action: "fit-story",
+    });
+    expect(registry.get("camera.fit-selection")?.execute(empty)).toEqual({
+      kind: "camera",
+      action: "fit-selection",
+    });
+    expect(registry.get("camera.reset-zoom")?.execute(empty)).toEqual({
+      kind: "camera",
+      action: "reset-zoom",
+    });
+    for (const id of ["camera.fit-story", "camera.fit-selection", "camera.reset-zoom"]) {
+      expect(registry.get(id)?.isAvailable(empty)).toBe(true);
+      expect(registry.get(id)?.isAvailable(context())).toBe(true);
+    }
   });
 });
