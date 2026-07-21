@@ -188,6 +188,7 @@ export function MoneyMapEdge({
           ) : editing ? (
             <InlineField
               ariaLabel="Edit relationship label"
+              sizeToContent={false}
               value={flow.label}
               onCancel={() => handlers?.cancelEdit()}
               onCommit={(literal) => handlers?.commitEdit(literal)}

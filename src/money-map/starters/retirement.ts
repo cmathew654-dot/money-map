@@ -197,7 +197,7 @@ const modules = [
     primitive: "text" as const,
     position: { x: 690, y: 330 },
     width: 300,
-    height: 80,
+    height: 108,
     rotation: 0,
     priority: "quiet" as const,
     density: "full" as const,

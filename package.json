@@ -23,6 +23,7 @@
     "check:pages": "node tools/check-pages-build.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
     "@xyflow/react": "12.11.2",
     "react": "19.2.7",
     "react-dom": "19.2.7"
