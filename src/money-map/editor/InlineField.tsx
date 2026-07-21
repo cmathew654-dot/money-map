@@ -8,6 +8,7 @@ interface InlineFieldProps {
   ariaLabel: string;
   value: string;
   multiline?: boolean;
+  sizeToContent?: boolean;
   className?: string;
   onCommit(value: string): void;
   onCancel(): void;
@@ -17,6 +18,7 @@ export function InlineField({
   ariaLabel,
   value,
   multiline = false,
+  sizeToContent = true,
   className,
   onCommit,
   onCancel,
@@ -86,7 +88,7 @@ export function InlineField({
     "data-inline-untouched": draft === value ? "true" : undefined,
     autoFocus: true,
     className: `inline-field nodrag nowheel ${className ?? ""}`.trim(),
-    style: multiline ? undefined : { width: `${visibleWidth}ch` },
+    style: multiline || !sizeToContent ? undefined : { width: `${visibleWidth}ch` },
     value: draft,
     onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft(event.currentTarget.value),

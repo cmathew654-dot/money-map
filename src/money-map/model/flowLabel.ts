@@ -3,12 +3,14 @@ import type { MoneyMapDocument, MoneyMapModule, Point } from "./types";
 /** Matches the canvas reconnectRadius used for endpoint pointer grabs. */
 export const FLOW_RECONNECT_RADIUS = 26;
 
-// Roughly what a label occupies in world units at 100% zoom: .money-map-flow-label
-// floors at 96x32 (canvas.css). Kept close to that floor deliberately — an
-// inflated footprint cannot fit gaps that a real label does (the authored
-// starters have 100px channels between cards), which would push every label
-// off its own route for clearances it does not need.
-const flowLabelFootprint = { width: 100, height: 36 };
+// What a label occupies in world units at 100% zoom, measured against the
+// bundled fonts: a resting pill with its label and cadence lines renders
+// 98x42.4 (the earlier 96x32 floor predates the cadence line). Kept at the
+// measurement deliberately — an inflated footprint cannot fit gaps that a
+// real label does (the authored starters have 100px channels between cards),
+// which would push every label off its own route for clearances it does not
+// need.
+const flowLabelFootprint = { width: 100, height: 44 };
 
 interface LabelBounds {
   left: number;
