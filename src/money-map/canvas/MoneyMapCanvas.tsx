@@ -27,6 +27,7 @@ import {
 
 import { matchCommandShortcut } from "../editor/commandShortcuts";
 import { useEditorInteraction } from "../editor/EditorInteractionContext";
+import { FLOW_RECONNECT_RADIUS } from "../model/flowLabel";
 import type { MoneyMapDocument, PresentationStep, Selection } from "../model/types";
 import { CanvasControls, type CanvasController } from "./CanvasControls";
 import { MoneyMapEdge } from "./MoneyMapEdge";
@@ -575,7 +576,7 @@ function MoneyMapCanvasInner({
         nodesConnectable={!presenting}
         connectionMode={ConnectionMode.Loose}
         edgesReconnectable={!presenting}
-        reconnectRadius={26}
+        reconnectRadius={FLOW_RECONNECT_RADIUS}
         deleteKeyCode={null}
         // The attribution watermark measures 2.51-2.57:1 contrast against the
         // 4.5:1 requirement and sits in the tab order between the canvas and

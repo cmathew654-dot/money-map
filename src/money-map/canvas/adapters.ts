@@ -1,6 +1,7 @@
 import { MarkerType, Position, type Edge, type Node } from "@xyflow/react";
 
 import { moveModules, updateModule } from "../model/document";
+import { flowAttachmentPoint } from "../model/flowLabel";
 import { clampModuleSize } from "../model/moduleSizing";
 export { clampModuleSize, MAX_MODULE_SIZE, minimumModuleSize } from "../model/moduleSizing";
 import type {
@@ -61,17 +62,15 @@ function moduleCenter(module: MoneyMapModule): Point {
 }
 
 function handleToward(module: MoneyMapModule, point: Point, kind: "source" | "target"): string {
-  const center = moduleCenter(module);
-  const deltaX = point.x - center.x;
-  const deltaY = point.y - center.y;
+  const attachment = flowAttachmentPoint(module, point);
   const position =
-    Math.abs(deltaX) >= Math.abs(deltaY)
-      ? deltaX >= 0
+    attachment.x === module.position.x
+      ? Position.Left
+      : attachment.x === module.position.x + module.width
         ? Position.Right
-        : Position.Left
-      : deltaY >= 0
-        ? Position.Bottom
-        : Position.Top;
+        : attachment.y === module.position.y
+          ? Position.Top
+          : Position.Bottom;
   return kind + "-" + position;
 }
 

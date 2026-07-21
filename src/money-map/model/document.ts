@@ -6,6 +6,7 @@ import type {
   PrimitiveStyle,
   Selection,
 } from "./types";
+import { clearFlowLabelPosition } from "./flowLabel";
 import { clampModuleSize } from "./moduleSizing";
 
 type CreateId = (kind: string) => string;
@@ -71,26 +72,6 @@ function translateLabelForEndpoints(
   };
 }
 
-const FLOW_LABEL_ENDPOINT_CLEARANCE = { x: 140, y: 64 } as const;
-
-function keepLabelClearOfModule(point: Point, module: MoneyMapModule): Point {
-  const left = module.position.x - FLOW_LABEL_ENDPOINT_CLEARANCE.x;
-  const right = module.position.x + module.width + FLOW_LABEL_ENDPOINT_CLEARANCE.x;
-  const top = module.position.y - FLOW_LABEL_ENDPOINT_CLEARANCE.y;
-  const bottom = module.position.y + module.height + FLOW_LABEL_ENDPOINT_CLEARANCE.y;
-  if (point.x < left || point.x > right || point.y < top || point.y > bottom) return point;
-
-  const candidates = [
-    { point: { x: left, y: point.y }, distance: point.x - left },
-    { point: { x: right, y: point.y }, distance: right - point.x },
-    { point: { x: point.x, y: top }, distance: point.y - top },
-    { point: { x: point.x, y: bottom }, distance: bottom - point.y },
-  ];
-  return candidates.reduce((nearest, candidate) =>
-    candidate.distance < nearest.distance ? candidate : nearest,
-  ).point;
-}
-
 export function moveModules(
   document: MoneyMapDocument,
   positions: ReadonlyMap<string, Point>,
@@ -133,15 +114,12 @@ export function updateFlowEndpoints(
 ): MoneyMapDocument {
   return updateFlow(document, flowId, (flow) => {
     if (flow.source === source && flow.target === target) return flow;
-    let labelPosition = translateLabelForEndpoints(document, flow, source, target);
-    if (flow.source !== source) {
-      const sourceModule = document.modules.find((module) => module.id === source);
-      if (sourceModule) labelPosition = keepLabelClearOfModule(labelPosition, sourceModule);
-    }
-    if (flow.target !== target) {
-      const targetModule = document.modules.find((module) => module.id === target);
-      if (targetModule) labelPosition = keepLabelClearOfModule(labelPosition, targetModule);
-    }
+    // Translate first — carrying the author's relative placement to the new
+    // endpoints is the right intent — then clear it against every module, not
+    // just the two this flow now connects.
+    const translated = translateLabelForEndpoints(document, flow, source, target);
+    const labelPosition =
+      clearFlowLabelPosition(document, source, target, translated, flow.waypoints) ?? translated;
     return { ...flow, source, target, labelPosition };
   });
 }
