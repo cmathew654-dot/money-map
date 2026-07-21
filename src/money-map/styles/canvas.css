@@ -423,11 +423,13 @@
   width: 24px;
   height: 24px;
   border: 0;
+  cursor: crosshair;
   background: radial-gradient(
     circle,
-    var(--map-accent) 0 4px,
-    var(--map-surface) 5px 7px,
-    transparent 8px
+    var(--map-accent) 0 6px,
+    var(--map-surface) 7px 10px,
+    var(--map-line) 10px 11px,
+    transparent 12px
   );
   opacity: 1;
   pointer-events: all;

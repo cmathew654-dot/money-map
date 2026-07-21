@@ -736,7 +736,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       editor.setSelection({ moduleIds: [], flowIds: [created.id] });
       setPropertiesTab(null);
       setDrawFlowOpen(false);
-      setActiveFlowId(created.id);
     },
     [cadenceFilter, editor],
   );
