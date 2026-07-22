@@ -82,6 +82,12 @@ function MoneyMapNodeComponent({ data, selected }: NodeProps<MoneyMapCanvasNode>
         data-presentation-dim={data.presentationDim ? "true" : "false"}
         style={{ transform: `rotate(${module.rotation}deg)` }}
         aria-label={`${module.title}, ${outgoingCount} outgoing relationships`}
+        onClickCapture={(event) => {
+          if (!data.connectMode) return;
+          event.preventDefault();
+          event.stopPropagation();
+          editor?.chooseConnectCard(module.id);
+        }}
       >
         {/* The card's whole surface is its connection affordance. It both
             starts and ends connections; the CSS keeps it inert except in

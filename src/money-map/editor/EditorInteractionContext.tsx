@@ -29,8 +29,8 @@ export interface EditorInteraction {
   nudgeSelected(delta: Point): void;
   commitModuleSize(moduleId: string, size: { width: number; height: number }): void;
   commitModuleMove(moduleId: string, position: Point): void;
+  chooseConnectCard(moduleId: string): void;
   createConnection(source: string, target: string): void;
-  quickCreateConnection(source: string, position: Point): void;
   reconnectRelationship(flowId: string, connection: { source: string; target: string }): void;
 }
 

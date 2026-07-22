@@ -506,8 +506,8 @@ describe("MoneyMapCanvas command shortcuts", () => {
       selectFlow: vi.fn(),
       commitFlowLabelPosition: vi.fn(),
       commitFlowWaypoint: vi.fn(),
+      chooseConnectCard: vi.fn(),
       createConnection: vi.fn(),
-      quickCreateConnection: vi.fn(),
       reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
@@ -673,7 +673,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
   it("routes one connect and one endpoint reconnect through the editor interaction", () => {
     const mapDocument = createTestDocument();
     const createConnection = vi.fn();
-    const quickCreateConnection = vi.fn();
+    const exitConnectMode = vi.fn();
     const reconnectRelationship = vi.fn();
     const interaction: EditorInteraction = {
       selectionCount: 0,
@@ -688,8 +688,8 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       selectFlow: vi.fn(),
       commitFlowLabelPosition: vi.fn(),
       commitFlowWaypoint: vi.fn(),
+      chooseConnectCard: vi.fn(),
       createConnection,
-      quickCreateConnection,
       reconnectRelationship,
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
@@ -708,6 +708,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
           selection={{ moduleIds: [], flowIds: [] }}
           onSelectionChange={vi.fn()}
           onDocumentChange={vi.fn()}
+          onExitConnectMode={exitConnectMode}
         />
       </EditorInteractionContext.Provider>,
     );
@@ -735,7 +736,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
         fromNode: { id: "source-account" },
       });
     });
-    expect(quickCreateConnection).toHaveBeenCalledWith("source-account", { x: 640, y: 420 });
+    expect(exitConnectMode).toHaveBeenCalledTimes(1);
 
     const reconnectInteraction = interaction;
     view.rerender(
@@ -791,7 +792,7 @@ describe("MoneyMapCanvas relationship callbacks", () => {
     });
   });
 
-  it("selects the existing relationship instead of duplicating it when a connect retraces one", () => {
+  it("routes duplicate attempts through the shared creation path", () => {
     const mapDocument = createTestDocument();
     const createConnection = vi.fn();
     const selectFlow = vi.fn();
@@ -808,8 +809,8 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       selectFlow,
       commitFlowLabelPosition: vi.fn(),
       commitFlowWaypoint: vi.fn(),
+      chooseConnectCard: vi.fn(),
       createConnection,
-      quickCreateConnection: vi.fn(),
       reconnectRelationship: vi.fn(),
       beginInlineEdit: vi.fn(),
       commitInlineEdit: vi.fn(),
@@ -832,15 +833,13 @@ describe("MoneyMapCanvas relationship callbacks", () => {
       </EditorInteractionContext.Provider>,
     );
 
-    // funding-flow already runs source-account -> annuity-policy, so this
-    // drop retraces it and must not stack a second "New transfer" on top.
     act(() => {
       (flowMock.props.onConnect as (connection: { source: string; target: string }) => void)({
         source: "source-account",
         target: "annuity-policy",
       });
     });
-    expect(createConnection).not.toHaveBeenCalled();
-    expect(selectFlow).toHaveBeenCalledWith("funding-flow");
+    expect(createConnection).toHaveBeenCalledWith("source-account", "annuity-policy");
+    expect(selectFlow).not.toHaveBeenCalled();
   });
 });

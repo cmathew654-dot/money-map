@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -132,6 +133,7 @@ function MoneyMapCanvasInner({
   onControllerChange,
   onZoomChange,
   connectMode = false,
+  onExitConnectMode,
 }: MoneyMapCanvasProps) {
   const flow = useReactFlow<MoneyMapCanvasNode, MoneyMapCanvasEdge>();
   const editor = useEditorInteraction();
@@ -422,36 +424,25 @@ function MoneyMapCanvasInner({
   const handleConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) return;
-      // A handle sits exactly where an existing relationship terminates, so a
-      // drag meant as "move this endpoint" can land as a fresh connection
-      // retracing the same pair. Select the existing relationship instead of
-      // stacking a duplicate "New transfer" on top of it.
-      const existing = document.flows.find(
-        (flow) => flow.source === connection.source && flow.target === connection.target,
-      );
-      if (existing) {
-        editor?.selectFlow(existing.id);
-        return;
-      }
       editor?.createConnection(connection.source, connection.target);
     },
-    [document.flows, editor],
+    [editor],
   );
 
   const handleConnectEnd = useCallback<OnConnectEnd>(
-    (event, connectionState) => {
-      if (connectionState.isValid || connectionState.toNode || !connectionState.fromNode) return;
-      const touch = "changedTouches" in event ? event.changedTouches[0] : null;
-      const clientPoint = {
-        x: touch?.clientX ?? ("clientX" in event ? event.clientX : 0),
-        y: touch?.clientY ?? ("clientY" in event ? event.clientY : 0),
-      };
-      editor?.quickCreateConnection(
-        connectionState.fromNode.id,
-        screenToFlowPosition ? screenToFlowPosition(clientPoint) : clientPoint,
-      );
+    (_event, connectionState) => {
+      if (connectionState.isValid) return;
+      if (
+        connectionState.fromNode &&
+        connectionState.toNode &&
+        connectionState.fromNode.id === connectionState.toNode.id
+      ) {
+        editor?.createConnection(connectionState.fromNode.id, connectionState.toNode.id);
+        return;
+      }
+      if (connectionState.fromNode) onExitConnectMode?.();
     },
-    [editor, screenToFlowPosition],
+    [editor, onExitConnectMode],
   );
 
   const handleReconnect = useCallback<OnReconnect<MoneyMapCanvasEdge>>(
@@ -553,6 +544,7 @@ function MoneyMapCanvasInner({
     <div
       className={`money-map-canvas${presenting ? " money-map-canvas--presentation" : ""}`}
       data-connect-mode={connectMode && !presenting ? "true" : undefined}
+      style={{ "--map-inverse-zoom": 100 / zoomPercentage } as CSSProperties}
       tabIndex={presenting ? -1 : 0}
       aria-label={`${document.title} ${presenting ? "presentation" : "authoring"} canvas`}
       onKeyDown={presenting ? undefined : handleKeyDown}
@@ -574,6 +566,13 @@ function MoneyMapCanvasInner({
         onNodeDragStop={presenting ? undefined : handleNodeDragStop}
         onConnect={presenting ? undefined : handleConnect}
         onConnectEnd={presenting ? undefined : handleConnectEnd}
+        onPaneClick={
+          presenting || !connectMode
+            ? undefined
+            : () => {
+                onExitConnectMode?.();
+              }
+        }
         onReconnect={presenting ? undefined : handleReconnect}
         onViewportChange={(viewport) => {
           const percentage = Math.round(viewport.zoom * 100);

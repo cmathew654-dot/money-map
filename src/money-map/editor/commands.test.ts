@@ -130,6 +130,36 @@ describe("workspace command registry", () => {
     expect(module.rows).toBe(document.modules[1].rows);
   });
 
+  it("expands only to a target shape minimum and announces the adjustment", () => {
+    const commandContext = context();
+    const original = commandContext.document.modules[1];
+    commandContext.document = {
+      ...commandContext.document,
+      modules: commandContext.document.modules.map((module) =>
+        module.id === original.id
+          ? { ...module, primitive: "text", density: "full", width: 160, height: 60, rotation: 30 }
+          : module,
+      ),
+    };
+    const flows = commandContext.document.flows;
+    const result = createWorkspaceCommands(() => "unused")
+      .get("module.primitive.ledger")
+      ?.execute(commandContext);
+    if (!result || result.kind !== "mutation") throw new Error("Expected mutation");
+    const module = result.mutation.document.modules[1];
+
+    expect(module).toMatchObject({
+      primitive: "ledger",
+      width: 260,
+      height: 196,
+      rotation: 30,
+    });
+    expect(module.title).toBe(original.title);
+    expect(module.rows).toBe(commandContext.document.modules[1].rows);
+    expect(result.mutation.document.flows).toBe(flows);
+    expect(result.mutation.announcement).toContain("Size expanded");
+  });
+
   it("duplicates with injected IDs and returns the new selection; remove clears selection", () => {
     const ids = ["module-copy", "row-1", "row-2", "row-3", "flow-copy"];
     const registry = createWorkspaceCommands(() => ids.shift() ?? "next-id");

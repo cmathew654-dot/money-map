@@ -1,5 +1,6 @@
 import { moveModules, updateFlow, updateFlowEndpoints, updateModule } from "../model/document";
 import { clearFlowLabelPosition } from "../model/flowLabel";
+import { clampModuleSize } from "../model/moduleSizing";
 import type {
   CadenceKind,
   ColorRole,
@@ -88,9 +89,11 @@ export function setModulePrimitive(
   moduleId: string,
   primitive: PrimitiveStyle,
 ): MoneyMapDocument {
-  return updateModule(document, moduleId, (module) =>
-    module.primitive === primitive ? module : { ...module, primitive },
-  );
+  return updateModule(document, moduleId, (module) => {
+    if (module.primitive === primitive) return module;
+    const next = { ...module, primitive };
+    return { ...next, ...clampModuleSize(next, next) };
+  });
 }
 
 export type ModuleField =
@@ -233,6 +236,12 @@ export function createRelationship(
   const moduleById = new Map(document.modules.map((module) => [module.id, module]));
   const moduleIds = new Set(moduleById.keys());
   if (source === target || !moduleIds.has(source) || !moduleIds.has(target)) return document;
+  const alreadyConnected = document.flows.some(
+    (flow) =>
+      (flow.source === source && flow.target === target) ||
+      (flow.source === target && flow.target === source),
+  );
+  if (alreadyConnected) return document;
   const labelPosition = clearFlowLabelPosition(document, source, target)!;
   return {
     ...document,

@@ -8,7 +8,7 @@ import {
   undoHistory,
   type HistoryState,
 } from "../model/history";
-import { loadDraft, saveDraft, type StorageLike } from "../model/persistence";
+import { loadDraft, resolveEditorStorage, saveDraft, type StorageLike } from "../model/persistence";
 import type { MoneyMapDocument, Selection, StarterId } from "../model/types";
 import { createStarterDocument } from "../starters/registry";
 import {
@@ -43,7 +43,9 @@ function validSelection(document: MoneyMapDocument, selection: Selection): Selec
 }
 
 export function useMoneyMapEditor(starterId: StarterId, options: EditorOptions = {}) {
-  const storage = options.storage ?? window.localStorage;
+  const storageRef = useRef<StorageLike | null>(null);
+  if (storageRef.current === null) storageRef.current = resolveEditorStorage(options.storage);
+  const storage = storageRef.current;
   const createId = options.createId ?? defaultCreateId;
   const scaffold = createStarterDocument(starterId);
   const [activeStarter, setActiveStarter] = useState(starterId);

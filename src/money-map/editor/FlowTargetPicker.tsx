@@ -84,6 +84,7 @@ export function FlowTargetPicker({
             <p className="flow-target-picker__group-label">{group.label}</p>
             {group.members.map((target) => (
               <button
+                data-target-id={target.id}
                 key={target.id}
                 onClick={() => onChoose(target.id)}
                 ref={target.id === firstTargetId ? firstTarget : undefined}

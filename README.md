@@ -37,13 +37,13 @@ Each starter has its own visual direction and contains an Overview plus five nam
 
 Every financial value is stored and displayed as literal text. Approximation marks, ranges, blanks, cadence phrases, and advisor-authored prose round-trip unchanged.
 
-Money Map does **not** calculate taxes, reconcile balances, annualize cash flows, infer funding capacity, debit accounts, validate recommendations, or use financial values to control geometry, color, line weight, or flow behavior.
+Money Map does **not** calculate taxes, reconcile balances, annualize cash flows, infer funding capacity, debit accounts, validate recommendations, or use financial values to control geometry, color, weight, routing, or relationship behavior.
 
 ## Key interactions
 
 - Add eight purposeful financial-story shapes from one compact menu; select, multi-select, move, duplicate, remove, resize on both axes, rotate in safe 15° steps, and change stacking order.
 - Double-click visible module text to edit it directly. Appearance provides shape, priority, detail, curated color, size, and layer controls without exposing a generic diagrammer.
-- Connect cards in a mode rather than by hitting a small target: press `C`, click one card, then another. Cards stop being draggable while it is on, so the same pixels never have to mean both "move this" and "start a flow here." `Connect to…` — the selection halo, `L`, or the Actions palette — is the keyboard route to the same thing. Labels and bends move independently; endpoints reconnect by pointer or properties.
+- Connect cards without precision targets: press `C`, click one card, then another. The one-shot mode exits as soon as the relationship is created or found, so cards are immediately draggable again. `Connect to…` — the selection halo, `L`, or the Actions palette — is the keyboard route to the same operation. Labels and bends move independently; endpoints reconnect by pointer or properties.
 - Pan and zoom with the pointer, keyboard, or compact on-canvas controls; fit the authored story or current selection.
 - Each story opens on its useful Monthly or Annual cadence. All remains available as an explicit overview instead of the crowded default.
 - Use the searchable Actions palette (`Ctrl/Cmd+K`) for the same commands exposed contextually by the selection halo and properties.
