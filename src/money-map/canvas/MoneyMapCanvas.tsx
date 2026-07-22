@@ -594,6 +594,12 @@ function MoneyMapCanvasInner({
         connectionMode={ConnectionMode.Loose}
         edgesReconnectable={!presenting}
         reconnectRadius={FLOW_RECONNECT_RADIUS}
+        // The canvas auto-panned while a connection or endpoint was mid-drag, so
+        // re-anchoring a relationship near the top edge lurched the whole map and
+        // the drop landed where the user never aimed. The authored story is meant
+        // to fit ("Fit story"), so reaching off-screen mid-drag is not worth that
+        // disorientation.
+        autoPanOnConnect={false}
         deleteKeyCode={null}
         // The attribution watermark measures 2.51-2.57:1 contrast against the
         // 4.5:1 requirement and sits in the tab order between the canvas and
