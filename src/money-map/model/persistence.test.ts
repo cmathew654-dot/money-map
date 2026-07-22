@@ -1,8 +1,10 @@
 import {
   DRAFT_PREFIX,
   clearDraft,
+  createResilientStorage,
   draftKey,
   loadDraft,
+  resolveEditorStorage,
   saveDraft,
   type StorageLike,
 } from "./persistence";
@@ -42,6 +44,94 @@ function firstRecord(parent: UnknownRecord, key: string): UnknownRecord {
 }
 
 describe("draft persistence", () => {
+  it("uses memory when browser storage is undefined", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", { configurable: true, value: undefined });
+    try {
+      const storage = resolveEditorStorage();
+      storage.setItem("undefined-storage", "available");
+      expect(storage.getItem("undefined-storage")).toBe("available");
+      storage.removeItem("undefined-storage");
+      expect(storage.getItem("undefined-storage")).toBeNull();
+    } finally {
+      if (descriptor) Object.defineProperty(window, "localStorage", descriptor);
+      else Reflect.deleteProperty(window, "localStorage");
+    }
+  });
+
+  it("uses memory when the browser storage getter throws SecurityError", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    });
+    try {
+      const storage = resolveEditorStorage();
+      storage.setItem("blocked-storage", "available");
+      expect(storage.getItem("blocked-storage")).toBe("available");
+    } finally {
+      if (descriptor) Object.defineProperty(window, "localStorage", descriptor);
+      else Reflect.deleteProperty(window, "localStorage");
+    }
+  });
+
+  it("falls back after getItem throws", () => {
+    const fallback = new Map([["draft", "memory"]]);
+    const storage = createResilientStorage(
+      {
+        getItem: () => {
+          throw new DOMException("Blocked", "SecurityError");
+        },
+        setItem: () => undefined,
+        removeItem: () => undefined,
+      },
+      fallback,
+    );
+    expect(storage.getItem("draft")).toBe("memory");
+  });
+
+  it("keeps writes in memory when setItem throws", () => {
+    const storage = createResilientStorage(
+      {
+        getItem: () => null,
+        setItem: () => {
+          throw new DOMException("Full", "QuotaExceededError");
+        },
+        removeItem: () => undefined,
+      },
+      new Map(),
+    );
+    expect(() => storage.setItem("draft", "memory")).not.toThrow();
+    expect(storage.getItem("draft")).toBe("memory");
+  });
+
+  it("clears memory even when removeItem throws", () => {
+    const storage = createResilientStorage(
+      {
+        getItem: () => null,
+        setItem: () => undefined,
+        removeItem: () => {
+          throw new DOMException("Blocked", "SecurityError");
+        },
+      },
+      new Map([["draft", "memory"]]),
+    );
+    expect(() => storage.removeItem("draft")).not.toThrow();
+    expect(storage.getItem("draft")).toBeNull();
+  });
+
+  it("uses and mirrors an ordinary storage implementation", () => {
+    const primary = createStorage();
+    const storage = createResilientStorage(primary, new Map());
+    storage.setItem("draft", "primary");
+    expect(primary.getItem("draft")).toBe("primary");
+    expect(storage.getItem("draft")).toBe("primary");
+    storage.removeItem("draft");
+    expect(primary.getItem("draft")).toBeNull();
+  });
+
   it("round-trips exact literal strings through JSON and storage", () => {
     const storage = createStorage();
     const document = createTestDocument();

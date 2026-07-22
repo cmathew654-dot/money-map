@@ -361,6 +361,16 @@ describe("relationship mutations", () => {
     );
   });
 
+  it("rejects same-direction and reverse-direction duplicate creation", () => {
+    const document = createTestDocument();
+    expect(
+      createRelationship(document, "source-account", "annuity-policy", () => "duplicate"),
+    ).toBe(document);
+    expect(createRelationship(document, "annuity-policy", "source-account", () => "reverse")).toBe(
+      document,
+    );
+  });
+
   it("creates one neutral relationship with an injected stable ID", () => {
     const document = createTestDocument();
     const created = createRelationship(

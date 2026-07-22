@@ -375,35 +375,34 @@ test("adds one purposeful shape with carried style and immediate literal title e
   await expect(created).toHaveCount(0);
 });
 
-test("quick-creates a connected object by dropping a card on empty canvas", async ({ page }) => {
+test("cancels Connect on empty canvas without creating a card or relationship", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole("button", { name: /Annuity Income Floor/i }).click();
 
-  // Connect mode drags from the card itself. The side handles are edge anchors
-  // now, not connection sources.
   await page.getByRole("button", { name: "Connect mode" }).click();
   const source = page.locator(".money-map-module").filter({ hasText: "Investment account" });
   const handleBox = await source.boundingBox();
   const paneBox = await page.locator(".react-flow__pane").boundingBox();
-  if (!handleBox || !paneBox) throw new Error("Expected quick-create geometry");
+  if (!handleBox || !paneBox) throw new Error("Expected Connect cancellation geometry");
+  const modulesBefore = await page.locator(".money-map-module").count();
+  const relationshipsBefore = await page.locator(".money-map-flow-label-wrap").count();
   const drop = { x: paneBox.x + paneBox.width * 0.56, y: paneBox.y + paneBox.height * 0.83 };
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
   await page.mouse.move(drop.x, drop.y, { steps: 8 });
   await page.mouse.up();
 
-  const title = page.getByRole("textbox", { name: "Edit shape title" });
-  await expect(title).toBeFocused();
-  await title.fill("Connected advisor account");
-  await title.press("Enter");
-  const created = page
-    .locator(".money-map-module")
-    .filter({ hasText: "Connected advisor account" });
-  await expect(created).toHaveAttribute("data-primitive", "plate");
-  await page.keyboard.press("Control+z");
-  await expect(created).toHaveCount(0);
+  await expect(page.locator(".money-map-module")).toHaveCount(modulesBefore);
+  await expect(page.locator(".money-map-flow-label-wrap")).toHaveCount(relationshipsBefore);
+  await expect(page.getByRole("button", { name: "Connect mode" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.getByText(/click a card, then click another/i)).toHaveCount(0);
 });
 
 test("draws a relationship by dragging one card onto another in Connect mode", async ({ page }) => {
@@ -436,11 +435,11 @@ test("draws a relationship by dragging one card onto another in Connect mode", a
   await restingLabel.dblclick();
   const label = page.getByRole("textbox", { name: "Edit relationship label" });
   await expect(label).toBeFocused();
-  await label.fill("Direct port relationship — exact");
+  await label.fill("Direct relationship — exact");
   await label.press("Enter");
   await expect(
     page.getByRole("button", {
-      name: /relationship from annuity-source to annuity-policy: Direct port relationship — exact/i,
+      name: /relationship from annuity-source to annuity-policy: Direct relationship — exact/i,
     }),
   ).toBeFocused();
   await page.evaluate(() => localStorage.clear());

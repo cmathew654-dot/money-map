@@ -3,7 +3,7 @@ import { StrictMode, type ReactNode } from "react";
 import { vi } from "vitest";
 
 import { createModule, updateModule } from "../model/document";
-import { saveDraft, type StorageLike } from "../model/persistence";
+import { createResilientStorage, saveDraft, type StorageLike } from "../model/persistence";
 import type { StarterId } from "../model/types";
 import { getScaffoldDocument } from "../starters/scaffolds";
 import { useMoneyMapEditor } from "./useMoneyMapEditor";
@@ -23,6 +23,22 @@ function storageFixture(): StorageLike & { values: Map<string, string>; writes: 
 }
 
 describe("useMoneyMapEditor", () => {
+  it("opens a starter and remains editable with only the memory fallback", () => {
+    const storage = createResilientStorage(undefined, new Map());
+    const { result } = renderHook(() => useMoneyMapEditor("retirement", { storage }));
+    const edited = updateModule(result.current.document, "retirement-income", (module) => ({
+      ...module,
+      title: "Memory-only edit",
+    }));
+
+    expect(() =>
+      act(() => result.current.applyDocument(edited, "Edited.", "memory-only edit")),
+    ).not.toThrow();
+    expect(
+      result.current.document.modules.find(({ id }) => id === "retirement-income")?.title,
+    ).toBe("Memory-only edit");
+  });
+
   it("loads and isolates the correct starter draft", () => {
     const storage = storageFixture();
     saveDraft(

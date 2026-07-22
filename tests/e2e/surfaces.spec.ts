@@ -291,9 +291,7 @@ test("a selected relationship draws its endpoint grips and previews a reconnect 
 // whole source of "it reverts", "where do I grab", and accidental duplicates.
 // Connect mode removes the conflict outright: cards stop being draggable, the
 // entire card is both source and target, and either gesture works.
-test("Connect mode joins two cards by clicking, by dragging, and exits on Escape", async ({
-  page,
-}) => {
+test("Connect mode is one-shot for click and drag, and exits on Escape", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -315,8 +313,14 @@ test("Connect mode joins two cards by clicking, by dragging, and exits on Escape
     page.getByRole("button", { name: /relationship from annuity-source to annuity-reserve/i }),
     "the card clicked first is the source",
   ).toBeVisible();
+  await expect(page.getByText(/click a card, then click another/i)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Connect mode" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
 
   // The gesture people reach for first: drag one card onto another.
+  await page.getByRole("button", { name: "Connect mode" }).click();
   const fromBox = await body("annuity-income").boundingBox();
   const toBox = await body("annuity-plan").boundingBox();
   if (!fromBox || !toBox) throw new Error("Expected card geometry");
@@ -329,7 +333,9 @@ test("Connect mode joins two cards by clicking, by dragging, and exits on Escape
     page.getByRole("button", { name: /relationship from annuity-income to annuity-plan/i }),
     "the card dragged from is the source",
   ).toBeVisible();
+  await expect(page.getByText(/click a card, then click another/i)).toHaveCount(0);
 
+  await page.getByRole("button", { name: "Connect mode" }).click();
   await page.keyboard.press("Escape");
   await expect(page.getByText(/click a card, then click another/i)).toHaveCount(0);
 });

@@ -7,7 +7,7 @@ import {
   updateFlow,
   updateModule,
 } from "../model/document";
-import { resetFlowLabel } from "./mutations";
+import { resetFlowLabel, setModulePrimitive } from "./mutations";
 import type {
   CadenceKind,
   LabelTreatment,
@@ -403,18 +403,20 @@ export function createWorkspaceCommands(
       label: primitiveLabels[primitive],
       keywords: ["primitive", "appearance", "style"],
       isAvailable: hasSingleModule,
-      execute: (context) =>
-        mutation(
-          updateSelectedModules(context, (module) =>
-            module.primitive === primitive
-              ? module
-              : (() => {
-                  const next = { ...module, primitive };
-                  return { ...next, ...clampModuleSize(next, next) };
-                })(),
-          ),
-          `${primitive} style applied.`,
-        ),
+      execute: (context) => {
+        const moduleId = context.selection.moduleIds[0];
+        const current = context.document.modules.find(({ id }) => id === moduleId);
+        const document = setModulePrimitive(context.document, moduleId, primitive);
+        const updated = document.modules.find(({ id }) => id === moduleId);
+        const dimensionsAdjusted =
+          current !== undefined &&
+          updated !== undefined &&
+          (current.width !== updated.width || current.height !== updated.height);
+        const announcement = dimensionsAdjusted
+          ? `${primitiveLabels[primitive]} applied. Size expanded to the shape minimum to keep content readable.`
+          : `${primitiveLabels[primitive]} applied.`;
+        return mutation(document, announcement);
+      },
     });
   }
 

@@ -13,6 +13,69 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
+const browserMemoryFallback = new Map<string, string>();
+
+/**
+ * Resolves browser persistence without letting storage availability become an
+ * authoring requirement. Every successful read/write is mirrored in memory,
+ * so a storage implementation that becomes unavailable mid-session can still
+ * return the last known draft.
+ */
+export function createResilientStorage(
+  primary: StorageLike | undefined,
+  fallback: Map<string, string> = browserMemoryFallback,
+): StorageLike {
+  return {
+    getItem(key) {
+      if (primary) {
+        try {
+          const value = primary.getItem(key);
+          if (value !== null) {
+            fallback.set(key, value);
+            return value;
+          }
+        } catch {
+          // The in-memory copy remains available below.
+        }
+      }
+      return fallback.get(key) ?? null;
+    },
+    setItem(key, value) {
+      fallback.set(key, value);
+      if (!primary) return;
+      try {
+        primary.setItem(key, value);
+      } catch {
+        // Authoring continues with the in-memory copy.
+      }
+    },
+    removeItem(key) {
+      fallback.delete(key);
+      if (!primary) return;
+      try {
+        primary.removeItem(key);
+      } catch {
+        // The current session is still cleared even if browser storage is not.
+      }
+    },
+  };
+}
+
+export function resolveEditorStorage(injected?: StorageLike): StorageLike {
+  let primary = injected;
+  if (!primary && typeof window !== "undefined") {
+    try {
+      primary = window.localStorage ?? undefined;
+    } catch {
+      primary = undefined;
+    }
+  }
+  return createResilientStorage(
+    primary,
+    injected ? new Map<string, string>() : browserMemoryFallback,
+  );
+}
+
 export const DRAFT_PREFIX = "money-map:v2:";
 
 const FORBIDDEN_DOCUMENT_KEYS = new Set([

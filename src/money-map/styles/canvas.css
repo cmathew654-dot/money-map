@@ -1484,8 +1484,14 @@
      requires zero selected modules, and a coarse pointer has no hover — so the
      44px target existed on paper and never once applied to a real grip. */
   .money-map-module[data-reconnect-mode="true"] .money-map-handle {
-    width: 44px;
-    height: 44px;
+    width: calc(44px * var(--map-inverse-zoom, 1));
+    height: calc(44px * var(--map-inverse-zoom, 1));
+  }
+
+  .react-flow__edgeupdater {
+    r: calc(22px * var(--map-inverse-zoom, 1));
+    fill: color-mix(in srgb, var(--map-accent) 18%, transparent);
+    stroke-width: calc(3px * var(--map-inverse-zoom, 1));
   }
 
   .money-map-flow-label,
@@ -1722,13 +1728,17 @@
   display: none;
 }
 
-/* A text primitive is pure annotation: its header carries no authored
-   content in presentation, so the note becomes the whole object. */
-.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__header {
+/* Only authored annotation notes shed their scaffolding header. A financial
+   module may be restyled as text without losing its title in presentation. */
+.money-map-presentation
+  .money-map-module[data-kind="note"][data-primitive="text"]
+  .money-map-module__header {
   display: none;
 }
 
-.money-map-presentation .money-map-module[data-primitive="text"] .money-map-module__note {
+.money-map-presentation
+  .money-map-module[data-kind="note"][data-primitive="text"]
+  .money-map-module__note {
   margin: 0;
 }
 

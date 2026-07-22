@@ -39,7 +39,7 @@ No starter is the hero or control fixture. Each receives a complete authored com
 
 Money Map is an advisor-safe, near-freeform story studio: substantially more expressive than a template editor, deliberately more constrained than PowerPoint or a general-purpose whiteboard.
 
-- Advisors can compose with eight purposeful shapes, rotate and resize objects, edit visible text directly, style with semantic colors and curated theme swatches, and draw reliable labeled flows.
+- Advisors can compose with eight purposeful shapes, rotate and resize objects, edit visible text directly, style with semantic colors and curated theme swatches, and create reliable labeled relationships.
 - A compact Add control, contextual selection halo, command palette, and optional advanced inspector expose one shared command system and undo history.
 - Shapes support Essential, Standard, and Full content density so hierarchy does not require every object to share the same card anatomy.
 - Presentation is a first-class output: clean paper, named story steps, authored cadence views, and fit-to-story camera behavior.

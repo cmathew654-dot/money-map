@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import {
+  cadenceMatchesFilter,
   selectionForCadence,
   moveModule,
   resizeModule,
@@ -188,6 +189,30 @@ function isTextControl(target: EventTarget | null): boolean {
   );
 }
 
+function isTransientSurfaceTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    Boolean(
+      target.closest(
+        "[role='dialog'], [role='listbox'], .add-menu, .advanced-properties, .command-palette, .flow-target-picker, .relationship-legend, .relationship-properties",
+      ),
+    )
+  );
+}
+
+function allowsConnectShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (isTextControl(target) || isInteractiveControl(target) || isTransientSurfaceTarget(target)) {
+    return false;
+  }
+  if (target.closest("[role='dialog'], [role='listbox'], [role='option'], [role='combobox']")) {
+    return false;
+  }
+  const focusable = target.closest<HTMLElement>("[tabindex], [href]");
+  if (focusable && !focusable.closest(".money-map-canvas, .react-flow__node")) return false;
+  return true;
+}
+
 export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps) {
   const editor = useMoneyMapEditor(starterId);
   const theme = getCanvasTheme(editor.document.style);
@@ -205,6 +230,9 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   // "it reverts", "where do I grab", and accidental duplicates. While this is
   // on, cards stop being draggable and the whole card connects instead.
   const [connectMode, setConnectMode] = useState(false);
+  const connectModeRef = useRef(connectMode);
+  connectModeRef.current = connectMode;
+  const pendingConnectSource = useRef<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
@@ -471,6 +499,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   }, [editor.document.modules, selectedModuleId]);
 
   const openAdd = useCallback(() => {
+    setConnectMode(false);
     setPaletteInvoker(null);
     setPropertiesTab(null);
     setDrawFlowOpen(false);
@@ -494,6 +523,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
   }, []);
 
   const openLegend = useCallback(() => {
+    setConnectMode(false);
     setPaletteInvoker(null);
     setPropertiesTab(null);
     setDrawFlowOpen(false);
@@ -728,6 +758,30 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
 
   const createConnection = useCallback(
     (source: string, target: string) => {
+      connectModeRef.current = false;
+      pendingConnectSource.current = null;
+      setConnectMode(false);
+      setDrawFlowOpen(false);
+      setPropertiesTab(null);
+      setRelationshipOpen(false);
+      if (source === target) {
+        editor.setSelection({ moduleIds: [], flowIds: [] });
+        editor.setAnnouncement("Choose two different cards.");
+        focusModule(source);
+        return;
+      }
+      const existing = editor.document.flows.find(
+        (flow) =>
+          (flow.source === source && flow.target === target) ||
+          (flow.source === target && flow.target === source),
+      );
+      if (existing) {
+        if (!cadenceMatchesFilter(existing, cadenceFilter)) setCadenceFilter("all");
+        editor.setSelection({ moduleIds: [], flowIds: [existing.id] });
+        editor.setAnnouncement("Those cards are already connected.");
+        focusFlowLabel(existing.id);
+        return;
+      }
       const previousIds = new Set(editor.document.flows.map(({ id }) => id));
       const next = createRelationship(
         editor.document,
@@ -740,10 +794,24 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       if (!created) return;
       editor.applyDocument(next, "Relationship created.", "create relationship");
       editor.setSelection({ moduleIds: [], flowIds: [created.id] });
-      setPropertiesTab(null);
-      setDrawFlowOpen(false);
+      focusFlowLabel(created.id);
     },
-    [cadenceFilter, editor],
+    [cadenceFilter, editor, focusFlowLabel, focusModule],
+  );
+
+  const chooseConnectCard = useCallback(
+    (moduleId: string) => {
+      if (!connectModeRef.current) return;
+      const source = pendingConnectSource.current;
+      if (!source) {
+        pendingConnectSource.current = moduleId;
+        editor.setAnnouncement("First card chosen. Choose the second card.");
+        return;
+      }
+      pendingConnectSource.current = null;
+      createConnection(source, moduleId);
+    },
+    [createConnection, editor],
   );
 
   const createObject = useCallback(
@@ -803,40 +871,6 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     editor.executeCommand("camera.fit-selection");
   }, [selectedModuleId, editor]);
 
-  const quickCreateConnection = useCallback(
-    (sourceId: string, point: Point) => {
-      const source = editor.document.modules.find(({ id }) => id === sourceId);
-      if (!source) return;
-      const previousIds = new Set(editor.document.modules.map(({ id }) => id));
-      const withModule = createModule(
-        editor.document,
-        source.primitive,
-        { x: point.x - source.width / 2, y: point.y - source.height / 2 },
-        (kind) => `${kind}-${crypto.randomUUID()}`,
-        carriedStyle(source),
-      );
-      const created = withModule.modules.find(({ id }) => !previousIds.has(id));
-      if (!created) return;
-      const next = createRelationship(
-        withModule,
-        sourceId,
-        created.id,
-        () => `flow-${crypto.randomUUID()}`,
-        cadenceForNewRelationship(cadenceFilter),
-      );
-      editor.applyDocument(
-        next,
-        `${created.title} added and connected.`,
-        "quick create connected module",
-      );
-      editor.setSelection({ moduleIds: [created.id], flowIds: [] });
-      lastModuleStyle.current = carriedStyle(created);
-      setActiveInlineField({ moduleId: created.id, field: "title", original: created.title });
-      focusNewModuleTitle();
-    },
-    [cadenceFilter, editor, focusNewModuleTitle],
-  );
-
   const changeCadenceFilter = useCallback(
     (filter: CadenceFilterValue) => {
       setCadenceFilter(filter);
@@ -845,6 +879,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     [editor.setAnnouncement],
   );
   const openPalette = useCallback((invoker: HTMLElement) => {
+    setConnectMode(false);
     setAddOpen(false);
     setPropertiesTab(null);
     setDrawFlowOpen(false);
@@ -920,8 +955,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       nudgeSelected,
       commitModuleSize,
       commitModuleMove,
+      chooseConnectCard,
       createConnection,
-      quickCreateConnection,
       reconnectRelationship,
     }),
     [
@@ -937,8 +972,8 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       commitInlineEdit,
       commitModuleMove,
       commitModuleSize,
+      chooseConnectCard,
       createConnection,
-      quickCreateConnection,
       editor.announcement,
       editor.selection.flowIds.length,
       editor.selection.moduleIds,
@@ -949,6 +984,34 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
       selectFlow,
     ],
   );
+  const cancelConnectMode = useCallback(() => {
+    connectModeRef.current = false;
+    pendingConnectSource.current = null;
+    setConnectMode(false);
+    editor.setAnnouncement("Connect canceled.");
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".money-map-canvas")?.focus());
+  }, [editor]);
+  const enterConnectMode = useCallback(() => {
+    connectModeRef.current = true;
+    pendingConnectSource.current = null;
+    setActiveInlineField(null);
+    setActiveFlowId(null);
+    setRelationshipOpen(false);
+    setPaletteInvoker(null);
+    setPropertiesTab(null);
+    setDrawFlowOpen(false);
+    setAddOpen(false);
+    setLegendOpen(false);
+    editor.setSelection({ moduleIds: [], flowIds: [] });
+    editor.setAnnouncement("Connect. Choose the first card.");
+    setConnectMode(true);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".money-map-canvas")?.focus());
+  }, [editor]);
+  const toggleConnectMode = useCallback(() => {
+    if (connectMode) cancelConnectMode();
+    else enterConnectMode();
+  }, [cancelConnectMode, connectMode, enterConnectMode]);
+
   // Connect mode's keys listen in the capture phase, unlike every other
   // shortcut. React Flow's node keydown handler stops propagation, so with
   // focus on a card — exactly where it sits after connecting — a bubble-phase
@@ -958,19 +1021,38 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
     const handleModeKey = (event: globalThis.KeyboardEvent) => {
       if (event.isComposing || isTextControl(event.target)) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.key === "Escape" && connectMode) {
+      const surfaceOpen = Boolean(
+        paletteInvoker ||
+        propertiesTab ||
+        drawFlowOpen ||
+        relationshipOpen ||
+        addOpen ||
+        legendOpen,
+      );
+      if (event.key === "Escape" && connectMode && !surfaceOpen) {
         event.preventDefault();
-        setConnectMode(false);
+        cancelConnectMode();
         return;
       }
-      if (event.key.toLocaleLowerCase() === "c" && !isInteractiveControl(event.target)) {
+      if (event.key.toLocaleLowerCase() === "c" && allowsConnectShortcut(event.target)) {
         event.preventDefault();
-        setConnectMode((current) => !current);
+        toggleConnectMode();
       }
     };
     window.addEventListener("keydown", handleModeKey, true);
     return () => window.removeEventListener("keydown", handleModeKey, true);
-  }, [connectMode, presenting]);
+  }, [
+    addOpen,
+    cancelConnectMode,
+    connectMode,
+    drawFlowOpen,
+    legendOpen,
+    paletteInvoker,
+    presenting,
+    propertiesTab,
+    relationshipOpen,
+    toggleConnectMode,
+  ]);
 
   const handleWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (isTextControl(event.target) || event.nativeEvent.isComposing) return;
@@ -1068,7 +1150,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               aria-pressed={connectMode}
               className="connect-button"
               disabled={!supported}
-              onClick={() => setConnectMode((current) => !current)}
+              onClick={toggleConnectMode}
               type="button"
             >
               Connect
@@ -1119,6 +1201,7 @@ export function MoneyMapWorkspace({ starterId, onBack }: MoneyMapWorkspaceProps)
               onControllerChange={editor.registerCanvasController}
               cadenceFilter={cadenceFilter}
               connectMode={connectMode}
+              onExitConnectMode={cancelConnectMode}
             />
             <CadenceFilter value={cadenceFilter} onChange={changeCadenceFilter} />
           </section>

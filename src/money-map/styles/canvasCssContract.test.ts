@@ -15,7 +15,10 @@ describe("canvas pointer target CSS", () => {
       /@media \(pointer: coarse\)[\s\S]*\.react-flow__edge-interaction[^}]*stroke-width:\s*44px/s,
     );
     expect(css).toMatch(
-      /@media \(pointer: coarse\)[\s\S]*\.money-map-handle[^}]*width:\s*44px;[^}]*height:\s*44px/s,
+      /@media \(pointer: coarse\)[\s\S]*\.money-map-handle[^}]*width:\s*calc\(44px \* var\(--map-inverse-zoom, 1\)\);[^}]*height:\s*calc\(44px \* var\(--map-inverse-zoom, 1\)\)/s,
+    );
+    expect(css).toMatch(
+      /@media \(pointer: coarse\)[\s\S]*\.react-flow__edgeupdater[^}]*r:\s*calc\(22px \* var\(--map-inverse-zoom, 1\)\)/s,
     );
   });
 });

@@ -9,6 +9,7 @@ import type { useMoneyMapEditor } from "./useMoneyMapEditor";
 
 const hookMock = vi.hoisted(() => ({
   editor: undefined as unknown as ReturnType<typeof useMoneyMapEditor>,
+  canvasProps: {} as Record<string, unknown>,
 }));
 
 vi.mock("./useMoneyMapEditor", () => ({
@@ -16,7 +17,10 @@ vi.mock("./useMoneyMapEditor", () => ({
 }));
 
 vi.mock("../canvas/MoneyMapCanvas", () => ({
-  MoneyMapCanvas: () => <div aria-label="Mock money map canvas" />,
+  MoneyMapCanvas: (props: Record<string, unknown>) => {
+    hookMock.canvasProps = props;
+    return <div aria-label="Mock money map canvas" className="money-map-canvas" tabIndex={0} />;
+  },
 }));
 
 function createEditor() {
@@ -113,7 +117,7 @@ describe("MoneyMapWorkspace command lifecycle", () => {
       );
     });
   });
-  it("draws a flow from one explicit, keyboard-accessible surface", () => {
+  it("selects an existing reverse-direction relationship from Connect to without history", () => {
     render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
 
     openCommand("connect to");
@@ -123,8 +127,41 @@ describe("MoneyMapWorkspace command lifecycle", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Source account/ }));
 
-    expect(hookMock.editor.applyDocument).toHaveBeenCalledTimes(1);
+    expect(hookMock.editor.applyDocument).not.toHaveBeenCalled();
+    expect(hookMock.editor.setSelection).toHaveBeenCalledWith({
+      moduleIds: [],
+      flowIds: ["funding-flow"],
+    });
+    expect(hookMock.editor.setAnnouncement).toHaveBeenCalledWith(
+      "Those cards are already connected.",
+    );
     expect(screen.queryByLabelText("Connect to…")).toBeNull();
+  });
+
+  it("enters Connect as a one-shot mode, clears selection, and cancels on empty canvas", () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const connect = screen.getByRole("button", { name: "Connect mode" });
+
+    fireEvent.click(connect);
+    expect(connect.getAttribute("aria-pressed")).toBe("true");
+    expect(hookMock.editor.setSelection).toHaveBeenCalledWith({ moduleIds: [], flowIds: [] });
+    expect(hookMock.canvasProps.connectMode).toBe(true);
+
+    act(() => (hookMock.canvasProps.onExitConnectMode as () => void)());
+    expect(connect.getAttribute("aria-pressed")).toBe("false");
+    expect(hookMock.editor.setAnnouncement).toHaveBeenLastCalledWith("Connect canceled.");
+  });
+
+  it("does not toggle Connect from dialogs or generic header controls", () => {
+    render(<MoneyMapWorkspace starterId="annuity" onBack={vi.fn()} />);
+    const connect = screen.getByRole("button", { name: "Connect mode" });
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+    fireEvent.keyDown(screen.getByLabelText("Add to money map"), { key: "c" });
+    expect(connect.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.keyDown(screen.getByRole("button", { name: /Actions/ }), { key: "c" });
+    expect(connect.getAttribute("aria-pressed")).toBe("false");
   });
 
   it("opens Style directly in Appearance and closes it with Escape", () => {
